@@ -16,7 +16,9 @@ import type {
   MediaMetadata,
   MediaSessionAction,
 } from '@arcanewizards/sigil/frontend' with { 'resolution-mode': 'require' };
-import type { SigilAppInstance } from '@arcanewizards/sigil' with { 'resolution-mode': 'require' };
+import type { SigilAppInstance } from '@arcanewizards/sigil' with {
+  'resolution-mode': 'require',
+};
 import {
   runTimecodeToolboxServer,
   type AppApi,

@@ -81,9 +81,9 @@
   "dependencies": {
     "@arcanejs/diff": "^0.5.2",
     "@arcanejs/protocol": "^0.8.0",
-    "@arcanejs/react-toolkit": "^0.15.0",
-    "@arcanejs/toolkit": "^7.0.0",
-    "@arcanejs/toolkit-frontend": "^0.10.0",
+    "@arcanejs/react-toolkit": "^0.15.1",
+    "@arcanejs/toolkit": "^8.0.0",
+    "@arcanejs/toolkit-frontend": "^0.11.0",
     "@arcanewizards/net-utils": "workspace:^",
     "lodash": "^4.17.21",
     "pino": "^9.5.0",

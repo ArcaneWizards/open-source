@@ -55,8 +55,9 @@
 :root {
   --timecode-min-height: 2rem;
 
-  --font-mono: 'SF Mono', SF Mono, SF Mono Regular, Consolas, 'Liberation Mono',
-    Menlo, Courier, monospace;
+  --font-mono:
+    'SF Mono', SF Mono, SF Mono Regular, Consolas, 'Liberation Mono', Menlo,
+    Courier, monospace;
 }
 
 body {
