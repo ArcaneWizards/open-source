@@ -1,0 +1,44 @@
+name: Check, Build & Release
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Use Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: 22.20
+      - name: Extract pnpm version and install
+        run: |
+          VERSION=$(cat package.json | grep '"packageManager": "pnpm@' | sed 's/.*"pnpm@\([^"]*\)".*/\1/')
+          npm install -g pnpm@$VERSION
+      - uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4.2.1
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
+  build-and-release-apps:
+    strategy:
+      matrix:
+        app: [timecode-toolbox]
+    name: build-and-release-${{ matrix.app }}
+    uses: ./.github/workflows/build-and-release-app.yaml
+    permissions:
+      contents: write
+    with:
+      app: ${{ matrix.app }}
+      build_requested: ${{ contains(github.event.pull_request.labels.*.name, format('build-macos-{0}', matrix.app)) }}
+      notarize: ${{ github.ref_name == 'main' }}
