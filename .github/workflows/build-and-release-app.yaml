@@ -22,7 +22,7 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       require_desktop_release: ${{ steps.check_release.outputs.require_desktop_release }}
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Determine version variables
         id: version
         run: |
@@ -74,7 +74,7 @@ jobs:
       x64File: ${{ steps.build_vars.outputs.x64File }}
       arm64File: ${{ steps.build_vars.outputs.arm64File }}
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Use Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
@@ -184,7 +184,7 @@ jobs:
       OUTPUT_MAC_X64: ${{ needs.build-macos.outputs.x64File }}
       OUTPUT_MAC_ARM64: ${{ needs.build-macos.outputs.arm64File }}
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Download macOS builds
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
