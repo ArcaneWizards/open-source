@@ -1,0 +1,23 @@
+{
+  "name": "@arcanewizards/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "dependencies.js",
+    "library.js",
+    "next.js",
+    "react-internal.js",
+    "react-tailwind.js"
+  ],
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
+    "eslint-config-next": "^15.4.6",
+    "eslint-plugin-jest": "^28.6.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-unused-imports": "^4.3.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-turbo": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}

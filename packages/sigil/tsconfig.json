@@ -1,0 +1,10 @@
+{
+  "extends": "@arcanewizards/typescript-config/react.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"],
+}

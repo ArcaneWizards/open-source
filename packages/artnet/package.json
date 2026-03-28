@@ -1,0 +1,40 @@
+{
+  "name": "@arcanewizards/artnet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@arcanewizards/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./constants": {
+      "@arcanewizards/source": "./src/constants.ts",
+      "types": "./dist/constants.d.ts",
+      "import": "./dist/constants.js",
+      "require": "./dist/constants.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsup && check-export-map",
+    "check:types": "tsc --noEmit",
+    "format:fix": "cd .. && pnpm format:fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint --fix ."
+  },
+  "devDependencies": {
+    "@arcanewizards/eslint-config": "workspace:^",
+    "@arcanewizards/typescript-config": "workspace:^",
+    "@types/node": "^25.0.3",
+    "check-export-map": "^1.3.1",
+    "eslint": "^9",
+    "tsup": "^8.1.0",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@arcanewizards/net-utils": "workspace:^"
+  }
+}

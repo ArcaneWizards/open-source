@@ -1,0 +1,13 @@
+{
+  "extends": "@arcanewizards/typescript-config/react.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    // Disable custom conditions, as we want it to use the raw JS here
+    "customConditions": [],
+    "sourceMap": true,
+    "declaration": false,
+    "declarationMap": false,
+  },
+  "include": ["src",],
+  "exclude": ["node_modules", "dist"],
+}

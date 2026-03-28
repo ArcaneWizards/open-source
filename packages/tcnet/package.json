@@ -1,0 +1,60 @@
+{
+  "name": "@arcanewizards/tcnet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@arcanewizards/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./monitor": {
+      "@arcanewizards/source": "./src/monitor.ts",
+      "types": "./dist/monitor.d.ts",
+      "import": "./dist/monitor.js",
+      "require": "./dist/monitor.cjs"
+    },
+    "./types": {
+      "@arcanewizards/source": "./src/types.ts",
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "require": "./dist/types.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsup && check-export-map",
+    "check:types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "devDependencies": {
+    "@arcanewizards/eslint-config": "workspace:^",
+    "@arcanewizards/typescript-config": "workspace:^",
+    "@types/lodash": "^4.17.13",
+    "@types/node": "^22.19.3",
+    "check-export-map": "^1.3.1",
+    "eslint": "^9",
+    "lodash": "^4.17.21",
+    "pino": "^9.5.0",
+    "tsup": "^8.1.0",
+    "typescript": "^5.7.3"
+  },
+  "eslintConfig": {
+    "extends": [
+      "@s0/eslint-config-arcanexus"
+    ]
+  },
+  "peerDependencies": {
+    "pino": "^9.5.0"
+  },
+  "peerDependenciesMeta": {
+    "pino": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@arcanewizards/net-utils": "workspace:^"
+  }
+}

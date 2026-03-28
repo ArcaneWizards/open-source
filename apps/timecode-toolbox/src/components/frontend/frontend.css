@@ -1,0 +1,97 @@
+@import '@arcanejs/toolkit-frontend/styles/core.css';
+@import '@arcanejs/toolkit-frontend/styles/theme.css';
+@import '@arcanejs/toolkit-frontend/styles/base.css';
+
+@import '@arcanewizards/sigil/frontend/styles/sigil.css';
+@import '@arcanewizards/sigil/frontend/styles/theme.css';
+@import '@arcanewizards/sigil/frontend/styles/base.css';
+
+@source './**/*.{ts,tsx}';
+
+@theme inline {
+  /**
+    * Any (non-theme) tailwind variables that need to be used by component
+    * classes should be defined here,
+    * other than those that already exist in `@arcanewizards/sigil`
+    */
+  --spacing-timecode-min-height: var(--timecode-min-height);
+  --text-timecode-adaptive: max(
+    var(--timecode-min-height),
+    min(
+      calc(var(--size-aware-div-height) * 0.7),
+      calc(var(--size-aware-div-width) * 0.13)
+    )
+  );
+  --text-block-icon: max(
+    2rem,
+    min(calc(var(--size-aware-div-width) * 0.05), 5rem)
+  );
+
+  --color-timecode-backdrop: oklch(
+    from var(--timecode-usage-foreground) l c h / calc(alpha * 0.25)
+  );
+  --color-timecode-backdrop-hover: oklch(
+    from var(--timecode-usage-foreground) l c h / calc(alpha * 0.5)
+  );
+
+  --color-timecode-usage-text: var(--timecode-usage-text);
+  --color-timecode-usage-foreground: var(--timecode-usage-foreground);
+  --color-timecode-usage-background: var(--timecode-usage-background);
+  --color-timecode-usage-border: var(--timecode-usage-border);
+  --color-timecode-usage-drag-border: var(--timecode-usage-drag-border);
+  --color-timecode-usage-selected-background: var(
+    --timecode-usage-selected-background
+  );
+  --color-timecode-usage-selected-border: var(--timecode-usage-selected-border);
+  --color-timecode-usage-selected-text: var(--timecode-usage-selected-text);
+  --color-timecode-usage-dimmed-background: var(
+    --timecode-usage-dimmed-background
+  );
+  --color-timecode-usage-dimmed-border: var(--timecode-usage-dimmed-border);
+
+  --font-mono: var(--font-mono);
+}
+
+:root {
+  --timecode-min-height: 2rem;
+
+  --font-mono: 'SF Mono', SF Mono, SF Mono Regular, Consolas, 'Liberation Mono',
+    Menlo, Courier, monospace;
+}
+
+body {
+  /* prevent window scrollbars from appearing */
+  overflow: hidden;
+}
+
+.arcane-theme-root {
+  /* TODO: move this into @arcanejs */
+  background: var(--arcane-page-bg);
+
+  --timecode-usage-text: var(--sigil-usage-hint-text);
+  --timecode-usage-foreground: var(--sigil-usage-hint-foreground);
+  --timecode-usage-background: var(--sigil-usage-hint-background);
+  --timecode-usage-border: var(--sigil-usage-hint-border);
+  --timecode-usage-drag-border: var(--sigil-usage-hint-drag-border);
+  --timecode-usage-selected-background: var(
+    --sigil-usage-hint-selected-background
+  );
+  --timecode-usage-selected-border: var(--sigil-usage-hint-selected-border);
+  --timecode-usage-selected-text: var(--sigil-usage-hint-selected-text);
+  --timecode-usage-dimmed-background: var(--sigil-usage-hint-dimmed-background);
+  --timecode-usage-dimmed-border: var(--sigil-usage-hint-dimmed-border);
+}
+
+body {
+  user-select: none;
+  /* TODO: fix arcane bg variable in @arcanejs */
+  --arcane-page-bg: #1f1f1f;
+}
+
+@utility writing-mode-vertical-rl {
+  writing-mode: vertical-rl;
+}
+
+@utility app-title-bar {
+  app-region: drag;
+}

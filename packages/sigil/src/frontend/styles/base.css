@@ -1,0 +1,321 @@
+@import '@arcanejs/toolkit-frontend/styles/base.css';
+
+@tailwind utilities;
+
+/**
+ * Base tailwind definitions of variables etc...
+ */
+
+@theme inline {
+  /* Z-Indexes */
+  --z-index-sigil-select-content: 190;
+  --z-index-sigil-toolbar: 160;
+  --z-index-sigil-tooltip: 190;
+
+  /** Shadows */
+  --shadow-sigil-box: var(--sigil-box-shadow);
+  --drop-shadow-sigil-tooltip-arrow: 0px 2px 2px rgba(0, 0, 0, 0.5);
+  --radius-sigil-control: 4px;
+
+  /* Spacing */
+  --spacing-sigil-control-gap: var(--sigil-control-gap);
+  --spacing-0_25: calc(var(--arcane-spacing) / 8);
+  --spacing-0_3: calc(var(--arcane-spacing) / 6);
+  --spacing-0_6: calc(var(--arcane-spacing) / 3);
+  --spacing-0_8: calc(var(--arcane-spacing) / 2.5);
+  --spacing-1_3: calc(var(--arcane-spacing) / 3 * 2);
+  --spacing-sigil-toolbar-gap: calc(var(--sigil-toolbar-spacing-px) / 2);
+  --spacing-sigil-toolbar-padding: var(--sigil-toolbar-spacing-px);
+  --spacing-sigil-toolbar-divider: 1.2rem;
+  --spacing-text-1: 1rem;
+  --spacing-text-0_5: 0.5rem;
+  --spacing-text-0_25: 0.25rem;
+
+  /* Font / Text */
+  --text-sigil-control: var(--sigil-control-font-size);
+
+  /* Colors */
+  --color-sigil-bg-dark-1: var(--sigil-bg-dark-1);
+  --color-sigil-bg-light-2: var(--sigil-bg-light-2);
+  --color-sigil-bg-dark: var(--sigil-bg-dark);
+  --color-sigil-bg-light: var(--sigil-bg-light);
+  --color-sigil-bg-button-hover: var(--sigil-bg-button-hover);
+  --color-sigil-border: var(--sigil-border);
+  --color-sigil-border-lighterer: var(--sigil-border-lighterer);
+  --color-sigil-foreground: var(--sigil-foreground);
+  --color-sigil-foreground-highlight: var(--sigil-foreground-highlight);
+  --color-sigil-foreground-muted: var(--sigil-foreground-muted);
+  --color-sigil-colored-bg-text: var(--sigil-colored-bg-text);
+  --color-sigil-hint-foreground: var(--sigil-hint-foreground);
+  --color-sigil-success-foreground: var(--sigil-success-foreground);
+  --color-sigil-error-foreground: var(--sigil-error-foreground);
+  --color-sigil-warning-foreground: var(--sigil-warning-foreground);
+  --color-sigil-ghost-bg: var(--sigil-ghost-bg);
+  --color-sigil-ghost-border: var(--sigil-ghost-border);
+  --color-sigil-color-red: var(--sigil-color-red);
+  --color-sigil-color-amber: var(--sigil-color-amber);
+
+  /* Color Usage */
+  --color-sigil-usage-hint-text: var(--sigil-usage-hint-text);
+  --color-sigil-usage-hint-foreground: var(--sigil-usage-hint-foreground);
+  --color-sigil-usage-hint-background: var(--sigil-usage-hint-background);
+  --color-sigil-usage-hint-border: var(--sigil-usage-hint-border);
+  --color-sigil-usage-hint-drag-border: var(--sigil-usage-hint-drag-border);
+  --color-sigil-usage-hint-selected-background: var(
+    --sigil-usage-hint-selected-background
+  );
+  --color-sigil-usage-hint-selected-border: var(
+    --sigil-usage-hint-selected-border
+  );
+  --color-sigil-usage-hint-selected-text: var(--sigil-usage-hint-selected-text);
+  --color-sigil-usage-hint-dimmed-background: var(
+    --sigil-usage-hint-dimmed-background
+  );
+  --color-sigil-usage-hint-dimmed-border: var(--sigil-usage-hint-dimmed-border);
+  --color-sigil-usage-purple-text: var(--sigil-usage-purple-text);
+  --color-sigil-usage-purple-foreground: var(--sigil-usage-purple-foreground);
+  --color-sigil-usage-purple-background: var(--sigil-usage-purple-background);
+  --color-sigil-usage-purple-border: var(--sigil-usage-purple-border);
+  --color-sigil-usage-purple-drag-border: var(--sigil-usage-purple-drag-border);
+  --color-sigil-usage-purple-selected-background: var(
+    --sigil-usage-purple-selected-background
+  );
+  --color-sigil-usage-purple-selected-border: var(
+    --sigil-usage-purple-selected-border
+  );
+  --color-sigil-usage-purple-selected-text: var(
+    --sigil-usage-purple-selected-text
+  );
+  --color-sigil-usage-purple-dimmed-background: var(
+    --sigil-usage-purple-dimmed-background
+  );
+  --color-sigil-usage-purple-dimmed-border: var(
+    --sigil-usage-purple-dimmed-border
+  );
+  --color-sigil-usage-blue-text: var(--sigil-usage-blue-text);
+  --color-sigil-usage-blue-foreground: var(--sigil-usage-blue-foreground);
+  --color-sigil-usage-blue-background: var(--sigil-usage-blue-background);
+  --color-sigil-usage-blue-border: var(--sigil-usage-blue-border);
+  --color-sigil-usage-blue-drag-border: var(--sigil-usage-blue-drag-border);
+  --color-sigil-usage-blue-selected-background: var(
+    --sigil-usage-blue-selected-background
+  );
+  --color-sigil-usage-blue-selected-border: var(
+    --sigil-usage-blue-selected-border
+  );
+  --color-sigil-usage-blue-selected-text: var(--sigil-usage-blue-selected-text);
+  --color-sigil-usage-blue-dimmed-background: var(
+    --sigil-usage-blue-dimmed-background
+  );
+  --color-sigil-usage-blue-dimmed-border: var(--sigil-usage-blue-dimmed-border);
+  --color-sigil-usage-teal-text: var(--sigil-usage-teal-text);
+  --color-sigil-usage-teal-foreground: var(--sigil-usage-teal-foreground);
+  --color-sigil-usage-teal-background: var(--sigil-usage-teal-background);
+  --color-sigil-usage-teal-border: var(--sigil-usage-teal-border);
+  --color-sigil-usage-teal-drag-border: var(--sigil-usage-teal-drag-border);
+  --color-sigil-usage-teal-selected-background: var(
+    --sigil-usage-teal-selected-background
+  );
+  --color-sigil-usage-teal-selected-border: var(
+    --sigil-usage-teal-selected-border
+  );
+  --color-sigil-usage-teal-selected-text: var(--sigil-usage-teal-selected-text);
+  --color-sigil-usage-teal-dimmed-background: var(
+    --sigil-usage-teal-dimmed-background
+  );
+  --color-sigil-usage-teal-dimmed-border: var(--sigil-usage-teal-dimmed-border);
+  --color-sigil-usage-green-text: var(--sigil-usage-green-text);
+  --color-sigil-usage-green-foreground: var(--sigil-usage-green-foreground);
+  --color-sigil-usage-green-background: var(--sigil-usage-green-background);
+  --color-sigil-usage-green-border: var(--sigil-usage-green-border);
+  --color-sigil-usage-green-drag-border: var(--sigil-usage-green-drag-border);
+  --color-sigil-usage-green-selected-background: var(
+    --sigil-usage-green-selected-background
+  );
+  --color-sigil-usage-green-selected-border: var(
+    --sigil-usage-green-selected-border
+  );
+  --color-sigil-usage-green-selected-text: var(
+    --sigil-usage-green-selected-text
+  );
+  --color-sigil-usage-green-dimmed-background: var(
+    --sigil-usage-green-dimmed-background
+  );
+  --color-sigil-usage-green-dimmed-border: var(
+    --sigil-usage-green-dimmed-border
+  );
+  --color-sigil-usage-yellow-text: var(--sigil-usage-yellow-text);
+  --color-sigil-usage-yellow-foreground: var(--sigil-usage-yellow-foreground);
+  --color-sigil-usage-yellow-background: var(--sigil-usage-yellow-background);
+  --color-sigil-usage-yellow-border: var(--sigil-usage-yellow-border);
+  --color-sigil-usage-yellow-drag-border: var(--sigil-usage-yellow-drag-border);
+  --color-sigil-usage-yellow-selected-background: var(
+    --sigil-usage-yellow-selected-background
+  );
+  --color-sigil-usage-yellow-selected-border: var(
+    --sigil-usage-yellow-selected-border
+  );
+  --color-sigil-usage-yellow-selected-text: var(
+    --sigil-usage-yellow-selected-text
+  );
+  --color-sigil-usage-yellow-dimmed-background: var(
+    --sigil-usage-yellow-dimmed-background
+  );
+  --color-sigil-usage-yellow-dimmed-border: var(
+    --sigil-usage-yellow-dimmed-border
+  );
+  --color-sigil-usage-orange-text: var(--sigil-usage-orange-text);
+  --color-sigil-usage-orange-foreground: var(--sigil-usage-orange-foreground);
+  --color-sigil-usage-orange-background: var(--sigil-usage-orange-background);
+  --color-sigil-usage-orange-border: var(--sigil-usage-orange-border);
+  --color-sigil-usage-orange-drag-border: var(--sigil-usage-orange-drag-border);
+  --color-sigil-usage-orange-selected-background: var(
+    --sigil-usage-orange-selected-background
+  );
+  --color-sigil-usage-orange-selected-border: var(
+    --sigil-usage-orange-selected-border
+  );
+  --color-sigil-usage-orange-selected-text: var(
+    --sigil-usage-orange-selected-text
+  );
+  --color-sigil-usage-orange-dimmed-background: var(
+    --sigil-usage-orange-dimmed-background
+  );
+  --color-sigil-usage-orange-dimmed-border: var(
+    --sigil-usage-orange-dimmed-border
+  );
+  --color-sigil-usage-brown-text: var(--sigil-usage-brown-text);
+  --color-sigil-usage-brown-foreground: var(--sigil-usage-brown-foreground);
+  --color-sigil-usage-brown-background: var(--sigil-usage-brown-background);
+  --color-sigil-usage-brown-border: var(--sigil-usage-brown-border);
+  --color-sigil-usage-brown-drag-border: var(--sigil-usage-brown-drag-border);
+  --color-sigil-usage-brown-selected-background: var(
+    --sigil-usage-brown-selected-background
+  );
+  --color-sigil-usage-brown-selected-border: var(
+    --sigil-usage-brown-selected-border
+  );
+  --color-sigil-usage-brown-selected-text: var(
+    --sigil-usage-brown-selected-text
+  );
+  --color-sigil-usage-brown-dimmed-background: var(
+    --sigil-usage-brown-dimmed-background
+  );
+  --color-sigil-usage-brown-dimmed-border: var(
+    --sigil-usage-brown-dimmed-border
+  );
+  --color-sigil-usage-red-text: var(--sigil-usage-red-text);
+  --color-sigil-usage-red-foreground: var(--sigil-usage-red-foreground);
+  --color-sigil-usage-red-background: var(--sigil-usage-red-background);
+  --color-sigil-usage-red-border: var(--sigil-usage-red-border);
+  --color-sigil-usage-red-drag-border: var(--sigil-usage-red-drag-border);
+  --color-sigil-usage-red-selected-background: var(
+    --sigil-usage-red-selected-background
+  );
+  --color-sigil-usage-red-selected-border: var(
+    --sigil-usage-red-selected-border
+  );
+  --color-sigil-usage-red-selected-text: var(--sigil-usage-red-selected-text);
+  --color-sigil-usage-red-dimmed-background: var(
+    --sigil-usage-red-dimmed-background
+  );
+  --color-sigil-usage-red-dimmed-border: var(--sigil-usage-red-dimmed-border);
+  --color-sigil-usage-gray-text: var(--sigil-usage-gray-text);
+  --color-sigil-usage-gray-foreground: var(--sigil-usage-gray-foreground);
+  --color-sigil-usage-gray-background: var(--sigil-usage-gray-background);
+  --color-sigil-usage-gray-border: var(--sigil-usage-gray-border);
+  --color-sigil-usage-gray-drag-border: var(--sigil-usage-gray-drag-border);
+  --color-sigil-usage-gray-selected-background: var(
+    --sigil-usage-gray-selected-background
+  );
+  --color-sigil-usage-gray-selected-border: var(
+    --sigil-usage-gray-selected-border
+  );
+  --color-sigil-usage-gray-selected-text: var(--sigil-usage-gray-selected-text);
+  --color-sigil-usage-gray-dimmed-background: var(
+    --sigil-usage-gray-dimmed-background
+  );
+  --color-sigil-usage-gray-dimmed-border: var(--sigil-usage-gray-dimmed-border);
+  --color-sigil-usage-unknown-text: var(--sigil-usage-unknown-text);
+  --color-sigil-usage-unknown-foreground: var(--sigil-usage-unknown-foreground);
+  --color-sigil-usage-unknown-background: var(--sigil-usage-unknown-background);
+  --color-sigil-usage-unknown-border: var(--sigil-usage-unknown-border);
+  --color-sigil-usage-unknown-drag-border: var(
+    --sigil-usage-unknown-drag-border
+  );
+  --color-sigil-usage-unknown-selected-background: var(
+    --sigil-usage-unknown-selected-background
+  );
+  --color-sigil-usage-unknown-selected-border: var(
+    --sigil-usage-unknown-selected-border
+  );
+  --color-sigil-usage-unknown-selected-text: var(
+    --sigil-usage-unknown-selected-text
+  );
+  --color-sigil-usage-unknown-dimmed-background: var(
+    --sigil-usage-unknown-dimmed-background
+  );
+  --color-sigil-usage-unknown-dimmed-border: var(
+    --sigil-usage-unknown-dimmed-border
+  );
+}
+
+@utility scrollbar-sigil {
+  scrollbar-color: var(--sigil-bg-light) var(--sigil-border);
+}
+@utility control-grid {
+  display: grid;
+  grid-template-columns: [label-start] max-content [label-end input-1-start] max-content [input-1-end input-2-start] 1fr [input-2-end input-extra-end];
+  grid-gap: var(--sigil-control-gap);
+  padding: var(--sigil-control-gap);
+  font-size: var(--sigil-control-font-size);
+}
+
+@utility control-grid-large {
+  display: grid;
+  grid-template-columns: [label-start] max-content [label-end input-1-start] max-content [input-1-end input-2-start] 1fr [input-2-end input-extra-start] max-content [input-extra-end];
+  padding: var(--arcane-spacing);
+  gap: var(--arcane-spacing);
+  font-size: 0.8rem;
+}
+
+@utility control-grid-pos-label {
+  grid-column: label-start / label-end;
+  grid-row: auto / span 1;
+}
+
+@utility control-grid-pos-first {
+  grid-column: input-1-start / input-1-end;
+  grid-row: auto / span 1;
+}
+
+@utility control-grid-pos-second {
+  grid-column: input-2-start / input-2-end;
+  grid-row: auto / span 1;
+}
+
+@utility control-grid-pos-both {
+  grid-column: input-1-start / input-2-end;
+  grid-row: auto / span 1;
+}
+
+@utility control-grid-pos-extra {
+  grid-column: input-extra-start / input-extra-end;
+  grid-row: auto / span 1;
+}
+
+@utility control-grid-pos-all {
+  grid-column: input-1-start / input-extra-end;
+  grid-row: auto / span 1;
+}
+
+@utility control-grid-pos-row {
+  grid-column: label-start / input-extra-end;
+  grid-row: auto / span 1;
+}
+
+:root {
+  /** TODO: move this to tailwind variable */
+  --sigil-control-gap: 1px;
+  --sigil-control-font-size: 0.7rem;
+}

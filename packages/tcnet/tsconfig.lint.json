@@ -1,0 +1,8 @@
+{
+  "extends": "@arcanewizards/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src", "turbo",  "tsup.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

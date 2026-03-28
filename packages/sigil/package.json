@@ -1,0 +1,108 @@
+{
+  "name": "@arcanewizards/sigil",
+  "description": "Application framework for A/V applications, built on-top of arcanejs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@arcanewizards/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./frontend": {
+      "@arcanewizards/source": "./src/frontend.ts",
+      "types": "./dist/frontend.d.ts",
+      "import": "./dist/frontend.js",
+      "require": "./dist/frontend.cjs"
+    },
+    "./frontend/context": {
+      "@arcanewizards/source": "./src/frontend/context.tsx",
+      "types": "./dist/frontend/context.d.ts",
+      "import": "./dist/frontend/context.js",
+      "require": "./dist/frontend/context.cjs"
+    },
+    "./frontend/controls": {
+      "@arcanewizards/source": "./src/frontend/controls/index.ts",
+      "types": "./dist/frontend/controls/index.d.ts",
+      "import": "./dist/frontend/controls/index.js",
+      "require": "./dist/frontend/controls/index.cjs"
+    },
+    "./frontend/dialogs": {
+      "@arcanewizards/source": "./src/frontend/dialogs.tsx",
+      "types": "./dist/frontend/dialogs.d.ts",
+      "import": "./dist/frontend/dialogs.js",
+      "require": "./dist/frontend/dialogs.cjs"
+    },
+    "./frontend/input": {
+      "@arcanewizards/source": "./src/frontend/input.ts",
+      "types": "./dist/frontend/input.d.ts",
+      "import": "./dist/frontend/input.js",
+      "require": "./dist/frontend/input.cjs"
+    },
+    "./frontend/styling": {
+      "@arcanewizards/source": "./src/frontend/styling.ts",
+      "types": "./dist/frontend/styling.d.ts",
+      "import": "./dist/frontend/styling.js",
+      "require": "./dist/frontend/styling.cjs"
+    },
+    "./frontend/toolbars": {
+      "@arcanewizards/source": "./src/frontend/toolbars.tsx",
+      "types": "./dist/frontend/toolbars.d.ts",
+      "import": "./dist/frontend/toolbars.js",
+      "require": "./dist/frontend/toolbars.cjs"
+    },
+    "./frontend/tooltip": {
+      "@arcanewizards/source": "./src/frontend/tooltip.tsx",
+      "types": "./dist/frontend/tooltip.d.ts",
+      "import": "./dist/frontend/tooltip.js",
+      "require": "./dist/frontend/tooltip.cjs"
+    },
+    "./frontend/styles/sigil.css": {
+      "default": "./dist/frontend/styles/sigil.css"
+    },
+    "./frontend/styles/theme.css": {
+      "default": "./dist/frontend/styles/theme.css"
+    },
+    "./frontend/styles/base.css": {
+      "default": "./dist/frontend/styles/base.css"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsup && pnpm build:styles && check-export-map",
+    "build:styles": "tailwindcss -i ./src/frontend/styles/sigil.css -o ./dist/frontend/styles/sigil.css && cp ./src/frontend/styles/theme.css ./dist/frontend/styles/theme.css && cp ./src/frontend/styles/base.css ./dist/frontend/styles/base.css",
+    "check:types": "tsc --noEmit",
+    "format:fix": "cd .. && pnpm format:fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint --fix ."
+  },
+  "dependencies": {
+    "@arcanejs/diff": "^0.5.2",
+    "@arcanejs/protocol": "^0.8.0",
+    "@arcanejs/react-toolkit": "^0.15.0",
+    "@arcanejs/toolkit": "^7.0.0",
+    "@arcanejs/toolkit-frontend": "^0.10.0",
+    "@arcanewizards/net-utils": "workspace:^",
+    "lodash": "^4.17.21",
+    "pino": "^9.5.0",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@arcanewizards/eslint-config": "workspace:^",
+    "@arcanewizards/typescript-config": "workspace:^",
+    "@tailwindcss/cli": "^4.1.13",
+    "@types/lodash": "^4.17.13",
+    "@types/node": "^25.0.3",
+    "@types/react": "^19.2.2",
+    "check-export-map": "^1.3.1",
+    "eslint": "^9",
+    "eslint-plugin-better-tailwindcss": "^4.2.0",
+    "tailwindcss": "^4.1.13",
+    "tsup": "^8.1.0",
+    "typescript": "^5.7.3"
+  }
+}

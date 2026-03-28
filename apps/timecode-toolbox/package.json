@@ -1,0 +1,69 @@
+{
+  "name": "@arcanewizards/timecode-toolbox",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": {
+      "@arcanewizards/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./frontend": {
+      "@arcanewizards/source": "./src/components/frontend/index.tsx",
+      "types": "./dist/components/frontend/index.d.ts",
+      "require": "./dist/frontend.js"
+    },
+    "./entrypoint": "./dist/entrypoint.js",
+    "./entrypoint.css": "./dist/entrypoint.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "pnpm check:types && rm -rf dist && tsup && pnpm build:entrypoint && pnpm build:frontend && pnpm build:styles && check-export-map",
+    "build:entrypoint": "arcane-build-frontend --entry src/components/frontend/entrypoint.ts --outfile dist/entrypoint.js --sourcemap",
+    "build:frontend": "arcane-build-frontend --entry src/components/frontend/index.tsx --outfile dist/frontend.js --sourcemap",
+    "build:styles": "tailwindcss -i ./src/components/frontend/frontend.css -o ./dist/entrypoint.css",
+    "check:types": "tsc --noEmit",
+    "format:fix": "cd .. && pnpm format:fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "start": "pnpm build:entrypoint && pnpm build:styles && node --import=tsx --conditions=@arcanewizards/source src/start"
+  },
+  "devDependencies": {
+    "@arcanejs/build-utils": "^0.1.2",
+    "@arcanejs/diff": "^0.5.2",
+    "@arcanejs/protocol": "^0.8.0",
+    "@arcanejs/react-toolkit": "^0.15.0",
+    "@arcanejs/toolkit": "^7.0.0",
+    "@arcanejs/toolkit-frontend": "^0.10.0",
+    "@arcanewizards/artnet": "workspace:^",
+    "@arcanewizards/eslint-config": "workspace:^",
+    "@arcanewizards/net-utils": "workspace:^",
+    "@arcanewizards/sigil": "workspace:^",
+    "@arcanewizards/tcnet": "workspace:^",
+    "@arcanewizards/typescript-config": "workspace:^",
+    "@types/lodash": "^4.17.13",
+    "@types/node": "^22.19.3",
+    "@types/react": "^19.2.2",
+    "check-export-map": "^1.3.1",
+    "esbuild": "^0.25.0",
+    "eslint": "^9",
+    "eslint-plugin-better-tailwindcss": "^4.2.0",
+    "lodash": "^4.17.21",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0",
+    "react": "^19.2.0",
+    "tailwindcss": "^4.1.13",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.7.3",
+    "uuid": "^11.0.3",
+    "zod": "^3.22.4"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.13",
+    "music-metadata": "^11.0.0",
+    "osc-js": "^2.4.1",
+    "radix-ui": "^1.4.3"
+  }
+}
