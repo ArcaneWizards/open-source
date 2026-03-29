@@ -284,4 +284,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.pre-release-checks.outputs.tag }}
-        run: gh release create --target ${{ github.sha }} "$RELEASE_TAG" "$OUTPUT_MAC_X64" "$OUTPUT_MAC_ARM64"RM64" "$OUTPUT_WIN_X64"
+        run: gh release create --target ${{ github.sha }} "$RELEASE_TAG" "$OUTPUT_MAC_X64" "$OUTPUT_MAC_ARM64" "$OUTPUT_WIN_X64"
