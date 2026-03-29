@@ -258,13 +258,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: needs.pre-release-checks.outputs.require_desktop_release == 'true'
-    needs: [pre-release-checks, build-macos]
+    needs: [pre-release-checks, build-macos, build-windows]
     permissions:
       contents: write
     environment: package
     env:
       OUTPUT_MAC_X64: ${{ needs.build-macos.outputs.x64File }}
       OUTPUT_MAC_ARM64: ${{ needs.build-macos.outputs.arm64File }}
+      OUTPUT_WIN_X64: ${{ needs.build-windows.outputs.x64File }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Download macOS builds
@@ -283,4 +284,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.pre-release-checks.outputs.tag }}
-        run: gh release create --target ${{ github.sha }} "$RELEASE_TAG" "$OUTPUT_MAC_X64" "$OUTPUT_MAC_ARM64"
+        run: gh release create --target ${{ github.sha }} "$RELEASE_TAG" "$OUTPUT_MAC_X64" "$OUTPUT_MAC_ARM64"RM64" "$OUTPUT_WIN_X64"
