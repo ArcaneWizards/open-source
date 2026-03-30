@@ -84,20 +84,23 @@ const INPUT_CONFIG = z.object({
 
 export type InputConfig = z.infer<typeof INPUT_CONFIG>;
 
-const GENERATOR_DEFINITION = z.union([
-  z.object({
-    type: z.literal('clock'),
-  }),
-  z.object({
-    type: z.literal('playback'),
-  }),
-]);
+const GENERATOR_CLOCK_DEFINITION = z.object({
+  type: z.literal('clock'),
+  speed: z.number(),
+});
+
+export type GeneratorClockDefinition = z.infer<
+  typeof GENERATOR_CLOCK_DEFINITION
+>;
+
+const GENERATOR_DEFINITION = GENERATOR_CLOCK_DEFINITION;
 
 export type GeneratorDefinition = z.infer<typeof GENERATOR_DEFINITION>;
 
 const GENERATOR_CONFIG = z.object({
   name: z.string().optional(),
   color: SIGIL_COLOR.optional(),
+  delayMs: z.number().optional(),
   definition: GENERATOR_DEFINITION,
 });
 
@@ -239,6 +242,10 @@ export type InputState = {
   clients?: ConnectedClient[];
 };
 
+export type GeneratorState = {
+  timecode: TimecodeInstance | null;
+};
+
 export type OutputState = {
   status: 'disabled' | 'connecting' | 'error' | 'active';
   errors?: string[];
@@ -251,6 +258,7 @@ export type OutputState = {
 
 export type ApplicationState = {
   inputs: Record<string, InputState>;
+  generators: Record<string, GeneratorState>;
   outputs: Record<string, OutputState>;
 };
 

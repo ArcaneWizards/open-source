@@ -47,6 +47,12 @@ export const STRINGS = {
   generators: {
     title: 'GENERATORS',
     noChildren: 'No generators yet. Please add one using the buttons below.',
+    type: {
+      clock: 'Clock',
+    },
+    addDialog: (protocol: string) => `Add ${protocol} Generator`,
+    editDialog: (protocol: string, name: string) =>
+      `Edit ${protocol} Generator ${name}`,
   },
   outputs: {
     title: 'OUTPUTS',

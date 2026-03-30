@@ -34,6 +34,7 @@ const DEFAULT_PROPS: AppRootProps = {
   state: {
     inputs: {},
     outputs: {},
+    generators: {},
   },
 };
 

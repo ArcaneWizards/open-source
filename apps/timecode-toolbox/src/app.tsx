@@ -52,6 +52,7 @@ export const App = ({
   const [state, setState] = useState<ApplicationState>({
     inputs: {},
     outputs: {},
+    generators: {},
   });
 
   return (
