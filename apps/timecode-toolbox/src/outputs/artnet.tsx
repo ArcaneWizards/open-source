@@ -15,14 +15,11 @@ import {
   OutputState,
   isOutputArtnetDefinition,
 } from '../components/proto';
-import {
-  adjustTimecodeForDelay,
-  getTimecodeInstance,
-  StateSensitiveComponentProps,
-} from '../util';
+import { adjustTimecodeForDelay, getTimecodeInstance } from '../util';
 import { useLogger } from '@arcanewizards/sigil';
 import { ArtNet, createArtnet } from '@arcanewizards/artnet';
 import { TIMECODE_FPS } from '@arcanewizards/artnet/constants';
+import { StateSensitiveComponentProps } from '../types';
 
 type ArtnetOutputConnectionProps = StateSensitiveComponentProps & {
   uuid: string;

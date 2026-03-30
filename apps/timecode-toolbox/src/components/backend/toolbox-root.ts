@@ -25,7 +25,10 @@ export type Events = {
   updateConfig: (diff: Diff<ToolboxConfig>) => void;
 };
 
-export type AppRootProps = Pick<ToolboxRootComponent, 'config' | 'state'> & {
+export type AppRootProps = Pick<
+  ToolboxRootComponent,
+  'config' | 'state' | 'handlers'
+> & {
   onUpdateConfig?: Events['updateConfig'];
 };
 
@@ -36,6 +39,7 @@ const DEFAULT_PROPS: AppRootProps = {
     outputs: {},
     generators: {},
   },
+  handlers: { children: {} },
 };
 
 export class ToolboxRoot
@@ -75,6 +79,7 @@ export class ToolboxRoot
       key: idMap.getId(this),
       config: this.props.config,
       state: this.props.state,
+      handlers: this.props.handlers,
     };
   }
 

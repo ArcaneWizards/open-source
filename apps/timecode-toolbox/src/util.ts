@@ -1,4 +1,3 @@
-import { Dispatch, SetStateAction } from 'react';
 import {
   ApplicationState,
   InputOrGenInstance,
@@ -12,11 +11,6 @@ export const isKeyedEntry =
   <K, I, O extends I>(typeGuard: (value: I) => value is O) =>
   (entry: [K, I]): entry is [K, O] =>
     entry.length === 2 && typeGuard(entry[1]);
-
-export type StateSensitiveComponentProps = {
-  state: ApplicationState;
-  setState: Dispatch<SetStateAction<ApplicationState>>;
-};
 
 export const getTimecodeInstance = (
   state: ApplicationState,

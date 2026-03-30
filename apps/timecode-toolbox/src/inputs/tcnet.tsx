@@ -17,7 +17,6 @@ import {
   isInputTcnetDefinition,
   TimecodeGroup,
 } from '../components/proto';
-import { StateSensitiveComponentProps } from '../util';
 import {
   AppInformationContext,
   useLogger,
@@ -31,6 +30,7 @@ import {
   TCNetPortUsage,
 } from '@arcanewizards/tcnet/types';
 import { NetworkPortStatus } from '@arcanewizards/net-utils';
+import { StateSensitiveComponentProps } from '../types';
 
 type TcnetInputConnectionProps = StateSensitiveComponentProps & {
   uuid: string;

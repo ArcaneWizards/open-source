@@ -9,6 +9,7 @@ import { SIGIL_COLOR, SigilColor } from '@arcanewizards/sigil/frontend/styling';
 import { Diff } from '@arcanejs/diff';
 import { NetworkInterface } from '@arcanewizards/net-utils';
 import { TimecodeMode } from '@arcanewizards/artnet/constants';
+import { Tree } from '../tree';
 
 /* Shared config & proto definitions */
 
@@ -148,6 +149,38 @@ export const DEFAULT_CONFIG: ToolboxConfig = {
 
 /* App State */
 
+export type TimecodePlayStateNone = {
+  state: 'none';
+};
+
+export type TimecodePlayStateStopped = {
+  state: 'stopped';
+  positionMillis: number;
+};
+
+export type TimecodePlayStatePlayingOrLagging = {
+  state: 'playing' | 'lagging';
+  effectiveStartTimeMillis: number;
+  /**
+   * 1 = real-time, 2 = twice as fast, 0.5 = half as fast, etc.
+   */
+  speed: number;
+};
+
+export type TimecodePlayState =
+  | TimecodePlayStateNone
+  | TimecodePlayStateStopped
+  | TimecodePlayStatePlayingOrLagging;
+
+export const isPlaying = (
+  state: TimecodePlayState,
+): state is TimecodePlayStatePlayingOrLagging =>
+  state.state === 'playing' || state.state === 'lagging';
+
+export const isStopped = (
+  state: TimecodePlayState,
+): state is TimecodePlayStateStopped => state.state === 'stopped';
+
 export type TimecodeState = {
   /**
    * Approximate accuracy of the timecode, if available
@@ -162,23 +195,7 @@ export type TimecodeState = {
    * (e.g. have a mixer value high enough)
    */
   onAir: boolean | null;
-} & (
-  | {
-      state: 'none';
-    }
-  | {
-      state: 'stopped';
-      positionMillis: number;
-    }
-  | {
-      state: 'playing' | 'lagging';
-      effectiveStartTimeMillis: number;
-      /**
-       * 1 = real-time, 2 = twice as fast, 0.5 = half as fast, etc.
-       */
-      speed: number;
-    }
-);
+} & TimecodePlayState;
 
 export type TimecodeTotalTime = {
   timeMillis: number;
@@ -262,6 +279,11 @@ export type ApplicationState = {
   outputs: Record<string, OutputState>;
 };
 
+export type AvailableHandlers = {
+  play?: true;
+  pause?: true;
+};
+
 /* Proto */
 
 export const NAMESPACE = 'timecode-toolbox';
@@ -274,6 +296,7 @@ export type ToolboxRootComponent = BaseComponentProto<
 > & {
   config: ToolboxConfig;
   state: ApplicationState;
+  handlers: Tree<AvailableHandlers>;
 };
 
 export type TimecodeToolboxComponent = ToolboxRootComponent;

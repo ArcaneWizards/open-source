@@ -1,8 +1,12 @@
 import { FC } from 'react';
-import { StateSensitiveComponentProps } from '../util';
 import { ClockGenerators } from './clock';
+import { HandlersUpdater, StateSensitiveComponentProps } from '../types';
 
-export const Generators: FC<StateSensitiveComponentProps> = (props) => {
+type GeneratorsProps = StateSensitiveComponentProps & {
+  setHandlers: HandlersUpdater;
+};
+
+export const Generators: FC<GeneratorsProps> = (props) => {
   return (
     <>
       <ClockGenerators {...props} />
