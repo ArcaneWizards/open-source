@@ -22,7 +22,7 @@ import { ControlButton } from '@arcanewizards/sigil/frontend/controls';
 import { ExternalLink } from './content';
 import { STRINGS } from '../constants';
 import { OutputSettingsDialog, OutputsSection } from './outputs';
-import { GeneratorsSection } from './generators';
+import { GeneratorSettingsDialog, GeneratorsSection } from './generators';
 import { InputSettingsDialog, InputsSection } from './inputs';
 import { diffJson } from '@arcanejs/diff';
 import { StageContext } from '@arcanejs/toolkit-frontend';
@@ -198,7 +198,10 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
                     setDialogMode={setDialogMode}
                     assignToOutput={assignToOutputCallback}
                   />
-                  <GeneratorsSection />
+                  <GeneratorsSection
+                    setDialogMode={setDialogMode}
+                    assignToOutput={assignToOutputCallback}
+                  />
                   <OutputsSection
                     setDialogMode={setDialogMode}
                     assignToOutput={assignToOutput}
@@ -210,6 +213,13 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
                 <InputSettingsDialog
                   close={closeDialog}
                   input={dialogMode.section.input}
+                  target={dialogMode.target}
+                />
+              )}
+              {dialogMode?.section.type === 'generators' && (
+                <GeneratorSettingsDialog
+                  close={closeDialog}
+                  generator={dialogMode.section.generator}
                   target={dialogMode.target}
                 />
               )}

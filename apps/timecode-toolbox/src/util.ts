@@ -1,4 +1,3 @@
-import { Dispatch, SetStateAction } from 'react';
 import {
   ApplicationState,
   InputOrGenInstance,
@@ -13,23 +12,17 @@ export const isKeyedEntry =
   (entry: [K, I]): entry is [K, O] =>
     entry.length === 2 && typeGuard(entry[1]);
 
-export type StateSensitiveComponentProps = {
-  state: ApplicationState;
-  setState: Dispatch<SetStateAction<ApplicationState>>;
-};
-
 export const getTimecodeInstance = (
   state: ApplicationState,
   id: InputOrGenInstance,
 ): TimecodeInstance | null => {
-  if (id.type === 'generator') {
-    throw new Error('Not Implemented Yet');
-  }
   const [firstId, ...remainingPath] = id.id;
   if (!firstId) {
     return null;
   }
-  let current = state.inputs[firstId]?.timecode ?? null;
+  let current =
+    state[id.type === 'input' ? 'inputs' : 'generators'][firstId]?.timecode ??
+    null;
   for (const idPart of remainingPath) {
     if (!current || !isTimecodeGroup(current)) {
       return null;

@@ -3,19 +3,23 @@ import {
   AppListenerManager,
   SigilRuntimeAppProps,
 } from '@arcanewizards/sigil';
-import { JSX, ReactNode, useEffect, useState } from 'react';
+import { JSX, ReactNode, useEffect, useMemo, useState } from 'react';
 import { C } from './components/backend';
 import { ToolboxConfigData } from './config';
 import path from 'node:path';
 import { useDataFileContext } from '@arcanejs/react-toolkit/data';
 import {
   ApplicationState,
+  AvailableHandlers,
   DEFAULT_CONFIG,
   ToolboxConfig,
 } from './components/proto';
 import { patchJson, Diff } from '@arcanejs/diff';
 import { InputConnections } from './inputs';
 import { OutputConnections } from './outputs';
+import { Generators } from './generators';
+import { TimecodeHandlers } from './types';
+import { mapTree, Tree } from './tree';
 
 export type AppApi = Record<never, never>;
 
@@ -49,10 +53,22 @@ export const App = ({
     updateData((prev) => patchJson(prev, diff) ?? DEFAULT_CONFIG);
   };
 
-  const [state, setState] = useState<ApplicationState>({
+  const [state, setState] = useState<Omit<ApplicationState, 'handlers'>>({
     inputs: {},
     outputs: {},
+    generators: {},
   });
+
+  const [handlers, setHandlers] = useState<TimecodeHandlers>({ children: {} });
+
+  const availableHandlers: Tree<AvailableHandlers> = useMemo(
+    () =>
+      mapTree(handlers, (node) => ({
+        play: node.play ? true : undefined,
+        pause: node.pause ? true : undefined,
+      })),
+    [handlers],
+  );
 
   return (
     <AppShell
@@ -66,9 +82,11 @@ export const App = ({
       <C.ToolboxRoot
         config={data}
         state={state}
+        handlers={availableHandlers}
         onUpdateConfig={onUpdateConfig}
       />
       <InputConnections state={state} setState={setState} />
+      <Generators state={state} setState={setState} setHandlers={setHandlers} />
       <OutputConnections state={state} setState={setState} />
       <AppListenerManager
         toolkit={toolkit}

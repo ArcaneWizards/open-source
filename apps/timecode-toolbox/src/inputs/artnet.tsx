@@ -8,7 +8,6 @@ import {
   isInputArtnetDefinition,
   TimecodeState,
 } from '../components/proto';
-import { StateSensitiveComponentProps } from '../util';
 import { useLogger } from '@arcanewizards/sigil';
 import {
   ArtNet,
@@ -16,6 +15,7 @@ import {
   createArtnet,
 } from '@arcanewizards/artnet';
 import { TIMECODE_FPS, TimecodeMode } from '@arcanewizards/artnet/constants';
+import { StateSensitiveComponentProps } from '../types';
 
 /**
  * How much of a difference between the calculated timecode state,

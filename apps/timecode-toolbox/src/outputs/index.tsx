@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { ArtnetOutputConnections } from './artnet';
-import { StateSensitiveComponentProps } from '../util';
+import { StateSensitiveComponentProps } from '../types';
 
 export const OutputConnections: FC<StateSensitiveComponentProps> = (props) => {
   return (
