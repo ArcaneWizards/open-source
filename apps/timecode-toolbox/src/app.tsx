@@ -16,6 +16,7 @@ import {
 import { patchJson, Diff } from '@arcanejs/diff';
 import { InputConnections } from './inputs';
 import { OutputConnections } from './outputs';
+import { Generators } from './generators';
 
 export type AppApi = Record<never, never>;
 
@@ -70,6 +71,7 @@ export const App = ({
         onUpdateConfig={onUpdateConfig}
       />
       <InputConnections state={state} setState={setState} />
+      <Generators state={state} setState={setState} />
       <OutputConnections state={state} setState={setState} />
       <AppListenerManager
         toolkit={toolkit}
