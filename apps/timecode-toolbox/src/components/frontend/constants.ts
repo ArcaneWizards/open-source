@@ -10,6 +10,7 @@ export const STRINGS = {
   title: 'Timecode Toolbox',
   debugger: 'Debug Tools & Log',
   toggle: (text: string) => `Toggle ${text}`,
+  close: (text: string) => `Close ${text}`,
   protocols: {
     artnet: {
       short: 'ArtNet',
@@ -54,5 +55,8 @@ export const STRINGS = {
     addDialog: (protocol: string) => `Add ${protocol} Output`,
     editDialog: (protocol: string, name: string) =>
       `Edit ${protocol} Output ${name}`,
+  },
+  settings: {
+    title: 'Settings',
   },
 } as const;

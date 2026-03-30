@@ -33,18 +33,27 @@ import {
   NetworkContext,
 } from './context';
 import { AssignToOutputCallback, DialogMode } from './types';
+import { Settings } from './settings';
+import { useBrowserPreferences } from './preferences';
+import { useRootHintVariables } from '@arcanewizards/sigil/frontend/styling';
 
 type Props = {
   info: ToolboxRootComponent;
 };
 
 export const ToolboxRoot: FC<Props> = ({ info }) => {
-  const [debuggerOpen, setDebuggerOpen] = useState(false);
+  const [windowMode, setWindowMode] = useState<'debug' | 'settings' | null>(
+    null,
+  );
   const { config } = info;
   const { sendMessage, call } = useContext(StageContext);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
 
   const [assignToOutput, setAssignToOutput] = useState<string | null>(null);
+
+  const { preferences } = useBrowserPreferences();
+
+  useRootHintVariables(preferences.color);
 
   useEffect(() => {
     if (assignToOutput) {
@@ -146,21 +155,38 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
                     px-1 app-title-bar
                   "
                 >
-                  {STRINGS.title}
+                  <span className="font-bold text-hint-gradient">
+                    {STRINGS.title}
+                  </span>
                 </div>
                 <ToolbarDivider />
                 <ControlButton
-                  onClick={() => setDebuggerOpen((open) => !open)}
+                  onClick={() =>
+                    setWindowMode((mode) =>
+                      mode === 'settings' ? null : 'settings',
+                    )
+                  }
+                  variant="titlebar"
+                  icon="settings"
+                  active={windowMode === 'settings'}
+                  title={STRINGS.toggle(STRINGS.settings.title)}
+                />
+                <ControlButton
+                  onClick={() =>
+                    setWindowMode((mode) => (mode === 'debug' ? null : 'debug'))
+                  }
                   variant="titlebar"
                   icon="bug_report"
-                  active={debuggerOpen}
+                  active={windowMode === 'debug'}
                   title={STRINGS.toggle(STRINGS.debugger)}
                 />
               </ToolbarRow>
             </ToolbarWrapper>
             <div className="relative flex h-0 grow flex-col">
-              {debuggerOpen ? (
+              {windowMode === 'debug' ? (
                 <Debugger title={STRINGS.debugger} className="size-full" />
+              ) : windowMode === 'settings' ? (
+                <Settings setWindowMode={setWindowMode} />
               ) : (
                 <div
                   className="
