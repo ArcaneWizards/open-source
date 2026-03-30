@@ -87,15 +87,6 @@
   --sigil-palette-gray-c300: #e0e0e0;
   --sigil-palette-gray-extra-light: #eeeeee;
 
-  --sigil-palette-hint-hue: var(--sigil-palette-blue-hue);
-  --sigil-palette-hint-c900: var(--sigil-palette-blue-c900);
-  --sigil-palette-hint-normal: var(--sigil-palette-blue-normal);
-  --sigil-palette-hint-c600: var(--sigil-palette-blue-c600);
-  --sigil-palette-hint-c500: var(--sigil-palette-blue-c500);
-  --sigil-palette-hint-light: var(--sigil-palette-blue-light);
-  --sigil-palette-hint-c300: var(--sigil-palette-blue-c300);
-  --sigil-palette-hint-extra-light: var(--sigil-palette-blue-extra-light);
-
   --sigil-palette-unknown-hue: var(--sigil-palette-gray-hue);
   --sigil-palette-unknown-c900: var(--sigil-palette-gray-c900);
   --sigil-palette-unknown-normal: var(--sigil-palette-gray-normal);
@@ -131,25 +122,30 @@
   --sigil-color-red: #d73a49;
   --sigil-color-amber: #b08800;
 
+  /**
+   * Initialize hint colors for when useRootHintVariables() is not used.
+   */
   --sigil-usage-hint-text: var(
-    --sigil-palette-hint-text-override,
+    --sigil-palette-blue-text-override,
     var(--sigil-colored-bg-text)
   );
   --sigil-usage-hint-foreground: var(
-    --sigil-palette-hint-foreground-light-override,
-    var(--sigil-palette-hint-c500)
+    --sigil-palette-blue-foreground-light-override,
+    var(--sigil-palette-blue-c500)
   );
-  --sigil-usage-hint-background: var(--sigil-palette-hint-light);
-  --sigil-usage-hint-border: var(--sigil-palette-hint-normal);
-  --sigil-usage-hint-drag-border: var(--sigil-palette-hint-c900);
-  --sigil-usage-hint-selected-background: var(--sigil-palette-hint-normal);
-  --sigil-usage-hint-selected-border: var(--sigil-palette-hint-c900);
+  --sigil-usage-hint-background: var(--sigil-palette-blue-light);
+  --sigil-usage-hint-border: var(--sigil-palette-blue-normal);
+  --sigil-usage-hint-drag-border: var(--sigil-palette-blue-c900);
+  --sigil-usage-hint-selected-background: var(--sigil-palette-blue-normal);
+  --sigil-usage-hint-selected-border: var(--sigil-palette-blue-c900);
   --sigil-usage-hint-selected-text: var(
-    --sigil-palette-hint-text-override,
+    --sigil-palette-blue-text-override,
     rgba(255, 255, 255, 0.8)
   );
-  --sigil-usage-hint-dimmed-background: var(--sigil-palette-hint-extra-light);
-  --sigil-usage-hint-dimmed-border: var(--sigil-palette-hint-light);
+  --sigil-usage-hint-dimmed-background: var(--sigil-palette-blue-extra-light);
+  --sigil-usage-hint-dimmed-border: var(--sigil-palette-blue-light);
+  --sigil-usage-hint-gradient-light: var(--sigil-palette-blue-light);
+  --sigil-usage-hint-gradient-dark: var(--sigil-palette-blue-normal);
 
   --sigil-usage-purple-text: var(
     --sigil-palette-purple-text-override,
@@ -172,6 +168,8 @@
     --sigil-palette-purple-extra-light
   );
   --sigil-usage-purple-dimmed-border: var(--sigil-palette-purple-light);
+  --sigil-usage-purple-gradient-light: #ff1ff4;
+  --sigil-usage-purple-gradient-dark: #6d1fff;
 
   --sigil-usage-blue-text: var(
     --sigil-palette-blue-text-override,
@@ -192,6 +190,8 @@
   );
   --sigil-usage-blue-dimmed-background: var(--sigil-palette-blue-extra-light);
   --sigil-usage-blue-dimmed-border: var(--sigil-palette-blue-light);
+  --sigil-usage-blue-gradient-light: var(--sigil-palette-blue-light);
+  --sigil-usage-blue-gradient-dark: var(--sigil-palette-blue-normal);
 
   --sigil-usage-teal-text: var(
     --sigil-palette-teal-text-override,
@@ -212,6 +212,8 @@
   );
   --sigil-usage-teal-dimmed-background: var(--sigil-palette-teal-extra-light);
   --sigil-usage-teal-dimmed-border: var(--sigil-palette-teal-light);
+  --sigil-usage-teal-gradient-light: var(--sigil-palette-teal-light);
+  --sigil-usage-teal-gradient-dark: var(--sigil-palette-teal-normal);
 
   --sigil-usage-green-text: var(
     --sigil-palette-green-text-override,
@@ -232,6 +234,8 @@
   );
   --sigil-usage-green-dimmed-background: var(--sigil-palette-green-extra-light);
   --sigil-usage-green-dimmed-border: var(--sigil-palette-green-light);
+  --sigil-usage-green-gradient-light: var(--sigil-palette-green-light);
+  --sigil-usage-green-gradient-dark: var(--sigil-palette-green-normal);
 
   --sigil-usage-yellow-text: var(
     --sigil-palette-yellow-text-override,
@@ -254,6 +258,8 @@
     --sigil-palette-yellow-extra-light
   );
   --sigil-usage-yellow-dimmed-border: var(--sigil-palette-yellow-light);
+  --sigil-usage-yellow-gradient-light: var(--sigil-palette-yellow-light);
+  --sigil-usage-yellow-gradient-dark: var(--sigil-palette-yellow-normal);
 
   --sigil-usage-orange-text: var(
     --sigil-palette-orange-text-override,
@@ -276,6 +282,8 @@
     --sigil-palette-orange-extra-light
   );
   --sigil-usage-orange-dimmed-border: var(--sigil-palette-orange-light);
+  --sigil-usage-orange-gradient-light: #ffc029;
+  --sigil-usage-orange-gradient-dark: #cc3900;
 
   --sigil-usage-brown-text: var(
     --sigil-palette-brown-text-override,
@@ -296,6 +304,8 @@
   );
   --sigil-usage-brown-dimmed-background: var(--sigil-palette-brown-extra-light);
   --sigil-usage-brown-dimmed-border: var(--sigil-palette-brown-light);
+  --sigil-usage-brown-gradient-light: var(--sigil-palette-brown-light);
+  --sigil-usage-brown-gradient-dark: var(--sigil-palette-brown-normal);
 
   --sigil-usage-red-text: var(
     --sigil-palette-red-text-override,
@@ -316,6 +326,8 @@
   );
   --sigil-usage-red-dimmed-background: var(--sigil-palette-red-extra-light);
   --sigil-usage-red-dimmed-border: var(--sigil-palette-red-light);
+  --sigil-usage-red-gradient-light: var(--sigil-palette-red-light);
+  --sigil-usage-red-gradient-dark: var(--sigil-palette-red-normal);
 
   --sigil-usage-gray-text: var(
     --sigil-palette-gray-text-override,
@@ -336,6 +348,8 @@
   );
   --sigil-usage-gray-dimmed-background: var(--sigil-palette-gray-extra-light);
   --sigil-usage-gray-dimmed-border: var(--sigil-palette-gray-light);
+  --sigil-usage-gray-gradient-light: var(--sigil-palette-gray-light);
+  --sigil-usage-gray-gradient-dark: var(--sigil-palette-gray-normal);
 
   --sigil-usage-unknown-text: var(--sigil-usage-gray-text);
   --sigil-usage-unknown-foreground: var(--sigil-usage-gray-foreground);
@@ -353,6 +367,8 @@
     --sigil-usage-gray-dimmed-background
   );
   --sigil-usage-unknown-dimmed-border: var(--sigil-usage-gray-dimmed-border);
+  --sigil-usage-unknown-gradient-light: var(--sigil-palette-gray-light);
+  --sigil-usage-unknown-gradient-dark: var(--sigil-palette-gray-normal);
 }
 
 @utility arcane-server-theme-dark {
@@ -379,24 +395,24 @@
   --sigil-color-amber: #d19a66;
 
   --sigil-usage-hint-text: var(
-    --sigil-palette-hint-text-override,
+    --sigil-palette-blue-text-override,
     var(--sigil-colored-bg-text)
   );
   --sigil-usage-hint-foreground: var(
-    --sigil-palette-hint-foreground-dark-override,
-    var(--sigil-palette-hint-normal)
+    --sigil-palette-blue-foreground-dark-override,
+    var(--sigil-palette-blue-normal)
   );
-  --sigil-usage-hint-background: var(--sigil-palette-hint-normal);
-  --sigil-usage-hint-border: var(--sigil-palette-hint-light);
-  --sigil-usage-hint-drag-border: var(--sigil-palette-hint-extra-light);
-  --sigil-usage-hint-selected-background: var(--sigil-palette-hint-light);
-  --sigil-usage-hint-selected-border: var(--sigil-palette-hint-extra-light);
+  --sigil-usage-hint-background: var(--sigil-palette-blue-normal);
+  --sigil-usage-hint-border: var(--sigil-palette-blue-light);
+  --sigil-usage-hint-drag-border: var(--sigil-palette-blue-extra-light);
+  --sigil-usage-hint-selected-background: var(--sigil-palette-blue-light);
+  --sigil-usage-hint-selected-border: var(--sigil-palette-blue-extra-light);
   --sigil-usage-hint-selected-text: var(
-    --sigil-palette-hint-text-override,
+    --sigil-palette-blue-text-override,
     rgba(0, 0, 0, 0.6)
   );
-  --sigil-usage-hint-dimmed-background: var(--sigil-palette-hint-c900);
-  --sigil-usage-hint-dimmed-border: var(--sigil-palette-hint-normal);
+  --sigil-usage-hint-dimmed-background: var(--sigil-palette-blue-c900);
+  --sigil-usage-hint-dimmed-border: var(--sigil-palette-blue-normal);
 
   --sigil-usage-purple-text: var(
     --sigil-palette-purple-text-override,
@@ -497,6 +513,8 @@
   );
   --sigil-usage-yellow-dimmed-background: var(--sigil-palette-yellow-c900);
   --sigil-usage-yellow-dimmed-border: var(--sigil-palette-yellow-normal);
+  --sigil-usage-yellow-gradient-light: var(--sigil-palette-yellow-normal);
+  --sigil-usage-yellow-gradient-dark: var(--sigil-palette-orange-normal);
 
   --sigil-usage-orange-text: var(
     --sigil-palette-orange-text-override,

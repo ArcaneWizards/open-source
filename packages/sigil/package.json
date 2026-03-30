@@ -17,6 +17,12 @@
       "import": "./dist/frontend.js",
       "require": "./dist/frontend.cjs"
     },
+    "./frontend/appearance": {
+      "@arcanewizards/source": "./src/frontend/appearance.tsx",
+      "types": "./dist/frontend/appearance.d.ts",
+      "import": "./dist/frontend/appearance.js",
+      "require": "./dist/frontend/appearance.cjs"
+    },
     "./frontend/context": {
       "@arcanewizards/source": "./src/frontend/context.tsx",
       "types": "./dist/frontend/context.d.ts",
@@ -40,6 +46,12 @@
       "types": "./dist/frontend/input.d.ts",
       "import": "./dist/frontend/input.js",
       "require": "./dist/frontend/input.cjs"
+    },
+    "./frontend/preferences": {
+      "@arcanewizards/source": "./src/frontend/preferences.ts",
+      "types": "./dist/frontend/preferences.d.ts",
+      "import": "./dist/frontend/preferences.js",
+      "require": "./dist/frontend/preferences.cjs"
     },
     "./frontend/styling": {
       "@arcanewizards/source": "./src/frontend/styling.ts",

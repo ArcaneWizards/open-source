@@ -96,3 +96,13 @@ body {
 @utility app-title-bar {
   app-region: drag;
 }
+
+@utility text-hint-gradient {
+  background: linear-gradient(
+    to bottom right,
+    var(--sigil-usage-hint-gradient-light),
+    var(--sigil-usage-hint-gradient-dark)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
