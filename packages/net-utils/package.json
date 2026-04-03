@@ -1,7 +1,7 @@
 {
   "name": "@arcanewizards/net-utils",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.1",
+  "private": false,
   "type": "module",
   "exports": {
     ".": {
@@ -12,6 +12,9 @@
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rm -rf dist && tsup && check-export-map",
     "check:types": "tsc --noEmit",

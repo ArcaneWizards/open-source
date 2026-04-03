@@ -24,6 +24,9 @@
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rm -rf dist && tsup && check-export-map",
     "check:types": "tsc --noEmit",

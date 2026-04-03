@@ -10,9 +10,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  checks:
+  checks-and-npm-releases:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment: ${{ github.ref_name == 'main' && 'release' || 'development' }}
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Use Node.js
@@ -28,6 +34,15 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
+      - name: Run Changeset Workflow
+        if: github.ref_name == 'main'
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1.5.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          publish: pnpm changeset publish
+          createGithubReleases: true
+          commitMode: github-api
   build-and-release-apps:
     strategy:
       matrix:
