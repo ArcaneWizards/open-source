@@ -12,6 +12,8 @@ import { version } from '../package.json';
 
 export type { AppApi };
 
+export * as urls from './urls';
+
 export type TimecodeToolboxOptions = {
   logger: pino.Logger;
   appProps: TimecodeToolboxAppProps;

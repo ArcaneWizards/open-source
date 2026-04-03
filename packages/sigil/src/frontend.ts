@@ -7,6 +7,7 @@ export {
 } from './frontend/browser-context';
 export type {
   BaseBrowserContext,
+  NewWindowOptions,
   MediaMetadata,
   MediaPlayState,
   MediaSessionAction,

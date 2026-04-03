@@ -42,7 +42,10 @@ import {
   cssSigilColorUsageVariables,
   sigilColorUsage,
 } from '@arcanewizards/sigil/frontend/styling';
-import { adjustTimecodeForDelay, getTimecodeInstance } from '../../../util';
+import {
+  augmentUpstreamTimecodeWithOutputMetadata,
+  getTimecodeInstance,
+} from '../../../util';
 import { NoToolboxChildren } from './content';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
@@ -424,28 +427,8 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
   const timecode: TimecodeInstance = useMemo(() => {
     const tc =
       config.link && getTimecodeInstance(applicationState, config.link);
-    if (!tc) {
-      return {
-        name: null,
-        metadata: null,
-        state: {
-          state: 'none',
-          accuracyMillis: null,
-          smpteMode: config.definition.mode,
-          onAir: null,
-        },
-      };
-    }
-    // Adjust the timecode instance with output-specific metadata
-    return {
-      name: null,
-      metadata: tc.metadata,
-      state: {
-        ...adjustTimecodeForDelay(tc.state, config.delayMs ?? 0),
-        smpteMode: config.definition.mode,
-      },
-    };
-  }, [applicationState, config.link, config.delayMs, config.definition.mode]);
+    return augmentUpstreamTimecodeWithOutputMetadata(tc, config);
+  }, [applicationState, config]);
 
   const toggleEnabled = useCallback(() => {
     updateConfig((current) => {
@@ -478,7 +461,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
       }
     >
       <TimecodeTreeDisplay
-        id={null}
+        id={['output', uuid]}
         config={{ delayMs: config.delayMs ?? null }}
         assignToOutput={null}
         type={STRINGS.protocols[config.definition.type].short}

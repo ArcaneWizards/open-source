@@ -4,16 +4,20 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import {
   isTimecodeGroup,
   isTimecodeInstance,
-  InputOrGenInstance,
   TimecodeGroup,
   TimecodeInstance,
   TimecodeState,
   TimecodeTotalTime,
+  TimecodeInstanceId,
+  isOutputInstanceId,
+  isInputInstanceId,
+  isGeneratorInstanceId,
 } from '../../../proto';
 import { displayMillis } from '../util';
 import { StageContext } from '@arcanejs/toolkit-frontend';
@@ -33,8 +37,18 @@ import { STRINGS } from '../../constants';
 import { AssignToOutputCallback } from '../types';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { SizeAwareDiv } from './size-aware-div';
-import { useApplicationHandlers } from '../context';
+import {
+  ApplicationStateContext,
+  ConfigContext,
+  useApplicationHandlers,
+} from '../context';
 import { getTreeValue } from '../../../../tree';
+import { useBrowserContext } from '@arcanewizards/sigil/frontend';
+import { WINDOW_MODE_TIMECODE, withUrlFragment } from '../../../../urls';
+import {
+  augmentUpstreamTimecodeWithOutputMetadata,
+  getTimecodeInstance,
+} from '../../../../util';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -129,7 +143,7 @@ type UniversalConfig = {
 };
 
 type TimecodeDisplayProps = {
-  id: InputOrGenInstance | null;
+  id: TimecodeInstanceId;
   timecode: TimecodeInstance;
   config: UniversalConfig;
   headerComponents?: React.ReactNode;
@@ -347,7 +361,7 @@ type TimecodeTreeDisplayProps = {
   /**
    * Outputs will not have this set, inputs and generators will.
    */
-  id: InputOrGenInstance | null;
+  id: TimecodeInstanceId;
   type: string;
   name: string[];
   color: SigilColor | undefined;
@@ -371,14 +385,8 @@ const EMPTY_TIMECODE: TimecodeInstance = {
   metadata: null,
 };
 
-const extendId = (
-  id: InputOrGenInstance | null,
-  key: string,
-): InputOrGenInstance | null => {
-  if (!id) {
-    return null;
-  }
-  return [id[0], ...id.slice(1), key];
+const extendId = <T extends TimecodeInstanceId>(id: T, key: string): T => {
+  return [id[0], ...id.slice(1), key] as unknown as T;
 };
 
 export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
@@ -392,6 +400,17 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   buttons,
   assignToOutput,
 }) => {
+  const { openNewWidow } = useBrowserContext();
+
+  const openInNewWindow = useCallback(() => {
+    if (id) {
+      openNewWidow(withUrlFragment({ values: { tc: id } }).href, {
+        canUseExisting: false,
+        mode: WINDOW_MODE_TIMECODE,
+      });
+    }
+  }, [id, openNewWidow]);
+
   name = timecode?.name ? [...name, timecode.name] : name;
   if (isTimecodeGroup(timecode) && Object.values(timecode.timecodes).length) {
     return Object.entries(timecode.timecodes).map(([key, child]) => (
@@ -409,6 +428,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
       />
     ));
   }
+
   return (
     <div
       className="relative flex grow flex-col text-timecode-usage-foreground"
@@ -443,12 +463,18 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               </div>
             </div>
             <ControlButtonGroup className="rounded-md bg-sigil-bg-light">
+              <ControlButton
+                variant="toolbar"
+                icon="open_in_new"
+                title={STRINGS.openInNewWindow}
+                onClick={openInNewWindow}
+              />
               {buttons}
             </ControlButtonGroup>
           </>
         }
       />
-      {assignToOutput && id && (
+      {assignToOutput && id && !isOutputInstanceId(id) && (
         <SizeAwareDiv
           className="
             absolute inset-0 flex cursor-pointer items-center justify-center
@@ -460,6 +486,107 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
           <Icon icon="link" className="text-block-icon" />
         </SizeAwareDiv>
       )}
+    </div>
+  );
+};
+
+type FullscreenTimecodeConfig = {
+  config: UniversalConfig;
+  type: string;
+  name: string[];
+  color: SigilColor | undefined;
+  namePlaceholder: string;
+};
+
+export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
+  id,
+}) => {
+  const { config } = useContext(ConfigContext);
+  const applicationState = useContext(ApplicationStateContext);
+
+  const timecode: TimecodeInstance | null = useMemo(() => {
+    if (isInputInstanceId(id) || isGeneratorInstanceId(id)) {
+      return getTimecodeInstance(applicationState, id);
+    } else {
+      const c = config.outputs[id[1]];
+      if (!c) {
+        return null;
+      }
+      return augmentUpstreamTimecodeWithOutputMetadata(
+        c.link ? getTimecodeInstance(applicationState, c.link) : null,
+        c,
+      );
+    }
+  }, [applicationState, id, config.outputs]);
+
+  const instanceConfig: FullscreenTimecodeConfig | null = useMemo(() => {
+    if (isInputInstanceId(id)) {
+      const c = config.inputs[id[1]];
+      if (!c) {
+        return null;
+      }
+      return {
+        config: { delayMs: c.delayMs ?? null },
+        type: STRINGS.protocols[c.definition.type].short,
+        name: c.name ? [c.name] : [],
+        color: c.color,
+        namePlaceholder: `Unnamed Input`,
+      };
+    } else if (isGeneratorInstanceId(id)) {
+      const c = config.generators[id[1]];
+      if (!c) {
+        return null;
+      }
+      return {
+        config: { delayMs: c.delayMs ?? null },
+        type: STRINGS.generators.type[c.definition.type],
+        name: c.name ? [c.name] : [],
+        color: c.color,
+        namePlaceholder: `Unnamed Generator`,
+      };
+    } else {
+      const c = config.outputs[id[1]];
+      if (!c) {
+        return null;
+      }
+      return {
+        config: { delayMs: c.delayMs ?? null },
+        type: STRINGS.protocols[c.definition.type].short,
+        name: c.name ? [c.name] : [],
+        color: c.color,
+        namePlaceholder: `Unnamed Output`,
+      };
+    }
+  }, [id, config]);
+
+  if (!instanceConfig) {
+    return (
+      <SizeAwareDiv
+        className="
+          flex grow flex-col items-center justify-center gap-1 bg-sigil-bg-light
+          p-1 text-sigil-foreground-muted
+        "
+      >
+        <Icon icon="question_mark" className="text-block-icon" />
+        <div className="text-center">{STRINGS.errors.unknownTimecodeID}</div>
+      </SizeAwareDiv>
+    );
+  }
+
+  return (
+    <div
+      className="
+        flex h-0 grow flex-col gap-px overflow-y-auto bg-sigil-border
+        scrollbar-sigil
+      "
+    >
+      <TimecodeTreeDisplay
+        id={id}
+        timecode={timecode}
+        assignToOutput={null}
+        buttons={null}
+        {...instanceConfig}
+      />
     </div>
   );
 };

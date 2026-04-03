@@ -11,6 +11,7 @@ export const STRINGS = {
   debugger: 'Debug Tools & Log',
   connectionError: 'Disconnected from Timecode Toolbox Server',
   reconnect: 'Reconnect',
+  openInNewWindow: 'Open in new window',
   toggle: (text: string) => `Toggle ${text}`,
   close: (text: string) => `Close ${text}`,
   protocols: {
@@ -73,5 +74,8 @@ export const STRINGS = {
     beginning: 'Reset timecode to start',
     back5seconds: 'Back 5 Seconds',
     forward5seconds: 'Forward 5 Seconds',
+  },
+  errors: {
+    unknownTimecodeID: 'Unknown timecode ID, please close the window',
   },
 } as const;
