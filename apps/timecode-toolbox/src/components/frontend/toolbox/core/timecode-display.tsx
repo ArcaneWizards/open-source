@@ -169,6 +169,22 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
     }
   }, [callHandler, id]);
 
+  const beginning = useCallback(() => {
+    if (id) {
+      callHandler({ handler: 'beginning', path: id, args: [] });
+    }
+  }, [callHandler, id]);
+
+  const toggle = useCallback(() => {
+    if (hooks?.play && hooks?.pause) {
+      if (state.state === 'none' || state.state === 'stopped') {
+        play();
+      } else {
+        pause();
+      }
+    }
+  }, [hooks, play, pause, state.state]);
+
   return (
     <div className="flex grow flex-col gap-px">
       <div
@@ -184,14 +200,22 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         {headerComponents && (
           <div className="flex flex-wrap gap-0.25">{headerComponents}</div>
         )}
-        <SizeAwareDiv className="relative min-h-timecode-min-height grow">
+        <SizeAwareDiv
+          className={cn(
+            'relative min-h-timecode-min-height grow',
+            cnd(state?.state === 'stopped', 'opacity-50'),
+            cnd(
+              hooks?.play && hooks?.pause,
+              `
+                cursor-pointer
+                hover:opacity-100
+              `,
+            ),
+          )}
+          onClick={toggle}
+        >
           <div className="absolute inset-0 flex items-center justify-center">
-            <span
-              className={cn(
-                'font-mono text-timecode-adaptive',
-                cnd(state?.state === 'stopped', 'opacity-50'),
-              )}
-            >
+            <span className={cn('font-mono text-timecode-adaptive')}>
               {state.state === 'none' ? (
                 '--:--:--:---'
               ) : state.state === 'stopped' ? (
@@ -207,6 +231,16 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         </SizeAwareDiv>
         {hooks?.pause || hooks?.play ? (
           <div className="flex justify-center gap-px">
+            {hooks.beginning && (
+              <ControlButton
+                onClick={beginning}
+                variant="large"
+                icon="skip_previous"
+                disabled={!hooks?.beginning}
+                title={STRINGS.controls.beginning}
+                className="text-timecode-usage-foreground!"
+              />
+            )}
             {hooks.seekRelative && (
               <ControlButton
                 onClick={back5seconds}

@@ -68,6 +68,7 @@ export const STRINGS = {
   controls: {
     play: 'Play',
     pause: 'Pause',
+    beginning: 'Reset timecode to start',
     back5seconds: 'Back 5 Seconds',
     forward5seconds: 'Forward 5 Seconds',
   },

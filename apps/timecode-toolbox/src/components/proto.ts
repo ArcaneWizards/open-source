@@ -289,6 +289,7 @@ export type TimecodeHandlerMethods = {
   play?: () => void;
   pause?: () => void;
   seekRelative?: (deltaMillis: number) => void;
+  beginning?: () => void;
 };
 
 export type AvailableHandlers = Partial<

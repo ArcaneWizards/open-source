@@ -99,6 +99,26 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
     [speed],
   );
 
+  const beginning = useCallback(() => {
+    setLocalState((current) => {
+      if (current.state === 'none') {
+        return current;
+      }
+      if (isPlaying(current)) {
+        const effectiveStartTimeMillis = Date.now();
+        return {
+          ...current,
+          effectiveStartTimeMillis,
+        };
+      } else {
+        return {
+          ...current,
+          positionMillis: 0,
+        };
+      }
+    });
+  }, []);
+
   useEffect(() => {
     setLocalState((current) => {
       if (current.state === 'none' || current.state === 'stopped') {
@@ -118,9 +138,9 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
 
   useEffect(() => {
     setHandlers((current) =>
-      updateTreeState(current, id, { play, pause, seekRelative }),
+      updateTreeState(current, id, { play, pause, seekRelative, beginning }),
     );
-  }, [setHandlers, id, play, pause, seekRelative]);
+  }, [setHandlers, id, play, pause, seekRelative, beginning]);
 
   useEffect(
     () =>
