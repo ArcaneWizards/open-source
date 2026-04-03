@@ -9,6 +9,8 @@ const MS_FORMAT = new Intl.NumberFormat(undefined, {
 export const STRINGS = {
   title: 'Timecode Toolbox',
   debugger: 'Debug Tools & Log',
+  connectionError: 'Disconnected from Timecode Toolbox Server',
+  reconnect: 'Reconnect',
   toggle: (text: string) => `Toggle ${text}`,
   close: (text: string) => `Close ${text}`,
   protocols: {
