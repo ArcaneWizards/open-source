@@ -1,9 +1,14 @@
 {
   "name": "@arcanewizards/sigil",
   "description": "Application framework for A/V applications, built on-top of arcanejs",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.1",
+  "private": false,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArcaneWizards/open-source.git",
+    "directory": "packages/sigil"
+  },
   "exports": {
     ".": {
       "@arcanewizards/source": "./src/index.ts",
@@ -82,6 +87,9 @@
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rm -rf dist && tsup && pnpm build:styles && check-export-map",
     "build:styles": "tailwindcss -i ./src/frontend/styles/sigil.css -o ./dist/frontend/styles/sigil.css && cp ./src/frontend/styles/theme.css ./dist/frontend/styles/theme.css && cp ./src/frontend/styles/base.css ./dist/frontend/styles/base.css",

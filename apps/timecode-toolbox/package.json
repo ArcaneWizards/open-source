@@ -2,6 +2,11 @@
   "name": "@arcanewizards/timecode-toolbox",
   "version": "0.0.2",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArcaneWizards/open-source.git",
+    "directory": "apps/timecode-toolbox"
+  },
   "exports": {
     ".": {
       "@arcanewizards/source": "./src/index.ts",

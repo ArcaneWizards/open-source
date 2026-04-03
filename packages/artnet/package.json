@@ -1,8 +1,13 @@
 {
   "name": "@arcanewizards/artnet",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.1",
+  "private": false,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArcaneWizards/open-source.git",
+    "directory": "packages/artnet"
+  },
   "exports": {
     ".": {
       "@arcanewizards/source": "./src/index.ts",
@@ -18,6 +23,9 @@
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rm -rf dist && tsup && check-export-map",
     "check:types": "tsc --noEmit",
