@@ -391,7 +391,7 @@ const InputDisplay: FC<InputDisplayProps> = ({
 
   return (
     <TimecodeTreeDisplay
-      id={{ type: 'input', id: [uuid] }}
+      id={['input', uuid]}
       config={{ delayMs: config.delayMs ?? null }}
       type={STRINGS.protocols[config.definition.type].short}
       name={config.name ? [config.name] : []}

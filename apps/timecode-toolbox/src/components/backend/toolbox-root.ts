@@ -14,6 +14,7 @@ import {
   isTimecodeToolboxComponentMessage,
   DEFAULT_CONFIG,
   isTimecodeToolboxComponentCall,
+  ToolboxRootCallHandler,
 } from '../proto';
 import {
   AnyClientComponentCall,
@@ -23,6 +24,7 @@ import { getNetworkInterfaces } from '@arcanewizards/net-utils';
 
 export type Events = {
   updateConfig: (diff: Diff<ToolboxConfig>) => void;
+  callHandler: (call: ToolboxRootCallHandler) => Promise<void>;
 };
 
 export type AppRootProps = Pick<
@@ -30,6 +32,7 @@ export type AppRootProps = Pick<
   'config' | 'state' | 'handlers'
 > & {
   onUpdateConfig?: Events['updateConfig'];
+  onCallHandler?: Events['callHandler'];
 };
 
 const DEFAULT_PROPS: AppRootProps = {
@@ -60,6 +63,7 @@ export class ToolboxRoot
         this.events.processPropChanges(
           {
             onUpdateConfig: 'updateConfig',
+            onCallHandler: 'callHandler',
           },
           oldProps,
           this.props,
@@ -101,6 +105,14 @@ export class ToolboxRoot
       )
     ) {
       return getNetworkInterfaces();
+    } else if (
+      isTimecodeToolboxComponentCall(call, 'toolbox-root-call-handler')
+    ) {
+      const result = await this.events.emit('callHandler', call);
+      if (result[0]) {
+        return result[0];
+      }
+      throw new Error(`No handler for callHandler`);
     }
     throw new Error(`Unhandled call action: ${call.action}`);
   };

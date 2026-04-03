@@ -3,7 +3,14 @@ import {
   AppListenerManager,
   SigilRuntimeAppProps,
 } from '@arcanewizards/sigil';
-import { JSX, ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+  JSX,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { C } from './components/backend';
 import { ToolboxConfigData } from './config';
 import path from 'node:path';
@@ -13,13 +20,14 @@ import {
   AvailableHandlers,
   DEFAULT_CONFIG,
   ToolboxConfig,
+  ToolboxRootCallHandler,
 } from './components/proto';
 import { patchJson, Diff } from '@arcanejs/diff';
 import { InputConnections } from './inputs';
 import { OutputConnections } from './outputs';
 import { Generators } from './generators';
 import { TimecodeHandlers } from './types';
-import { mapTree, Tree } from './tree';
+import { getTreeValue, mapTree, Tree } from './tree';
 
 export type AppApi = Record<never, never>;
 
@@ -70,6 +78,19 @@ export const App = ({
     [handlers],
   );
 
+  const callHandler = useCallback(
+    async (call: ToolboxRootCallHandler) => {
+      const handlerFunc = getTreeValue(handlers, call.path)?.[call.handler];
+      if (handlerFunc) {
+        return await handlerFunc();
+      }
+      throw new Error(
+        `No handler found for path: ${call.path.join(' -> ')} and handler: ${call.handler}`,
+      );
+    },
+    [handlers],
+  );
+
   return (
     <AppShell
       title={title}
@@ -84,6 +105,7 @@ export const App = ({
         state={state}
         handlers={availableHandlers}
         onUpdateConfig={onUpdateConfig}
+        onCallHandler={callHandler}
       />
       <InputConnections state={state} setState={setState} />
       <Generators state={state} setState={setState} setHandlers={setHandlers} />

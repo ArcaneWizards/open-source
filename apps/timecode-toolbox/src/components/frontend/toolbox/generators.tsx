@@ -229,7 +229,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
 
   return (
     <TimecodeTreeDisplay
-      id={{ type: 'generator', id: [uuid] }}
+      id={['generator', uuid]}
       config={{ delayMs: config.delayMs ?? null }}
       type={STRINGS.generators.type[config.definition.type]}
       name={config.name ? [config.name] : []}

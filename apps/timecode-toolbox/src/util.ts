@@ -16,12 +16,12 @@ export const getTimecodeInstance = (
   state: ApplicationState,
   id: InputOrGenInstance,
 ): TimecodeInstance | null => {
-  const [firstId, ...remainingPath] = id.id;
+  const [type, firstId, ...remainingPath] = id;
   if (!firstId) {
     return null;
   }
   let current =
-    state[id.type === 'input' ? 'inputs' : 'generators'][firstId]?.timecode ??
+    state[type === 'input' ? 'inputs' : 'generators'][firstId]?.timecode ??
     null;
   for (const idPart of remainingPath) {
     if (!current || !isTimecodeGroup(current)) {
