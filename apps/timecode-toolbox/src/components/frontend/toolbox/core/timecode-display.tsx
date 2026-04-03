@@ -147,15 +147,43 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
 
   const play = useCallback(() => {
     if (id) {
-      callHandler({ handler: 'play', path: id });
+      callHandler({ handler: 'play', path: id, args: [] });
     }
   }, [callHandler, id]);
 
   const pause = useCallback(() => {
     if (id) {
-      callHandler({ handler: 'pause', path: id });
+      callHandler({ handler: 'pause', path: id, args: [] });
     }
   }, [callHandler, id]);
+
+  const back5seconds = useCallback(() => {
+    if (id) {
+      callHandler({ handler: 'seekRelative', path: id, args: [-5000] });
+    }
+  }, [callHandler, id]);
+
+  const forward5seconds = useCallback(() => {
+    if (id) {
+      callHandler({ handler: 'seekRelative', path: id, args: [5000] });
+    }
+  }, [callHandler, id]);
+
+  const beginning = useCallback(() => {
+    if (id) {
+      callHandler({ handler: 'beginning', path: id, args: [] });
+    }
+  }, [callHandler, id]);
+
+  const toggle = useCallback(() => {
+    if (hooks?.play && hooks?.pause) {
+      if (state.state === 'none' || state.state === 'stopped') {
+        play();
+      } else {
+        pause();
+      }
+    }
+  }, [hooks, play, pause, state.state]);
 
   return (
     <div className="flex grow flex-col gap-px">
@@ -172,14 +200,22 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         {headerComponents && (
           <div className="flex flex-wrap gap-0.25">{headerComponents}</div>
         )}
-        <SizeAwareDiv className="relative min-h-timecode-min-height grow">
+        <SizeAwareDiv
+          className={cn(
+            'relative min-h-timecode-min-height grow',
+            cnd(state?.state === 'stopped', 'opacity-50'),
+            cnd(
+              hooks?.play && hooks?.pause,
+              `
+                cursor-pointer
+                hover:opacity-100
+              `,
+            ),
+          )}
+          onClick={toggle}
+        >
           <div className="absolute inset-0 flex items-center justify-center">
-            <span
-              className={cn(
-                'font-mono text-timecode-adaptive',
-                cnd(state?.state === 'stopped', 'opacity-50'),
-              )}
-            >
+            <span className={cn('font-mono text-timecode-adaptive')}>
               {state.state === 'none' ? (
                 '--:--:--:---'
               ) : state.state === 'stopped' ? (
@@ -195,6 +231,26 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         </SizeAwareDiv>
         {hooks?.pause || hooks?.play ? (
           <div className="flex justify-center gap-px">
+            {hooks.beginning && (
+              <ControlButton
+                onClick={beginning}
+                variant="large"
+                icon="skip_previous"
+                disabled={!hooks?.beginning}
+                title={STRINGS.controls.beginning}
+                className="text-timecode-usage-foreground!"
+              />
+            )}
+            {hooks.seekRelative && (
+              <ControlButton
+                onClick={back5seconds}
+                variant="large"
+                icon="replay_5"
+                disabled={!hooks?.seekRelative}
+                title={STRINGS.controls.back5seconds}
+                className="text-timecode-usage-foreground!"
+              />
+            )}
             {state.state === 'none' || state.state === 'stopped' ? (
               <ControlButton
                 onClick={play}
@@ -211,6 +267,16 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
                 icon="pause"
                 disabled={!hooks?.pause}
                 title={STRINGS.controls.pause}
+                className="text-timecode-usage-foreground!"
+              />
+            )}
+            {hooks.seekRelative && (
+              <ControlButton
+                onClick={forward5seconds}
+                variant="large"
+                icon="forward_5"
+                disabled={!hooks?.seekRelative}
+                title={STRINGS.controls.forward5seconds}
                 className="text-timecode-usage-foreground!"
               />
             )}

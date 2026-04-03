@@ -38,6 +38,8 @@ import { AssignToOutputCallback, DialogMode } from './types';
 import { Settings } from './settings';
 import { useBrowserPreferences } from './preferences';
 import { useRootHintVariables } from '@arcanewizards/sigil/frontend/styling';
+import { SizeAwareDiv } from './core/size-aware-div';
+import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 
 type Props = {
   info: ToolboxRootComponent;
@@ -48,7 +50,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     null,
   );
   const { config } = info;
-  const { sendMessage, call } = useContext(StageContext);
+  const { sendMessage, call, connection, reconnect } = useContext(StageContext);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
 
   const [assignToOutput, setAssignToOutput] = useState<string | null>(null);
@@ -146,7 +148,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
 
   const callHandler: ApplicationHandlersContextData['callHandler'] =
     useCallback(
-      async ({ path, handler }) => {
+      async ({ path, handler, args }) => {
         if (!call) {
           throw new Error('No call function available');
         }
@@ -161,6 +163,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
           action: 'toolbox-root-call-handler',
           handler,
           path,
+          args,
         });
       },
       [call, info.key],
@@ -213,7 +216,20 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
           </ToolbarRow>
         </ToolbarWrapper>
         <div className="relative flex h-0 grow flex-col">
-          {windowMode === 'debug' ? (
+          {connection.state !== 'connected' ? (
+            <SizeAwareDiv
+              className="
+                flex grow flex-col items-center justify-center gap-1
+                bg-sigil-bg-light p-1 text-sigil-foreground-muted
+              "
+            >
+              <Icon icon="signal_disconnected" className="text-block-icon" />
+              <div className="text-center">{STRINGS.connectionError}</div>
+              <ControlButton onClick={reconnect} variant="large" icon="replay">
+                {STRINGS.reconnect}
+              </ControlButton>
+            </SizeAwareDiv>
+          ) : windowMode === 'debug' ? (
             <Debugger title={STRINGS.debugger} className="size-full" />
           ) : windowMode === 'settings' ? (
             <Settings setWindowMode={setWindowMode} />
@@ -275,6 +291,8 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       </div>
     ),
     [
+      connection,
+      reconnect,
       assignToOutput,
       assignToOutputCallback,
       closeDialog,

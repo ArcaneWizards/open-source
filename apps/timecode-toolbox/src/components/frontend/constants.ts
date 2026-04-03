@@ -9,6 +9,8 @@ const MS_FORMAT = new Intl.NumberFormat(undefined, {
 export const STRINGS = {
   title: 'Timecode Toolbox',
   debugger: 'Debug Tools & Log',
+  connectionError: 'Disconnected from Timecode Toolbox Server',
+  reconnect: 'Reconnect',
   toggle: (text: string) => `Toggle ${text}`,
   close: (text: string) => `Close ${text}`,
   protocols: {
@@ -68,5 +70,8 @@ export const STRINGS = {
   controls: {
     play: 'Play',
     pause: 'Pause',
+    beginning: 'Reset timecode to start',
+    back5seconds: 'Back 5 Seconds',
+    forward5seconds: 'Forward 5 Seconds',
   },
 } as const;

@@ -288,6 +288,8 @@ export type ApplicationState = {
 export type TimecodeHandlerMethods = {
   play?: () => void;
   pause?: () => void;
+  seekRelative?: (deltaMillis: number) => void;
+  beginning?: () => void;
 };
 
 export type AvailableHandlers = Partial<
@@ -325,12 +327,12 @@ export type ToolboxRootGetNetworkInterfacesReturn = Record<
   NetworkInterface
 >;
 
-export type ToolboxRootCallHandler = BaseClientComponentCall<
-  Namespace,
-  'toolbox-root-call-handler'
-> & {
+export type ToolboxRootCallHandler<
+  H extends keyof AvailableHandlers = keyof AvailableHandlers,
+> = BaseClientComponentCall<Namespace, 'toolbox-root-call-handler'> & {
   path: string[];
-  handler: keyof AvailableHandlers;
+  handler: H;
+  args: Parameters<NonNullable<TimecodeHandlerMethods[H]>>;
 };
 
 export type ToolboxRootCallHandlerReturn = void;
