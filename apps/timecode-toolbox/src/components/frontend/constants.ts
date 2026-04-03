@@ -65,4 +65,8 @@ export const STRINGS = {
   settings: {
     title: 'Settings',
   },
+  controls: {
+    play: 'Play',
+    pause: 'Pause',
+  },
 } as const;

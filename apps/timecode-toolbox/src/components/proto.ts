@@ -285,10 +285,14 @@ export type ApplicationState = {
   outputs: Record<string, OutputState>;
 };
 
-export type AvailableHandlers = {
-  play?: true;
-  pause?: true;
+export type TimecodeHandlerMethods = {
+  play?: () => void;
+  pause?: () => void;
 };
+
+export type AvailableHandlers = Partial<
+  Record<keyof TimecodeHandlerMethods, true>
+>;
 
 /* Proto */
 
@@ -321,10 +325,24 @@ export type ToolboxRootGetNetworkInterfacesReturn = Record<
   NetworkInterface
 >;
 
+export type ToolboxRootCallHandler = BaseClientComponentCall<
+  Namespace,
+  'toolbox-root-call-handler'
+> & {
+  path: string[];
+  handler: keyof AvailableHandlers;
+};
+
+export type ToolboxRootCallHandlerReturn = void;
+
 export type TimecodeToolboxComponentCalls = {
   'toolbox-root-get-network-interfaces': {
     call: ToolboxRootGetNetworkInterfaces;
     return: ToolboxRootGetNetworkInterfacesReturn;
+  };
+  'toolbox-root-call-handler': {
+    call: ToolboxRootCallHandler;
+    return: ToolboxRootCallHandlerReturn;
   };
 };
 

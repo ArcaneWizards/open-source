@@ -27,6 +27,8 @@ import { InputSettingsDialog, InputsSection } from './inputs';
 import { diffJson } from '@arcanejs/diff';
 import { StageContext } from '@arcanejs/toolkit-frontend';
 import {
+  ApplicationHandlersContext,
+  ApplicationHandlersContextData,
   ApplicationStateContext,
   ConfigContext,
   ConfigContextData,
@@ -142,107 +144,152 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     };
   }, [assignToOutput, updateConfig]);
 
+  const callHandler: ApplicationHandlersContextData['callHandler'] =
+    useCallback(
+      async ({ path, handler }) => {
+        if (!call) {
+          throw new Error('No call function available');
+        }
+        return call<
+          'timecode-toolbox',
+          TimecodeToolboxComponentCalls,
+          'toolbox-root-call-handler'
+        >({
+          namespace: 'timecode-toolbox',
+          type: 'component-call',
+          componentKey: info.key,
+          action: 'toolbox-root-call-handler',
+          handler,
+          path,
+        });
+      },
+      [call, info.key],
+    );
+
+  const handlers: ApplicationHandlersContextData = useMemo(
+    () => ({
+      handlers: info.handlers,
+      callHandler,
+    }),
+    [info.handlers, callHandler],
+  );
+
+  const root = useMemo(
+    () => (
+      <div className="flex h-screen flex-col">
+        <ToolbarWrapper>
+          <ToolbarRow>
+            <div
+              className="
+                flex h-full min-h-[36px] grow items-center justify-center px-1
+                app-title-bar
+              "
+            >
+              <span className="font-bold text-hint-gradient">
+                {STRINGS.title}
+              </span>
+            </div>
+            <ToolbarDivider />
+            <ControlButton
+              onClick={() =>
+                setWindowMode((mode) =>
+                  mode === 'settings' ? null : 'settings',
+                )
+              }
+              variant="titlebar"
+              icon="settings"
+              active={windowMode === 'settings'}
+              title={STRINGS.toggle(STRINGS.settings.title)}
+            />
+            <ControlButton
+              onClick={() =>
+                setWindowMode((mode) => (mode === 'debug' ? null : 'debug'))
+              }
+              variant="titlebar"
+              icon="bug_report"
+              active={windowMode === 'debug'}
+              title={STRINGS.toggle(STRINGS.debugger)}
+            />
+          </ToolbarRow>
+        </ToolbarWrapper>
+        <div className="relative flex h-0 grow flex-col">
+          {windowMode === 'debug' ? (
+            <Debugger title={STRINGS.debugger} className="size-full" />
+          ) : windowMode === 'settings' ? (
+            <Settings setWindowMode={setWindowMode} />
+          ) : (
+            <div
+              className="
+                flex h-0 grow flex-col gap-px overflow-y-auto bg-sigil-border
+                scrollbar-sigil
+              "
+            >
+              <InputsSection
+                setDialogMode={setDialogMode}
+                assignToOutput={assignToOutputCallback}
+              />
+              <GeneratorsSection
+                setDialogMode={setDialogMode}
+                assignToOutput={assignToOutputCallback}
+              />
+              <OutputsSection
+                setDialogMode={setDialogMode}
+                assignToOutput={assignToOutput}
+                setAssignToOutput={setAssignToOutput}
+              />
+            </div>
+          )}
+          {dialogMode?.section.type === 'inputs' && (
+            <InputSettingsDialog
+              close={closeDialog}
+              input={dialogMode.section.input}
+              target={dialogMode.target}
+            />
+          )}
+          {dialogMode?.section.type === 'generators' && (
+            <GeneratorSettingsDialog
+              close={closeDialog}
+              generator={dialogMode.section.generator}
+              target={dialogMode.target}
+            />
+          )}
+          {dialogMode?.section.type === 'outputs' && (
+            <OutputSettingsDialog
+              close={closeDialog}
+              output={dialogMode.section.output}
+              target={dialogMode.target}
+            />
+          )}
+        </div>
+        <div
+          className="
+            flex justify-center border-t border-sigil-border bg-sigil-bg-dark
+            p-1 text-[80%]
+          "
+        >
+          {'Created by'}&nbsp;
+          <ExternalLink href="https://arcanewizards.com">
+            Arcane Wizards
+          </ExternalLink>
+        </div>
+      </div>
+    ),
+    [
+      assignToOutput,
+      assignToOutputCallback,
+      closeDialog,
+      dialogMode,
+      windowMode,
+    ],
+  );
+
   return (
     <ConfigContext.Provider value={configContext}>
       <NetworkContext.Provider value={networkContextValue}>
         <ApplicationStateContext.Provider value={info.state}>
-          <div className="flex h-screen flex-col">
-            <ToolbarWrapper>
-              <ToolbarRow>
-                <div
-                  className="
-                    flex h-full min-h-[36px] grow items-center justify-center
-                    px-1 app-title-bar
-                  "
-                >
-                  <span className="font-bold text-hint-gradient">
-                    {STRINGS.title}
-                  </span>
-                </div>
-                <ToolbarDivider />
-                <ControlButton
-                  onClick={() =>
-                    setWindowMode((mode) =>
-                      mode === 'settings' ? null : 'settings',
-                    )
-                  }
-                  variant="titlebar"
-                  icon="settings"
-                  active={windowMode === 'settings'}
-                  title={STRINGS.toggle(STRINGS.settings.title)}
-                />
-                <ControlButton
-                  onClick={() =>
-                    setWindowMode((mode) => (mode === 'debug' ? null : 'debug'))
-                  }
-                  variant="titlebar"
-                  icon="bug_report"
-                  active={windowMode === 'debug'}
-                  title={STRINGS.toggle(STRINGS.debugger)}
-                />
-              </ToolbarRow>
-            </ToolbarWrapper>
-            <div className="relative flex h-0 grow flex-col">
-              {windowMode === 'debug' ? (
-                <Debugger title={STRINGS.debugger} className="size-full" />
-              ) : windowMode === 'settings' ? (
-                <Settings setWindowMode={setWindowMode} />
-              ) : (
-                <div
-                  className="
-                    flex h-0 grow flex-col gap-px overflow-y-auto
-                    bg-sigil-border scrollbar-sigil
-                  "
-                >
-                  <InputsSection
-                    setDialogMode={setDialogMode}
-                    assignToOutput={assignToOutputCallback}
-                  />
-                  <GeneratorsSection
-                    setDialogMode={setDialogMode}
-                    assignToOutput={assignToOutputCallback}
-                  />
-                  <OutputsSection
-                    setDialogMode={setDialogMode}
-                    assignToOutput={assignToOutput}
-                    setAssignToOutput={setAssignToOutput}
-                  />
-                </div>
-              )}
-              {dialogMode?.section.type === 'inputs' && (
-                <InputSettingsDialog
-                  close={closeDialog}
-                  input={dialogMode.section.input}
-                  target={dialogMode.target}
-                />
-              )}
-              {dialogMode?.section.type === 'generators' && (
-                <GeneratorSettingsDialog
-                  close={closeDialog}
-                  generator={dialogMode.section.generator}
-                  target={dialogMode.target}
-                />
-              )}
-              {dialogMode?.section.type === 'outputs' && (
-                <OutputSettingsDialog
-                  close={closeDialog}
-                  output={dialogMode.section.output}
-                  target={dialogMode.target}
-                />
-              )}
-            </div>
-            <div
-              className="
-                flex justify-center border-t border-sigil-border
-                bg-sigil-bg-dark p-1 text-[80%]
-              "
-            >
-              {'Created by'}&nbsp;
-              <ExternalLink href="https://arcanewizards.com">
-                Arcane Wizards
-              </ExternalLink>
-            </div>
-          </div>
+          <ApplicationHandlersContext.Provider value={handlers}>
+            {root}
+          </ApplicationHandlersContext.Provider>
         </ApplicationStateContext.Provider>
       </NetworkContext.Provider>
     </ConfigContext.Provider>

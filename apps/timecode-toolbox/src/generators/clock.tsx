@@ -1,7 +1,15 @@
-import { FC, ReactNode, useCallback, useEffect, useState } from 'react';
+import {
+  FC,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   GeneratorClockDefinition,
   GeneratorConfig,
+  InputOrGenInstance,
   isPlaying,
   isStopped,
   TimecodePlayState,
@@ -25,13 +33,14 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
   setState,
   setHandlers,
 }) => {
+  const id: InputOrGenInstance = useMemo(() => ['generator', uuid], [uuid]);
+
   const [state, setLocalState] = useState<TimecodePlayState>({
-    state: 'playing',
-    effectiveStartTimeMillis: Date.now(),
-    speed: generator.speed,
+    state: 'stopped',
+    positionMillis: 0,
   });
 
-  const { speed } = config.definition;
+  const { speed } = generator;
 
   const play = useCallback(() => {
     setLocalState((current) => {
@@ -63,10 +72,8 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
   }, [speed]);
 
   useEffect(() => {
-    setHandlers((current) =>
-      updateTreeState(current, ['generators', uuid], { play, pause }),
-    );
-  }, [setHandlers, uuid, play, pause]);
+    setHandlers((current) => updateTreeState(current, id, { play, pause }));
+  }, [setHandlers, id, play, pause]);
 
   useEffect(
     () =>
@@ -100,9 +107,9 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
           generators: rest,
         };
       });
-      setHandlers((current) => deleteTreePath(current, ['generators', uuid]));
+      setHandlers((current) => deleteTreePath(current, id));
     },
-    [setState, setHandlers, uuid],
+    [setState, setHandlers, id, uuid],
   );
 
   return null;

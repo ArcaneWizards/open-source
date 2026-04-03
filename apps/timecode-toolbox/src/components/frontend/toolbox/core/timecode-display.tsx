@@ -1,4 +1,11 @@
-import { FC, ReactNode, useContext, useEffect, useState } from 'react';
+import {
+  FC,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import {
   isTimecodeGroup,
   isTimecodeInstance,
@@ -17,12 +24,17 @@ import {
   sigilColorUsage,
 } from '@arcanewizards/sigil/frontend/styling';
 import { cn } from '@arcanejs/toolkit-frontend/util';
-import { ControlButtonGroup } from '@arcanewizards/sigil/frontend/controls';
+import {
+  ControlButton,
+  ControlButtonGroup,
+} from '@arcanewizards/sigil/frontend/controls';
 import { TooltipWrapper } from '@arcanewizards/sigil/frontend/tooltip';
 import { STRINGS } from '../../constants';
 import { AssignToOutputCallback } from '../types';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { SizeAwareDiv } from './size-aware-div';
+import { useApplicationHandlers } from '../context';
+import { getTreeValue } from '../../../../tree';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -117,16 +129,34 @@ type UniversalConfig = {
 };
 
 type TimecodeDisplayProps = {
+  id: InputOrGenInstance | null;
   timecode: TimecodeInstance;
   config: UniversalConfig;
   headerComponents?: React.ReactNode;
 };
 
 const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
+  id,
   timecode: { state, metadata },
   config,
   headerComponents,
 }) => {
+  const { handlers, callHandler } = useApplicationHandlers();
+
+  const hooks = id && getTreeValue(handlers, id);
+
+  const play = useCallback(() => {
+    if (id) {
+      callHandler({ handler: 'play', path: id });
+    }
+  }, [callHandler, id]);
+
+  const pause = useCallback(() => {
+    if (id) {
+      callHandler({ handler: 'pause', path: id });
+    }
+  }, [callHandler, id]);
+
   return (
     <div className="flex grow flex-col gap-px">
       <div
@@ -163,6 +193,29 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
             </span>
           </div>
         </SizeAwareDiv>
+        {hooks?.pause || hooks?.play ? (
+          <div className="flex justify-center gap-px">
+            {state.state === 'none' || state.state === 'stopped' ? (
+              <ControlButton
+                onClick={play}
+                variant="large"
+                icon="play_arrow"
+                disabled={!hooks?.play}
+                title={STRINGS.controls.play}
+                className="text-timecode-usage-foreground!"
+              />
+            ) : (
+              <ControlButton
+                onClick={pause}
+                variant="large"
+                icon="pause"
+                disabled={!hooks?.pause}
+                title={STRINGS.controls.pause}
+                className="text-timecode-usage-foreground!"
+              />
+            )}
+          </div>
+        ) : null}
         {metadata?.totalTime && (
           <Timeline state={state} totalTime={metadata.totalTime} />
         )}
@@ -299,6 +352,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
       }
     >
       <TimecodeDisplay
+        id={id}
         timecode={isTimecodeInstance(timecode) ? timecode : EMPTY_TIMECODE}
         config={config}
         headerComponents={
