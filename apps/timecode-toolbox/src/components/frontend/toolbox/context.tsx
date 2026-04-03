@@ -33,8 +33,8 @@ export const useApplicationState = () => useContext(ApplicationStateContext);
 
 export type ApplicationHandlersContextData = {
   handlers: Tree<AvailableHandlers>;
-  callHandler(
-    args: Pick<ToolboxRootCallHandler, 'path' | 'handler'>,
+  callHandler<H extends keyof AvailableHandlers>(
+    args: Pick<ToolboxRootCallHandler<H>, 'path' | 'handler' | 'args'>,
   ): Promise<void>;
 };
 

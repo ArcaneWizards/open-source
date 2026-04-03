@@ -71,9 +71,39 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
     });
   }, [speed]);
 
+  const seekRelative = useCallback(
+    (deltaMillis: number) => {
+      setLocalState((current) => {
+        if (current.state === 'none') {
+          return current;
+        }
+        const now = Date.now();
+        const positionMillis = isPlaying(current)
+          ? (now - current.effectiveStartTimeMillis) * speed
+          : current.positionMillis;
+        const newPositionMillis = Math.max(positionMillis + deltaMillis, 0);
+        if (isPlaying(current)) {
+          const effectiveStartTimeMillis = now - newPositionMillis / speed;
+          return {
+            ...current,
+            effectiveStartTimeMillis,
+          };
+        } else {
+          return {
+            ...current,
+            positionMillis: newPositionMillis,
+          };
+        }
+      });
+    },
+    [speed],
+  );
+
   useEffect(() => {
-    setHandlers((current) => updateTreeState(current, id, { play, pause }));
-  }, [setHandlers, id, play, pause]);
+    setHandlers((current) =>
+      updateTreeState(current, id, { play, pause, seekRelative }),
+    );
+  }, [setHandlers, id, play, pause, seekRelative]);
 
   useEffect(
     () =>

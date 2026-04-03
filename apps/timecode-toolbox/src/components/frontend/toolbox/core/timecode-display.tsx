@@ -147,13 +147,25 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
 
   const play = useCallback(() => {
     if (id) {
-      callHandler({ handler: 'play', path: id });
+      callHandler({ handler: 'play', path: id, args: [] });
     }
   }, [callHandler, id]);
 
   const pause = useCallback(() => {
     if (id) {
-      callHandler({ handler: 'pause', path: id });
+      callHandler({ handler: 'pause', path: id, args: [] });
+    }
+  }, [callHandler, id]);
+
+  const back5seconds = useCallback(() => {
+    if (id) {
+      callHandler({ handler: 'seekRelative', path: id, args: [-5000] });
+    }
+  }, [callHandler, id]);
+
+  const forward5seconds = useCallback(() => {
+    if (id) {
+      callHandler({ handler: 'seekRelative', path: id, args: [5000] });
     }
   }, [callHandler, id]);
 
@@ -195,6 +207,16 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         </SizeAwareDiv>
         {hooks?.pause || hooks?.play ? (
           <div className="flex justify-center gap-px">
+            {hooks.seekRelative && (
+              <ControlButton
+                onClick={back5seconds}
+                variant="large"
+                icon="replay_5"
+                disabled={!hooks?.seekRelative}
+                title={STRINGS.controls.back5seconds}
+                className="text-timecode-usage-foreground!"
+              />
+            )}
             {state.state === 'none' || state.state === 'stopped' ? (
               <ControlButton
                 onClick={play}
@@ -211,6 +233,16 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
                 icon="pause"
                 disabled={!hooks?.pause}
                 title={STRINGS.controls.pause}
+                className="text-timecode-usage-foreground!"
+              />
+            )}
+            {hooks.seekRelative && (
+              <ControlButton
+                onClick={forward5seconds}
+                variant="large"
+                icon="forward_5"
+                disabled={!hooks?.seekRelative}
+                title={STRINGS.controls.forward5seconds}
                 className="text-timecode-usage-foreground!"
               />
             )}

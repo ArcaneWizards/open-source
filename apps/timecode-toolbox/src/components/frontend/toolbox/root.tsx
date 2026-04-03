@@ -146,7 +146,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
 
   const callHandler: ApplicationHandlersContextData['callHandler'] =
     useCallback(
-      async ({ path, handler }) => {
+      async ({ path, handler, args }) => {
         if (!call) {
           throw new Error('No call function available');
         }
@@ -161,6 +161,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
           action: 'toolbox-root-call-handler',
           handler,
           path,
+          args,
         });
       },
       [call, info.key],

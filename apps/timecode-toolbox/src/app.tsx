@@ -19,6 +19,7 @@ import {
   ApplicationState,
   AvailableHandlers,
   DEFAULT_CONFIG,
+  TimecodeHandlerMethods,
   ToolboxConfig,
   ToolboxRootCallHandler,
 } from './components/proto';
@@ -71,18 +72,27 @@ export const App = ({
 
   const availableHandlers: Tree<AvailableHandlers> = useMemo(
     () =>
-      mapTree(handlers, (node) => ({
-        play: node.play ? true : undefined,
-        pause: node.pause ? true : undefined,
-      })),
+      mapTree(handlers, (node) =>
+        Object.fromEntries(
+          Object.entries(node)
+            .filter(([_, handler]) => handler)
+            .map(([key]) => [key, true]),
+        ),
+      ),
     [handlers],
   );
 
   const callHandler = useCallback(
-    async (call: ToolboxRootCallHandler) => {
+    async <H extends keyof AvailableHandlers>(
+      call: ToolboxRootCallHandler<H>,
+    ) => {
       const handlerFunc = getTreeValue(handlers, call.path)?.[call.handler];
       if (handlerFunc) {
-        return await handlerFunc();
+        return await (
+          handlerFunc as (
+            ...args: Parameters<NonNullable<TimecodeHandlerMethods[H]>>
+          ) => void
+        )(...call.args);
       }
       throw new Error(
         `No handler found for path: ${call.path.join(' -> ')} and handler: ${call.handler}`,
