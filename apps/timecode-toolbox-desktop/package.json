@@ -6,6 +6,11 @@
   "version": "0.0.2",
   "private": true,
   "main": "dist/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArcaneWizards/open-source.git",
+    "directory": "apps/timecode-toolbox-desktop"
+  },
   "scripts": {
     "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --max-warnings 0 --fix",
