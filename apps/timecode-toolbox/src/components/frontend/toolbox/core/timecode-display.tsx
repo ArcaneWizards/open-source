@@ -259,10 +259,7 @@ const extendId = (
   if (!id) {
     return null;
   }
-  return {
-    ...id,
-    id: [...id.id, key],
-  };
+  return [id[0], ...id.slice(1), key];
 };
 
 export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({

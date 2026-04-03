@@ -111,16 +111,22 @@ const OUTPUT_DEFINITION = OUTPUT_ARTNET_DEFINITION; // todo expand to other outp
 
 export type OutputDefinition = z.infer<typeof OUTPUT_DEFINITION>;
 
-const INPUT_OR_GENERATOR_INSTANCE_ID = z.object({
-  type: z.enum(['input', 'generator']),
-  id: z.string().array(),
-});
-
 /**
- * Object that can be used to uniquely identify an input or generator instance in the app,
+ * Path that can be used to uniquely identify an input or generator instance in the app,
  * including traversing through groups.
  */
-export type InputOrGenInstance = z.infer<typeof INPUT_OR_GENERATOR_INSTANCE_ID>;
+export type InputOrGenInstance = [
+  type: 'input' | 'generator',
+  ...path: string[],
+];
+
+const isInputOrGenInstance = (value: string[]): value is InputOrGenInstance =>
+  value.length >= 2 && (value[0] === 'input' || value[0] === 'generator');
+
+const INPUT_OR_GENERATOR_INSTANCE_ID = z
+  .string()
+  .array()
+  .refine(isInputOrGenInstance);
 
 const OUTPUT_CONFIG = z.object({
   name: z.string().optional(),
