@@ -23,7 +23,7 @@
   },
   "packageManager": "pnpm@9.9.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "resolutions": {
     "typescript": "^5.7.3"
