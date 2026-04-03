@@ -8,6 +8,7 @@ import {
   Tray,
   ipcMain,
   shell,
+  BrowserWindowConstructorOptions,
 } from 'electron';
 import pino from 'pino';
 import pinoPretty from 'pino-pretty';
@@ -15,6 +16,7 @@ import MediaService from '@arcanewizards/electron-media-service';
 import type {
   MediaMetadata,
   MediaSessionAction,
+  NewWindowOptions,
 } from '@arcanewizards/sigil/frontend' with { 'resolution-mode': 'require' };
 import type { SigilAppInstance } from '@arcanewizards/sigil' with {
   'resolution-mode': 'require',
@@ -22,6 +24,7 @@ import type { SigilAppInstance } from '@arcanewizards/sigil' with {
 import {
   runTimecodeToolboxServer,
   type AppApi,
+  urls,
 } from '@arcanewizards/timecode-toolbox';
 
 let mediaService: MediaService | null = null;
@@ -131,20 +134,33 @@ const assetsPath = path.join(__dirname, '..', 'assets');
 
 const activeWindows = new Map<BrowserWindow, string | URL>();
 
-type WindowOptions = {
-  width?: number;
-  height?: number;
+type WindowModes = 'default' | typeof urls.WINDOW_MODE_TIMECODE;
+
+const WINDOW_MODES: Record<WindowModes, BrowserWindowConstructorOptions> = {
+  default: {
+    width: 1200,
+    height: 600,
+    minHeight: 500,
+    minWidth: 400,
+  },
+  [urls.WINDOW_MODE_TIMECODE]: {
+    width: 400,
+    height: 200,
+    minWidth: 300,
+    minHeight: 150,
+  },
+};
+
+const isWindowMode = (mode: string | undefined): mode is WindowModes => {
+  return !!mode && mode in WINDOW_MODES;
 };
 
 const createWindow = (
   url: string | URL,
-  { width = 1200, height = 600 }: WindowOptions = {},
+  windowOptions: Partial<BrowserWindowConstructorOptions> = WINDOW_MODES.default,
 ) => {
   const win = new BrowserWindow({
-    width,
-    height,
-    minHeight: 500,
-    minWidth: 400,
+    ...windowOptions,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
@@ -213,8 +229,8 @@ app.whenReady().then(async () => {
   ipcMain.on('open-url', (event, url: string) => {
     shell.openExternal(url);
   });
-  ipcMain.on('open-window', (event, url: string, canUseExisting: boolean) => {
-    if (canUseExisting) {
+  ipcMain.on('open-window', (event, url: string, options: NewWindowOptions) => {
+    if (options?.canUseExisting) {
       for (const [win, winUrl] of activeWindows.entries()) {
         if (winUrl.toString() === url) {
           win.focus();
@@ -222,7 +238,10 @@ app.whenReady().then(async () => {
         }
       }
     }
-    createWindow(url);
+    createWindow(
+      url,
+      isWindowMode(options.mode) ? WINDOW_MODES[options.mode] : undefined,
+    );
   });
   ipcMain.on('confirm-close', (event, message: string) => {
     dialog

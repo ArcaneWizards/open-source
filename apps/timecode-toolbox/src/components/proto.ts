@@ -111,22 +111,68 @@ const OUTPUT_DEFINITION = OUTPUT_ARTNET_DEFINITION; // todo expand to other outp
 
 export type OutputDefinition = z.infer<typeof OUTPUT_DEFINITION>;
 
-/**
- * Path that can be used to uniquely identify an input or generator instance in the app,
- * including traversing through groups.
- */
-export type InputOrGenInstance = [
-  type: 'input' | 'generator',
+export type InputInstanceId = [
+  type: 'input',
+  rootId: string,
   ...path: string[],
 ];
 
-const isInputOrGenInstance = (value: string[]): value is InputOrGenInstance =>
-  value.length >= 2 && (value[0] === 'input' || value[0] === 'generator');
+export const isInputInstanceId = (value: string[]): value is InputInstanceId =>
+  value.length >= 2 && value[0] === 'input';
 
-const INPUT_OR_GENERATOR_INSTANCE_ID = z
+export const INPUT_INSTANCE_ID = z
   .string()
   .array()
-  .refine(isInputOrGenInstance);
+  // TODO: remove type coercion zod/v4
+  .refine(isInputInstanceId) as unknown as z.ZodType<InputInstanceId>;
+
+export type GeneratorInstanceId = [
+  type: 'generator',
+  rootId: string,
+  ...path: string[],
+];
+
+export const isGeneratorInstanceId = (
+  value: string[],
+): value is GeneratorInstanceId =>
+  value.length >= 2 && value[0] === 'generator';
+
+export const GENERATOR_INSTANCE_ID = z
+  .string()
+  .array()
+  // TODO: remove type coercion zod/v4
+  .refine(isGeneratorInstanceId) as unknown as z.ZodType<GeneratorInstanceId>;
+
+export type OutputInstanceId = [
+  type: 'output',
+  rootId: string,
+  ...path: string[],
+];
+
+export const isOutputInstanceId = (
+  value: string[],
+): value is OutputInstanceId => value.length >= 2 && value[0] === 'output';
+
+export const OUTPUT_INSTANCE_ID = z
+  .string()
+  .array()
+  // TODO: remove type coercion zod/v4
+  .refine(isOutputInstanceId) as unknown as z.ZodType<OutputInstanceId>;
+
+export const INPUT_OR_GENERATOR_INSTANCE_ID = z.union([
+  INPUT_INSTANCE_ID,
+  GENERATOR_INSTANCE_ID,
+]);
+
+export type InputOrGenInstance = z.infer<typeof INPUT_OR_GENERATOR_INSTANCE_ID>;
+
+export const TIMECODE_INSTANCE_ID = z.union([
+  INPUT_INSTANCE_ID,
+  GENERATOR_INSTANCE_ID,
+  OUTPUT_INSTANCE_ID,
+]);
+
+export type TimecodeInstanceId = z.infer<typeof TIMECODE_INSTANCE_ID>;
 
 const OUTPUT_CONFIG = z.object({
   name: z.string().optional(),

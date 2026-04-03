@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   MediaSessionControl,
   MediaSessionHandler,
+  NewWindowOptions,
 } from '@arcanewizards/sigil/frontend' with { 'resolution-mode': 'require' };
 
 let handler: MediaSessionHandler | null = null;
@@ -23,8 +24,8 @@ ipcRenderer.on('media-action', (event, action) => {
 
 const ELECTRON_API = {
   openUrl: (url: string) => ipcRenderer.send('open-url', url),
-  openWindow: (url: string, canUseExisting: boolean = false) =>
-    ipcRenderer.send('open-window', url, canUseExisting),
+  openWindow: (url: string, options?: NewWindowOptions) =>
+    ipcRenderer.send('open-window', url, options),
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   openDevTools: () => ipcRenderer.invoke('open-dev-tools'),
   confirmClose: (message: string) => {

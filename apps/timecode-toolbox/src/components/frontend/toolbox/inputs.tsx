@@ -359,7 +359,7 @@ type InputDisplayProps = {
   assignToOutput: AssignToOutputCallback;
 };
 
-const InputDisplay: FC<InputDisplayProps> = ({
+export const InputDisplay: FC<InputDisplayProps> = ({
   uuid,
   config,
   setDialogMode,

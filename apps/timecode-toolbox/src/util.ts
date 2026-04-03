@@ -3,6 +3,7 @@ import {
   InputOrGenInstance,
   isTimecodeGroup,
   isTimecodeInstance,
+  OutputConfig,
   TimecodeInstance,
   TimecodeState,
 } from './components/proto';
@@ -51,4 +52,31 @@ export const adjustTimecodeForDelay = (
     };
   }
   return state;
+};
+
+export const augmentUpstreamTimecodeWithOutputMetadata = (
+  tc: TimecodeInstance | null,
+  config: OutputConfig,
+): TimecodeInstance => {
+  if (!tc) {
+    return {
+      name: null,
+      metadata: null,
+      state: {
+        state: 'none',
+        accuracyMillis: null,
+        smpteMode: config.definition.mode,
+        onAir: null,
+      },
+    };
+  }
+  // Adjust the timecode instance with output-specific metadata
+  return {
+    name: null,
+    metadata: tc.metadata,
+    state: {
+      ...adjustTimecodeForDelay(tc.state, config.delayMs ?? 0),
+      smpteMode: config.definition.mode,
+    },
+  };
 };

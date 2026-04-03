@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import {
+  TIMECODE_INSTANCE_ID,
   TimecodeToolboxComponentCalls,
   ToolboxConfig,
   ToolboxRootComponent,
@@ -40,6 +41,8 @@ import { useBrowserPreferences } from './preferences';
 import { useRootHintVariables } from '@arcanewizards/sigil/frontend/styling';
 import { SizeAwareDiv } from './core/size-aware-div';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
+import { getFragmentValue } from '../../../urls';
+import { FullscreenTimecodeDisplay } from './core/timecode-display';
 
 type Props = {
   info: ToolboxRootComponent;
@@ -177,6 +180,13 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     [info.handlers, callHandler],
   );
 
+  const windowedTimecodeId = useMemo(
+    () => getFragmentValue('tc', TIMECODE_INSTANCE_ID),
+    [],
+  );
+
+  const isMainWindow = windowedTimecodeId === null;
+
   const root = useMemo(
     () => (
       <div className="flex h-screen flex-col">
@@ -192,27 +202,31 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
                 {STRINGS.title}
               </span>
             </div>
-            <ToolbarDivider />
-            <ControlButton
-              onClick={() =>
-                setWindowMode((mode) =>
-                  mode === 'settings' ? null : 'settings',
-                )
-              }
-              variant="titlebar"
-              icon="settings"
-              active={windowMode === 'settings'}
-              title={STRINGS.toggle(STRINGS.settings.title)}
-            />
-            <ControlButton
-              onClick={() =>
-                setWindowMode((mode) => (mode === 'debug' ? null : 'debug'))
-              }
-              variant="titlebar"
-              icon="bug_report"
-              active={windowMode === 'debug'}
-              title={STRINGS.toggle(STRINGS.debugger)}
-            />
+            {isMainWindow && (
+              <>
+                <ToolbarDivider />
+                <ControlButton
+                  onClick={() =>
+                    setWindowMode((mode) =>
+                      mode === 'settings' ? null : 'settings',
+                    )
+                  }
+                  variant="titlebar"
+                  icon="settings"
+                  active={windowMode === 'settings'}
+                  title={STRINGS.toggle(STRINGS.settings.title)}
+                />
+                <ControlButton
+                  onClick={() =>
+                    setWindowMode((mode) => (mode === 'debug' ? null : 'debug'))
+                  }
+                  variant="titlebar"
+                  icon="bug_report"
+                  active={windowMode === 'debug'}
+                  title={STRINGS.toggle(STRINGS.debugger)}
+                />
+              </>
+            )}
           </ToolbarRow>
         </ToolbarWrapper>
         <div className="relative flex h-0 grow flex-col">
@@ -233,6 +247,8 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
             <Debugger title={STRINGS.debugger} className="size-full" />
           ) : windowMode === 'settings' ? (
             <Settings setWindowMode={setWindowMode} />
+          ) : windowedTimecodeId ? (
+            <FullscreenTimecodeDisplay id={windowedTimecodeId} />
           ) : (
             <div
               className="
@@ -277,17 +293,19 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
             />
           )}
         </div>
-        <div
-          className="
-            flex justify-center border-t border-sigil-border bg-sigil-bg-dark
-            p-1 text-[80%]
-          "
-        >
-          {'Created by'}&nbsp;
-          <ExternalLink href="https://arcanewizards.com">
-            Arcane Wizards
-          </ExternalLink>
-        </div>
+        {isMainWindow && (
+          <div
+            className="
+              flex justify-center border-t border-sigil-border bg-sigil-bg-dark
+              p-1 text-[80%]
+            "
+          >
+            {'Created by'}&nbsp;
+            <ExternalLink href="https://arcanewizards.com">
+              Arcane Wizards
+            </ExternalLink>
+          </div>
+        )}
       </div>
     ),
     [
@@ -298,6 +316,8 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       closeDialog,
       dialogMode,
       windowMode,
+      isMainWindow,
+      windowedTimecodeId,
     ],
   );
 

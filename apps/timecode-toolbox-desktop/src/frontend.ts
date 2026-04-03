@@ -20,7 +20,7 @@ if (!window.electronAPI) {
 }
 
 window.startTimecodeToolboxServerFrontend({
-  openExternalLink: (url: string) => {
+  openExternalLink: (url) => {
     if (!window.electronAPI) {
       // Opened in browser, use default behavior
       window.open(url, '_blank', 'noopener');
@@ -28,12 +28,12 @@ window.startTimecodeToolboxServerFrontend({
     }
     window.electronAPI.openUrl(url);
   },
-  openNewWidow: (url: string, canUseExisting?: boolean) => {
+  openNewWidow: (url, options) => {
     if (!window.electronAPI) {
       window.open(url, '_new', 'noopener');
       return;
     }
-    window.electronAPI.openWindow(url, canUseExisting);
+    window.electronAPI.openWindow(url, options);
   },
   selectDirectory: window.electronAPI?.selectDirectory ?? null,
   openDevTools: window.electronAPI?.openDevTools ?? null,

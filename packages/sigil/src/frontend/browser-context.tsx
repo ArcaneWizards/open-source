@@ -40,9 +40,22 @@ export type MediaSessionControl = {
   setHandler: (handler: MediaSessionHandler | null) => void;
 };
 
+export type NewWindowOptions = {
+  /**
+   * If true, try and find an existing window with the same URL,
+   * and just bring it into focus instead of opening a new one.
+   */
+  canUseExisting?: boolean;
+  /**
+   * If supported by the the electron environment,
+   * specify a string mode identifier to configure the window behavior.
+   */
+  mode?: string;
+};
+
 export type BaseBrowserContext = {
   openExternalLink: (url: string) => void;
-  openNewWidow: (url: string, canUseExisting?: boolean) => void;
+  openNewWidow: (url: string, options?: NewWindowOptions) => void;
   selectDirectory: (() => Promise<string | null>) | null;
   openDevTools: (() => Promise<null>) | null;
   confirmClose: (message: string) => void;
