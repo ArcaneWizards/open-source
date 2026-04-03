@@ -9,15 +9,16 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   checks-and-npm-releases:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: ${{ github.ref_name == 'main' && 'release' || 'development' }}
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
+    environment: ${{ github.ref_name == 'main' && 'release' || 'ci' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
