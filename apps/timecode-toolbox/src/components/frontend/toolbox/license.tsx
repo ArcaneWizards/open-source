@@ -38,11 +38,7 @@ export const License: FC<LicenseProps> = ({ license, setWindowMode }) => {
           flex grow basis-0 flex-col overflow-y-auto px-2 pb-2 scrollbar-sigil
         "
       >
-        <TimecodeToolboxLogo
-          className="
-          h-[20%] max-h-[420px] min-h-[110px] w-full
-        "
-        />
+        <TimecodeToolboxLogo className="h-[20%] max-h-[420px] min-h-[110px] w-full" />
         <LicenseContent license={license} />
         <div className="flex justify-center p-2">
           <ControlButton
@@ -94,11 +90,7 @@ export const LicenseGate: FC<LicenseGateProps> = ({ info }) => {
           flex grow basis-0 flex-col overflow-y-auto px-2 pb-2 scrollbar-sigil
         "
       >
-        <TimecodeToolboxLogo
-          className="
-          h-[20%] max-h-[420px] min-h-[110px] w-full
-        "
-        />
+        <TimecodeToolboxLogo className="h-[20%] max-h-[420px] min-h-[110px] w-full" />
         <h2 className="text-center text-sigil-usage-hint-foreground">
           {STRINGS.licensePrompt}
         </h2>
