@@ -22,6 +22,7 @@ import {
   TimecodeHandlerMethods,
   ToolboxConfig,
   ToolboxRootCallHandler,
+  UpdateCheckResult,
 } from './components/proto';
 import { patchJson, Diff } from '@arcanejs/diff';
 import { InputConnections } from './inputs';
@@ -30,6 +31,8 @@ import { Generators } from './generators';
 import { TimecodeHandlers } from './types';
 import { getTreeValue, mapTree, Tree } from './tree';
 import { useLicense } from './license';
+import { UpdateChecker } from './updates';
+import { getEnv } from './env';
 
 export type AppApi = Record<never, never>;
 
@@ -42,6 +45,7 @@ export type AppProps = SigilRuntimeAppProps<AppApi, TimecodeToolboxAppProps>;
 export const App = ({
   title,
   version,
+  edition,
   toolkit,
   dataDirectory,
   logger,
@@ -49,6 +53,8 @@ export const App = ({
   setWindowUrl,
   shutdownContext,
 }: AppProps): ReactNode => {
+  const env = useMemo(() => getEnv(), []);
+
   const { data, error, updateData, resetData } =
     useDataFileContext(ToolboxConfigData);
 
@@ -67,7 +73,15 @@ export const App = ({
     inputs: {},
     outputs: {},
     generators: {},
+    updates: null,
   });
+
+  const setUpdateState = useCallback((updates: UpdateCheckResult | null) => {
+    setState((prev) => ({
+      ...prev,
+      updates,
+    }));
+  }, []);
 
   const [handlers, setHandlers] = useState<TimecodeHandlers>({ children: {} });
 
@@ -103,6 +117,15 @@ export const App = ({
   );
 
   const license = useLicense();
+
+  const appListenerConfig = useMemo(
+    () => ({
+      default: {
+        port: env.PORT,
+      },
+    }),
+    [env.PORT],
+  );
 
   if (!license) {
     // Wait for license to load before starting the app.
@@ -152,17 +175,18 @@ export const App = ({
       shutdownContext={shutdownContext}
     >
       {children}
+      {data.checkForUpdates && (
+        <UpdateChecker
+          version={version}
+          edition={edition}
+          apiBaseUrl={env.API_BASE_URL}
+          setUpdateState={setUpdateState}
+        />
+      )}
       <AppListenerManager
         toolkit={toolkit}
         setWindowUrl={setWindowUrl}
-        listenerConfig={{
-          default: {
-            port: {
-              from: 4100,
-              to: 4200,
-            },
-          },
-        }}
+        listenerConfig={appListenerConfig}
       />
     </AppShell>
   );

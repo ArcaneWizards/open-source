@@ -10,6 +10,7 @@ import { Diff } from '@arcanejs/diff';
 import { NetworkInterface } from '@arcanewizards/net-utils';
 import { TimecodeMode } from '@arcanewizards/artnet/constants';
 import { Tree } from '../tree';
+import { CheckForUpdatesResponse } from '@arcanewizards/apis';
 
 /* Shared config & proto definitions */
 
@@ -193,6 +194,7 @@ export const TOOLBOX_CONFIG = z.object({
    * Hash of the license the user has agreed to.
    */
   agreedToLicense: z.string().optional(),
+  checkForUpdates: z.boolean().optional().default(true),
 });
 
 export type ToolboxConfig = z.infer<typeof TOOLBOX_CONFIG>;
@@ -201,6 +203,7 @@ export const DEFAULT_CONFIG: ToolboxConfig = {
   inputs: {},
   generators: {},
   outputs: {},
+  checkForUpdates: true,
 };
 
 /* App State */
@@ -329,10 +332,30 @@ export type OutputState = {
   clients?: ConnectedClient[];
 };
 
+export type UpdateCheckResult =
+  | {
+      type: 'loading';
+    }
+  | {
+      type: 'updates-available';
+      response: CheckForUpdatesResponse;
+      lastCheckedMillis: number;
+    }
+  | {
+      type: 'up-to-date';
+      lastCheckedMillis: number;
+    }
+  | {
+      type: 'error';
+      error: string;
+      lastCheckedMillis: number;
+    };
+
 export type ApplicationState = {
   inputs: Record<string, InputState>;
   generators: Record<string, GeneratorState>;
   outputs: Record<string, OutputState>;
+  updates: UpdateCheckResult | null;
 };
 
 export type TimecodeHandlerMethods = {

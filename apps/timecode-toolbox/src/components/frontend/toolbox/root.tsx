@@ -35,6 +35,7 @@ import { getFragmentValue } from '../../../urls';
 import { FullscreenTimecodeDisplay } from './core/timecode-display';
 import { License } from './license';
 import { Layout } from './core/layout';
+import { UpdateBanner } from './core/updates';
 
 type Props = {
   info: ToolboxRootComponent;
@@ -208,26 +209,29 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
             }}
             licenseMode="license"
           >
-            <div
-              className="
-                flex h-0 grow flex-col gap-px overflow-y-auto bg-sigil-border
-                scrollbar-sigil
-              "
-            >
-              <InputsSection
-                setDialogMode={setDialogMode}
-                assignToOutput={assignToOutputCallback}
-              />
-              <GeneratorsSection
-                setDialogMode={setDialogMode}
-                assignToOutput={assignToOutputCallback}
-              />
-              <OutputsSection
-                setDialogMode={setDialogMode}
-                assignToOutput={assignToOutput}
-                setAssignToOutput={setAssignToOutput}
-              />
-            </div>
+            <>
+              <UpdateBanner />
+              <div
+                className="
+                  flex h-0 grow flex-col gap-px overflow-y-auto bg-sigil-border
+                  scrollbar-sigil
+                "
+              >
+                <InputsSection
+                  setDialogMode={setDialogMode}
+                  assignToOutput={assignToOutputCallback}
+                />
+                <GeneratorsSection
+                  setDialogMode={setDialogMode}
+                  assignToOutput={assignToOutputCallback}
+                />
+                <OutputsSection
+                  setDialogMode={setDialogMode}
+                  assignToOutput={assignToOutput}
+                  setAssignToOutput={setAssignToOutput}
+                />
+              </div>
+            </>
           </Layout>
           {dialogMode?.section.type === 'inputs' && (
             <InputSettingsDialog

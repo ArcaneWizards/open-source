@@ -9,6 +9,7 @@ import pino from 'pino';
 import { AppApi, createApp, TimecodeToolboxAppProps } from './app';
 import { C } from './components/backend';
 import { version } from '../package.json';
+import { AppEdition } from '@arcanewizards/apis';
 
 export type { AppApi };
 
@@ -19,6 +20,7 @@ export type TimecodeToolboxOptions = {
   appProps: TimecodeToolboxAppProps;
   toolkitOptions?: Omit<Partial<ToolkitOptions>, 'logger'>;
   title: string;
+  edition: AppEdition;
 };
 
 export const runTimecodeToolboxServer = ({
@@ -26,11 +28,13 @@ export const runTimecodeToolboxServer = ({
   appProps,
   toolkitOptions,
   title,
+  edition,
 }: TimecodeToolboxOptions): SigilAppInstance<AppApi> =>
   runSigilApp<AppApi, TimecodeToolboxAppProps>({
     logger,
     title,
     version,
+    edition,
     appProps,
     toolkitOptions,
     createApp,

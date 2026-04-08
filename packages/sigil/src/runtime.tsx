@@ -25,6 +25,7 @@ export type SigilRuntimeAppProps<
 > = TExtraAppProps & {
   title: string;
   version: string;
+  edition: 'desktop' | 'cli';
   toolkit: Toolkit;
   logger: Logger;
   logEventEmitter: SigilLogEventEmitter;
@@ -50,6 +51,7 @@ export type SigilRuntimeOptions<TAppApi, TExtraAppProps extends object> = {
   logger: pino.Logger;
   title: string;
   version: string;
+  edition: 'desktop' | 'cli';
   appProps: TExtraAppProps;
   toolkitOptions?: Omit<Partial<ToolkitOptions>, 'logger'>;
   createApp: (
@@ -104,6 +106,7 @@ export const runSigilApp = <TAppApi, TExtraAppProps extends object>({
   logger: upstreamLogger,
   title,
   version,
+  edition,
   appProps,
   toolkitOptions,
   createApp,
@@ -216,6 +219,7 @@ export const runSigilApp = <TAppApi, TExtraAppProps extends object>({
     createApp({
       title,
       version,
+      edition,
       toolkit,
       logger,
       logEventEmitter,
