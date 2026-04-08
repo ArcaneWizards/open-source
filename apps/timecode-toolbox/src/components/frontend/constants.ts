@@ -89,5 +89,12 @@ export const STRINGS = {
     updateAvailable: (current: string, latest: string) =>
       `Version ${latest} is available! You are currently on version ${current}.`,
     download: 'Download',
+    settingsLabel: 'Automatically check for updates',
+    settingsDetails: `When enabled, the app will automatically check for updates periodically and display a message when a new version is available.`,
+    lastChecked: (time: string) => `Last checked: ${time}`,
+  },
+  general: {
+    enabled: 'Enabled',
+    disabled: 'Disabled',
   },
 } as const;

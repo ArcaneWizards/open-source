@@ -59,7 +59,7 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
       currentVersion: version,
     })
       .then((response) => {
-        if (!response.newVersions) {
+        if (!response.newVersions || response.newVersions.length === 0) {
           setUpdateState({ type: 'up-to-date', lastCheckedMillis });
           logger.info('No updates available');
           return;
@@ -91,6 +91,12 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
     const interval = setInterval(checkForUpdates, 1000 * 60 * 60); // Check every hour
     return () => clearInterval(interval);
   }, [checkForUpdates]);
+
+  useEffect(() => {
+    return () => {
+      setUpdateState(null);
+    };
+  }, [setUpdateState]);
 
   return null;
 };
