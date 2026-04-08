@@ -53,7 +53,7 @@ export const App = ({
   setWindowUrl,
   shutdownContext,
 }: AppProps): ReactNode => {
-  const env = useMemo(() => getEnv(), []);
+  const env = useMemo(() => getEnv(logger), [logger]);
 
   const { data, error, updateData, resetData } =
     useDataFileContext(ToolboxConfigData);
