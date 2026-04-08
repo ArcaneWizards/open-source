@@ -25,19 +25,6 @@ importers:
         version: 5.9.3
 
   apps/timecode-toolbox:
-    dependencies:
-      '@tailwindcss/cli':
-        specifier: ^4.1.13
-        version: 4.2.2
-      music-metadata:
-        specifier: ^11.0.0
-        version: 11.12.3
-      osc-js:
-        specifier: ^2.4.1
-        version: 2.4.1
-      radix-ui:
-        specifier: ^1.4.3
-        version: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
     devDependencies:
       '@arcanejs/build-utils':
         specifier: ^0.1.2
@@ -75,6 +62,9 @@ importers:
       '@arcanewizards/typescript-config':
         specifier: workspace:^
         version: link:../../packages/typescript-config
+      '@tailwindcss/cli':
+        specifier: ^4.1.13
+        version: 4.2.2
       '@types/lodash':
         specifier: ^4.17.13
         version: 4.17.24
@@ -99,12 +89,21 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.23
+      music-metadata:
+        specifier: ^11.0.0
+        version: 11.12.3
+      osc-js:
+        specifier: ^2.4.1
+        version: 2.4.1
       pino:
         specifier: ^9.5.0
         version: 9.14.0
       pino-pretty:
         specifier: ^11.3.0
         version: 11.3.0
+      radix-ui:
+        specifier: ^1.4.3
+        version: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.2.0
         version: 19.2.4
