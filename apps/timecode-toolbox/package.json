@@ -47,6 +47,7 @@
     "@arcanejs/diff": "^0.5.2",
     "@arcanejs/protocol": "^0.8.0",
     "@arcanejs/toolkit-frontend": "^0.11.0",
+    "@arcanewizards/apis": "workspace:^",
     "@arcanewizards/artnet": "workspace:^",
     "@arcanewizards/eslint-config": "workspace:^",
     "@arcanewizards/net-utils": "workspace:^",

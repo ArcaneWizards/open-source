@@ -365,6 +365,7 @@ app.whenReady().then(async () => {
       entrypointJsFile: path.resolve(__dirname, './frontend.js'),
     },
     title: 'Timecode Toolbox Desktop',
+    edition: 'desktop',
   });
   server = arcane;
 

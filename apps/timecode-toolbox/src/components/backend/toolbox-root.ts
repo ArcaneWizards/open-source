@@ -41,6 +41,7 @@ const DEFAULT_PROPS: AppRootProps = {
     inputs: {},
     outputs: {},
     generators: {},
+    updates: null,
   },
   handlers: { children: {} },
   license: '',

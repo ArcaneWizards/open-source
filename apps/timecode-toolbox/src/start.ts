@@ -23,6 +23,7 @@ const server = runTimecodeToolboxServer({
     entrypointJsFile: path.join(path.dirname(__dirname), 'dist/entrypoint.js'),
   },
   title: 'Timecode Toolbox Server',
+  edition: 'cli',
 });
 
 const shutdown = () =>
