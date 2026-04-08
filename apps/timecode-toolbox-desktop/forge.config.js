@@ -51,9 +51,12 @@ module.exports = {
         NSAllowsArbitraryLoads: false,
       },
     },
-    osxSign: {
-      /* must exist to enable notarization */
-    },
+    osxSign:
+      process.env.FULL_BUILD == 'false'
+        ? undefined
+        : {
+            /* must exist to enable notarization */
+          },
     osxNotarize:
       process.env.FULL_BUILD == 'false'
         ? undefined
