@@ -7,6 +7,9 @@
     "url": "https://github.com/ArcaneWizards/open-source.git",
     "directory": "apps/timecode-toolbox"
   },
+  "bin": {
+    "timecode-toolbox": "./dist/start.js"
+  },
   "exports": {
     ".": {
       "@arcanewizards/source": "./src/index.ts",
@@ -38,8 +41,6 @@
     "@arcanejs/build-utils": "^0.1.2",
     "@arcanejs/diff": "^0.5.2",
     "@arcanejs/protocol": "^0.8.0",
-    "@arcanejs/react-toolkit": "^0.15.1",
-    "@arcanejs/toolkit": "^8.0.0",
     "@arcanejs/toolkit-frontend": "^0.11.0",
     "@arcanewizards/artnet": "workspace:^",
     "@arcanewizards/eslint-config": "workspace:^",
@@ -55,9 +56,6 @@
     "eslint": "^9",
     "eslint-plugin-better-tailwindcss": "^4.2.0",
     "lodash": "^4.17.21",
-    "pino": "^9.5.0",
-    "pino-pretty": "^11.3.0",
-    "react": "^19.2.0",
     "tailwindcss": "^4.1.13",
     "tsup": "^8.3.5",
     "tsx": "^4.19.1",
@@ -68,5 +66,12 @@
     "music-metadata": "^11.0.0",
     "osc-js": "^2.4.1",
     "radix-ui": "^1.4.3"
+  },
+  "dependencies": {
+    "@arcanejs/react-toolkit": "^0.15.1",
+    "@arcanejs/toolkit": "^8.0.0",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0",
+    "react": "^19.2.0"
   }
 }
