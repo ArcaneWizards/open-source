@@ -1,5 +1,21 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.1.0
+
+### Minor Changes
+
+- 046e311: Allow timecode-toolbox to be run from cli
+
+  Introduce a "bin" entry to allow for the package to be installed via npx,
+  or globally, and executed easily on a host machine.
+
+### Patch Changes
+
+- 109936d: Correct dependencies in timecode-toolbox
+
+  Certain dev dependencies were incorrectly listed as normal dependencies,
+  meaning they would be incorrectly installed.
+
 ## 0.0.3
 
 ### Patch Changes
