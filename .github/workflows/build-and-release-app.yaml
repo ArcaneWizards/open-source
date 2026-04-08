@@ -26,6 +26,7 @@ jobs:
       pnpm_version: ${{ steps.version.outputs.pnpm_version }}
       require_desktop_release: ${{ steps.check_release.outputs.require_desktop_release }}
       app_dir: ${{ steps.version.outputs.app_dir }}
+      changelog_path: ${{ steps.version.outputs.changelog_path }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Determine version & key path variables
@@ -50,6 +51,7 @@ jobs:
 
           # Get the directory of the app being built
           echo "app_dir=apps/${{ inputs.app }}-desktop" >> $GITHUB_OUTPUT
+          echo "changelog_path=apps/${{ inputs.app }}/CHANGELOG.md" >> $GITHUB_OUTPUT
       - name: Check if this workflow run requires a release to be published
         id: check_release
         env:
@@ -284,9 +286,17 @@ jobs:
           echo OUTPUT_MAC_X64: $OUTPUT_MAC_X64
           echo OUTPUT_MAC_ARM64: $OUTPUT_MAC_ARM64
           echo OUTPUT_WIN_X64: $OUTPUT_WIN_X64
+      - name: Extract Changelog
+        id: changelog
+        uses: nickohold/changelog-version-extractor@7cebc1c1092d2a08341dd7a75ee3a256c7bdaaf8 # v1.0.0
+        with:
+          version_prefix: '## '
+          version: ${{ needs.pre-release-checks.outputs.version }}
+          changelog_path: ${{ needs.pre-release-checks.outputs.changelog_path }}
       - name: create release & upload assets
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
+          RELEASE_NOTES: ${{ steps.changelog.outputs.changelog }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.pre-release-checks.outputs.tag }}
-        run: gh release create --target ${{ github.sha }} "$RELEASE_TAG" "$OUTPUT_MAC_X64" "$OUTPUT_MAC_ARM64" "$OUTPUT_WIN_X64"
+        run: gh release create --target ${{ github.sha }} --title "$RELEASE_TAG" --notes "$RELEASE_NOTES" "$RELEASE_TAG" "$OUTPUT_MAC_X64" "$OUTPUT_MAC_ARM64" "$OUTPUT_WIN_X64"

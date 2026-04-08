@@ -1,5 +1,11 @@
 # @arcanewizards/net-utils
 
+## 0.1.3
+
+### Patch Changes
+
+- 7ddc46b: Include license in package files
+
 ## 0.1.2
 
 ### Patch Changes
