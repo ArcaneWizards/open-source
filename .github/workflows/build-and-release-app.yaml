@@ -33,17 +33,17 @@ jobs:
         id: version
         run: |
           # Get the version from the package.json
-          VERSION=v$(cat apps/${{ inputs.app }}-desktop/package.json | jq -r '.version')
+          VERSION=$(cat apps/${{ inputs.app }}-desktop/package.json | jq -r '.version')
 
           # Check that this matches the version in the server code
-          SERVER_VERSION=v$(cat apps/${{ inputs.app }}/package.json | jq -r '.version')
+          SERVER_VERSION=$(cat apps/${{ inputs.app }}/package.json | jq -r '.version')
           if [ "$VERSION" != "$SERVER_VERSION" ]; then
             echo "Version mismatch between desktop (${VERSION}) and server (${SERVER_VERSION})"
             exit 1
           fi
 
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "tag=${{ inputs.app }}-desktop@${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${{ inputs.app }}-desktop@v${VERSION}" >> $GITHUB_OUTPUT
 
           # Get the pnpm version that we need to use
           PNPM_VERSION=$(cat package.json | grep '"packageManager": "pnpm@' | sed 's/.*"pnpm@\([^"]*\)".*/\1/')
@@ -106,8 +106,8 @@ jobs:
           APP_NAME: ${{ inputs.app }}
           VERSION: ${{ needs.pre-release-checks.outputs.version }}
         run: |
-          echo "x64File=out/${APP_NAME}.${VERSION}.Intel.dmg" >> $GITHUB_OUTPUT
-          echo "arm64File=out/${APP_NAME}.${VERSION}.Apple Silicon.dmg" >> $GITHUB_OUTPUT
+          echo "x64File=out/${APP_NAME}.v${VERSION}.Intel.dmg" >> $GITHUB_OUTPUT
+          echo "arm64File=out/${APP_NAME}.v${VERSION}.Apple Silicon.dmg" >> $GITHUB_OUTPUT
 
           if [ "${APP_NAME}" == "timecode-toolbox" ]; then
             echo "sourceFile=out/make/Timecode Toolbox Desktop.dmg" >> $GITHUB_OUTPUT
@@ -220,7 +220,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           if ($env:APP_NAME -eq "timecode-toolbox") {
-            echo "x64File=out/$env:APP_NAME.$env:VERSION.Setup.exe" >> $env:GITHUB_OUTPUT
+            echo "x64File=out/$env:APP_NAME.v$env:VERSION.Setup.exe" >> $env:GITHUB_OUTPUT
           } else {
             echo "Unrecognized app name: $env:APP_NAME"
             exit 1
