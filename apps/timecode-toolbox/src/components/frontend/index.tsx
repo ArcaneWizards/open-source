@@ -5,6 +5,7 @@ import {
 } from '@arcanewizards/sigil/frontend';
 import { isTimecodeToolboxComponent, NAMESPACE } from '../proto';
 import { ToolboxRoot } from './toolbox/root';
+import { LicenseGate } from './toolbox/license';
 
 export type TimecodeToolboxBrowserContext = BaseBrowserContext;
 
@@ -19,6 +20,8 @@ export const timecodeToolboxFrontendComponents =
       switch (info.component) {
         case 'toolbox-root':
           return <ToolboxRoot info={info} />;
+        case 'license-gate':
+          return <LicenseGate info={info} />;
       }
     },
   });

@@ -109,6 +109,39 @@ export const App = ({
     return;
   }
 
+  const children: ReactNode =
+    data.agreedToLicense === license.hash ? (
+      <>
+        <C.ToolboxRoot
+          config={data}
+          state={state}
+          handlers={availableHandlers}
+          onUpdateConfig={onUpdateConfig}
+          onCallHandler={callHandler}
+          license={license.text}
+        />
+        <InputConnections state={state} setState={setState} />
+        <Generators
+          state={state}
+          setState={setState}
+          setHandlers={setHandlers}
+        />
+        <OutputConnections state={state} setState={setState} />
+      </>
+    ) : (
+      <C.LicenseGate
+        license={license.text}
+        hash={license.hash}
+        onAcceptLicense={(agreedToLicense) => {
+          logger.info(`License accepted: ${agreedToLicense}`);
+          updateData((current) => ({
+            ...current,
+            agreedToLicense,
+          }));
+        }}
+      />
+    );
+
   return (
     <AppShell
       title={title}
@@ -118,17 +151,7 @@ export const App = ({
       logEventEmitter={logEventEmitter}
       shutdownContext={shutdownContext}
     >
-      <C.ToolboxRoot
-        config={data}
-        state={state}
-        handlers={availableHandlers}
-        onUpdateConfig={onUpdateConfig}
-        onCallHandler={callHandler}
-        license={license.text}
-      />
-      <InputConnections state={state} setState={setState} />
-      <Generators state={state} setState={setState} setHandlers={setHandlers} />
-      <OutputConnections state={state} setState={setState} />
+      {children}
       <AppListenerManager
         toolkit={toolkit}
         setWindowUrl={setWindowUrl}

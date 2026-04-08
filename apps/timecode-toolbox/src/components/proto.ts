@@ -362,7 +362,17 @@ export type ToolboxRootComponent = BaseComponentProto<
   handlers: Tree<AvailableHandlers>;
 };
 
-export type TimecodeToolboxComponent = ToolboxRootComponent;
+export type ToolboxLicenseGateComponent = BaseComponentProto<
+  Namespace,
+  'license-gate'
+> & {
+  license: string;
+  hash: string;
+};
+
+export type TimecodeToolboxComponent =
+  | ToolboxRootComponent
+  | ToolboxLicenseGateComponent;
 
 export const isTimecodeToolboxComponent = (
   component: AnyComponentProto,
@@ -405,7 +415,16 @@ export type ToolboxRootConfigUpdate = BaseClientComponentMessage<Namespace> & {
   diff: Diff<ToolboxConfig>;
 };
 
-export type TimecodeToolboxComponentMessage = ToolboxRootConfigUpdate;
+export type ToolboxLicenseGateAcceptLicense =
+  BaseClientComponentMessage<Namespace> & {
+    component: 'license-gate';
+    action: 'accept-license';
+    hash: string;
+  };
+
+export type TimecodeToolboxComponentMessage =
+  | ToolboxRootConfigUpdate
+  | ToolboxLicenseGateAcceptLicense;
 
 export const isTimecodeToolboxComponentMessage = <
   C extends TimecodeToolboxComponentMessage['component'],

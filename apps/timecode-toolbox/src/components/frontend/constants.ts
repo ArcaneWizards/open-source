@@ -18,6 +18,8 @@ export const STRINGS = {
   toggle: (text: string) => `Toggle ${text}`,
   close: (text: string) => `Close ${text}`,
   license: 'License & About',
+  acceptLicense: 'Accept License',
+  licensePrompt: 'Please review and accept the license to use Timecode Toolbox',
   sourceCode: 'Source Code',
   protocols: {
     artnet: {

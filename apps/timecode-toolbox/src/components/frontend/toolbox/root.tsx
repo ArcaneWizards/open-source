@@ -14,14 +14,8 @@ import {
   ToolboxRootComponent,
   ToolboxRootConfigUpdate,
 } from '../../proto';
-import {
-  ToolbarDivider,
-  ToolbarRow,
-  ToolbarWrapper,
-} from '@arcanewizards/sigil/frontend/toolbars';
-import { ControlButton } from '@arcanewizards/sigil/frontend/controls';
-import { ExternalLink, TextButton } from './content';
-import { SOURCE_CODE_URL, STRINGS } from '../constants';
+
+import { STRINGS } from '../constants';
 import { OutputSettingsDialog, OutputsSection } from './outputs';
 import { GeneratorSettingsDialog, GeneratorsSection } from './generators';
 import { InputSettingsDialog, InputsSection } from './inputs';
@@ -37,31 +31,21 @@ import {
 } from './context';
 import { AssignToOutputCallback, DialogMode } from './types';
 import { Settings } from './settings';
-import { useBrowserPreferences } from './preferences';
-import { useRootHintVariables } from '@arcanewizards/sigil/frontend/styling';
-import { SizeAwareDiv } from './core/size-aware-div';
-import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { getFragmentValue } from '../../../urls';
 import { FullscreenTimecodeDisplay } from './core/timecode-display';
 import { License } from './license';
+import { Layout } from './core/layout';
 
 type Props = {
   info: ToolboxRootComponent;
 };
 
 export const ToolboxRoot: FC<Props> = ({ info }) => {
-  const [windowMode, setWindowMode] = useState<
-    'debug' | 'settings' | 'license' | null
-  >(null);
   const { config } = info;
-  const { sendMessage, call, connection, reconnect } = useContext(StageContext);
+  const { sendMessage, call } = useContext(StageContext);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
 
   const [assignToOutput, setAssignToOutput] = useState<string | null>(null);
-
-  const { preferences } = useBrowserPreferences();
-
-  useRootHintVariables(preferences.color);
 
   useEffect(() => {
     if (assignToOutput) {
@@ -186,84 +170,44 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     [],
   );
 
-  const isMainWindow = windowedTimecodeId === null;
-
   const root = useMemo(
-    () => (
-      <div className="flex h-screen flex-col">
-        <ToolbarWrapper>
-          <ToolbarRow>
-            <div
-              className="
-                flex h-full min-h-[36px] grow items-center justify-center px-1
-                app-title-bar
-              "
-            >
-              <span className="font-bold text-hint-gradient">
-                {STRINGS.title}
-              </span>
-            </div>
-            {isMainWindow && (
-              <>
-                <ToolbarDivider />
-                <ControlButton
-                  onClick={() =>
-                    setWindowMode((mode) =>
-                      mode === 'license' ? null : 'license',
-                    )
-                  }
-                  variant="titlebar"
-                  icon="info"
-                  active={windowMode === 'license'}
-                  title={STRINGS.toggle(STRINGS.license)}
-                />
-                <ControlButton
-                  onClick={() =>
-                    setWindowMode((mode) =>
-                      mode === 'settings' ? null : 'settings',
-                    )
-                  }
-                  variant="titlebar"
-                  icon="settings"
-                  active={windowMode === 'settings'}
-                  title={STRINGS.toggle(STRINGS.settings.title)}
-                />
-                <ControlButton
-                  onClick={() =>
-                    setWindowMode((mode) => (mode === 'debug' ? null : 'debug'))
-                  }
-                  variant="titlebar"
-                  icon="bug_report"
-                  active={windowMode === 'debug'}
-                  title={STRINGS.toggle(STRINGS.debugger)}
-                />
-              </>
-            )}
-          </ToolbarRow>
-        </ToolbarWrapper>
-        <div className="relative flex h-0 grow flex-col">
-          {connection.state !== 'connected' ? (
-            <SizeAwareDiv
-              className="
-                flex grow flex-col items-center justify-center gap-1
-                bg-sigil-bg-light p-1 text-sigil-foreground-muted
-              "
-            >
-              <Icon icon="signal_disconnected" className="text-block-icon" />
-              <div className="text-center">{STRINGS.connectionError}</div>
-              <ControlButton onClick={reconnect} variant="large" icon="replay">
-                {STRINGS.reconnect}
-              </ControlButton>
-            </SizeAwareDiv>
-          ) : windowMode === 'debug' ? (
-            <Debugger title={STRINGS.debugger} className="size-full" />
-          ) : windowMode === 'settings' ? (
-            <Settings setWindowMode={setWindowMode} />
-          ) : windowMode === 'license' ? (
-            <License license={info.license} setWindowMode={setWindowMode} />
-          ) : windowedTimecodeId ? (
-            <FullscreenTimecodeDisplay id={windowedTimecodeId} />
-          ) : (
+    () =>
+      windowedTimecodeId ? (
+        <Layout modes={null}>
+          <FullscreenTimecodeDisplay id={windowedTimecodeId} />
+        </Layout>
+      ) : (
+        <>
+          <Layout<'debug' | 'license' | 'settings'>
+            footer
+            modes={{
+              license: {
+                child: (setWindowMode) => (
+                  <License
+                    license={info.license}
+                    setWindowMode={setWindowMode}
+                  />
+                ),
+                icon: 'info',
+                title: STRINGS.license,
+              },
+              settings: {
+                child: (setWindowMode) => (
+                  <Settings setWindowMode={setWindowMode} />
+                ),
+                icon: 'settings',
+                title: STRINGS.settings.title,
+              },
+              debug: {
+                child: () => (
+                  <Debugger title={STRINGS.debugger} className="size-full" />
+                ),
+                icon: 'bug_report',
+                title: STRINGS.debugger,
+              },
+            }}
+            licenseMode="license"
+          >
             <div
               className="
                 flex h-0 grow flex-col gap-px overflow-y-auto bg-sigil-border
@@ -284,7 +228,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
                 setAssignToOutput={setAssignToOutput}
               />
             </div>
-          )}
+          </Layout>
           {dialogMode?.section.type === 'inputs' && (
             <InputSettingsDialog
               close={closeDialog}
@@ -306,45 +250,13 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
               target={dialogMode.target}
             />
           )}
-        </div>
-        {isMainWindow && (
-          <div
-            className="
-              flex items-center justify-center gap-1 border-t
-              border-sigil-border bg-sigil-bg-dark p-1 text-[80%]
-            "
-          >
-            <span>
-              {'Created by'}&nbsp;
-              <ExternalLink href="https://arcanewizards.com">
-                Arcane Wizards
-              </ExternalLink>
-            </span>
-            <ToolbarDivider />
-            <ExternalLink href={SOURCE_CODE_URL}>
-              {STRINGS.sourceCode}
-            </ExternalLink>
-            <ToolbarDivider />
-            <TextButton
-              onClick={() =>
-                setWindowMode((mode) => (mode === 'license' ? null : 'license'))
-              }
-            >
-              {STRINGS.license}
-            </TextButton>
-          </div>
-        )}
-      </div>
-    ),
+        </>
+      ),
     [
-      connection,
-      reconnect,
       assignToOutput,
       assignToOutputCallback,
       closeDialog,
       dialogMode,
-      windowMode,
-      isMainWindow,
       windowedTimecodeId,
       info.license,
     ],
