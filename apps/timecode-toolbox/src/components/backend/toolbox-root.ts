@@ -29,7 +29,7 @@ export type Events = {
 
 export type AppRootProps = Pick<
   ToolboxRootComponent,
-  'config' | 'state' | 'handlers'
+  'config' | 'state' | 'handlers' | 'license'
 > & {
   onUpdateConfig?: Events['updateConfig'];
   onCallHandler?: Events['callHandler'];
@@ -43,6 +43,7 @@ const DEFAULT_PROPS: AppRootProps = {
     generators: {},
   },
   handlers: { children: {} },
+  license: '',
 };
 
 export class ToolboxRoot
@@ -84,6 +85,7 @@ export class ToolboxRoot
       config: this.props.config,
       state: this.props.state,
       handlers: this.props.handlers,
+      license: this.props.license,
     };
   }
 

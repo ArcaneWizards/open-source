@@ -2,6 +2,7 @@
   "name": "@arcanewizards/tcnet",
   "version": "0.1.2",
   "private": false,
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",

@@ -6,6 +6,9 @@ const MS_FORMAT = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 0,
 });
 
+export const SOURCE_CODE_URL =
+  'https://github.com/ArcaneWizards/open-source/tree/main/apps/timecode-toolbox';
+
 export const STRINGS = {
   title: 'Timecode Toolbox',
   debugger: 'Debug Tools & Log',
@@ -14,6 +17,10 @@ export const STRINGS = {
   openInNewWindow: 'Open in new window',
   toggle: (text: string) => `Toggle ${text}`,
   close: (text: string) => `Close ${text}`,
+  license: 'License & About',
+  acceptLicense: 'Accept License',
+  licensePrompt: 'Please review and accept the license to use Timecode Toolbox',
+  sourceCode: 'Source Code',
   protocols: {
     artnet: {
       short: 'ArtNet',

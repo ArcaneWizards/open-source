@@ -61,6 +61,7 @@ export type ControlButtonProps = Omit<
   title?: ReactNode;
   tooltipSide?: TooltipProps['side'];
   position?: ControlPosition;
+  primary?: boolean;
 } & (
     | { children: ReactNode; icon?: string }
     | { children?: undefined; icon: string }
@@ -78,6 +79,7 @@ type ControlButtonFrameProps = Omit<
   title?: ReactNode;
   tooltipSide?: TooltipProps['side'];
   position?: ControlPosition;
+  primary?: boolean;
 };
 
 export const clsControlButton = ({
@@ -86,9 +88,10 @@ export const clsControlButton = ({
   touching,
   position,
   className,
+  primary,
 }: Pick<
   ControlButtonFrameProps,
-  'variant' | 'active' | 'touching' | 'position' | 'className'
+  'variant' | 'active' | 'touching' | 'position' | 'className' | 'primary'
 >) =>
   cn(
     `sigil-control-button`,
@@ -101,6 +104,7 @@ export const clsControlButton = ({
     cnd(touching, `sigil-control-button-touching`),
     cnd(active, `sigil-control-button-active`),
     cnd(touching && active, `sigil-control-button-active-touching`),
+    cnd(primary, `sigil-control-button-primary`),
     clsControlPosition(position),
     className,
   );
@@ -122,6 +126,7 @@ const ControlButtonFrame = forwardRef<
       title,
       tooltipSide,
       position,
+      primary,
       ...props
     },
     ref,
@@ -137,6 +142,7 @@ const ControlButtonFrame = forwardRef<
           active,
           touching,
           position,
+          primary,
           className,
         })}
       >

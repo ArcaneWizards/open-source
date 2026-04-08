@@ -29,6 +29,7 @@ import { OutputConnections } from './outputs';
 import { Generators } from './generators';
 import { TimecodeHandlers } from './types';
 import { getTreeValue, mapTree, Tree } from './tree';
+import { useLicense } from './license';
 
 export type AppApi = Record<never, never>;
 
@@ -101,6 +102,46 @@ export const App = ({
     [handlers],
   );
 
+  const license = useLicense();
+
+  if (!license) {
+    // Wait for license to load before starting the app.
+    return;
+  }
+
+  const children: ReactNode =
+    data.agreedToLicense === license.hash ? (
+      <>
+        <C.ToolboxRoot
+          config={data}
+          state={state}
+          handlers={availableHandlers}
+          onUpdateConfig={onUpdateConfig}
+          onCallHandler={callHandler}
+          license={license.text}
+        />
+        <InputConnections state={state} setState={setState} />
+        <Generators
+          state={state}
+          setState={setState}
+          setHandlers={setHandlers}
+        />
+        <OutputConnections state={state} setState={setState} />
+      </>
+    ) : (
+      <C.LicenseGate
+        license={license.text}
+        hash={license.hash}
+        onAcceptLicense={(agreedToLicense) => {
+          logger.info(`License accepted: ${agreedToLicense}`);
+          updateData((current) => ({
+            ...current,
+            agreedToLicense,
+          }));
+        }}
+      />
+    );
+
   return (
     <AppShell
       title={title}
@@ -110,16 +151,7 @@ export const App = ({
       logEventEmitter={logEventEmitter}
       shutdownContext={shutdownContext}
     >
-      <C.ToolboxRoot
-        config={data}
-        state={state}
-        handlers={availableHandlers}
-        onUpdateConfig={onUpdateConfig}
-        onCallHandler={callHandler}
-      />
-      <InputConnections state={state} setState={setState} />
-      <Generators state={state} setState={setState} setHandlers={setHandlers} />
-      <OutputConnections state={state} setState={setState} />
+      {children}
       <AppListenerManager
         toolkit={toolkit}
         setWindowUrl={setWindowUrl}

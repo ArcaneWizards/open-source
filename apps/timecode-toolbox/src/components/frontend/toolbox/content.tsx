@@ -30,6 +30,26 @@ export const ExternalLink = ({
   );
 };
 
+export const TextButton = ({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) => {
+  return (
+    <span
+      onClick={onClick}
+      className="
+        cursor-pointer text-sigil-usage-hint-foreground
+        hover:underline
+      "
+    >
+      {children}
+    </span>
+  );
+};
+
 export const NoToolboxChildren: FC<{ text: string }> = ({ text }) => {
   return (
     <SizeAwareDiv

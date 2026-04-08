@@ -5,6 +5,6 @@ export default defineConfig({
   format: ['cjs', 'esm'],
   splitting: false,
   dts: true,
-  external: [],
+  external: ['../LICENSE'],
   sourcemap: false,
 });

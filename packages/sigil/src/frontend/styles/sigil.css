@@ -124,6 +124,18 @@
   }
 }
 
+@utility sigil-control-button-primary {
+  --sigil-control-button-bg: var(--sigil-usage-hint-background);
+  --sigil-control-button-bg-hover: var(--sigil-usage-hint-border);
+  --sigil-control-button-bg-active: var(--sigil-usage-hint-border);
+  --sigil-control-button-fg: var(--sigil-usage-hint-text);
+  --sigil-control-button-fg-hover: var(--sigil-usage-hint-text);
+  --sigil-control-button-fg-active: var(--sigil-usage-hint-text);
+  --sigil-control-button-border: transparent;
+  --sigil-control-button-border-hover: transparent;
+  --sigil-control-button-border-active: transparent;
+}
+
 @utility sigil-control-button-variant-border {
   border-top-width: 2px;
 }
