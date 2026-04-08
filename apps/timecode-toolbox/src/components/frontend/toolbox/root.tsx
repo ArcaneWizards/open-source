@@ -20,8 +20,8 @@ import {
   ToolbarWrapper,
 } from '@arcanewizards/sigil/frontend/toolbars';
 import { ControlButton } from '@arcanewizards/sigil/frontend/controls';
-import { ExternalLink } from './content';
-import { STRINGS } from '../constants';
+import { ExternalLink, TextButton } from './content';
+import { SOURCE_CODE_URL, STRINGS } from '../constants';
 import { OutputSettingsDialog, OutputsSection } from './outputs';
 import { GeneratorSettingsDialog, GeneratorsSection } from './generators';
 import { InputSettingsDialog, InputsSection } from './inputs';
@@ -43,15 +43,16 @@ import { SizeAwareDiv } from './core/size-aware-div';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { getFragmentValue } from '../../../urls';
 import { FullscreenTimecodeDisplay } from './core/timecode-display';
+import { License } from './license';
 
 type Props = {
   info: ToolboxRootComponent;
 };
 
 export const ToolboxRoot: FC<Props> = ({ info }) => {
-  const [windowMode, setWindowMode] = useState<'debug' | 'settings' | null>(
-    null,
-  );
+  const [windowMode, setWindowMode] = useState<
+    'debug' | 'settings' | 'license' | null
+  >(null);
   const { config } = info;
   const { sendMessage, call, connection, reconnect } = useContext(StageContext);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
@@ -208,6 +209,17 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
                 <ControlButton
                   onClick={() =>
                     setWindowMode((mode) =>
+                      mode === 'license' ? null : 'license',
+                    )
+                  }
+                  variant="titlebar"
+                  icon="info"
+                  active={windowMode === 'license'}
+                  title={STRINGS.toggle(STRINGS.license)}
+                />
+                <ControlButton
+                  onClick={() =>
+                    setWindowMode((mode) =>
                       mode === 'settings' ? null : 'settings',
                     )
                   }
@@ -247,6 +259,8 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
             <Debugger title={STRINGS.debugger} className="size-full" />
           ) : windowMode === 'settings' ? (
             <Settings setWindowMode={setWindowMode} />
+          ) : windowMode === 'license' ? (
+            <License license={info.license} setWindowMode={setWindowMode} />
           ) : windowedTimecodeId ? (
             <FullscreenTimecodeDisplay id={windowedTimecodeId} />
           ) : (
@@ -296,14 +310,28 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
         {isMainWindow && (
           <div
             className="
-              flex justify-center border-t border-sigil-border bg-sigil-bg-dark
-              p-1 text-[80%]
+              flex items-center justify-center gap-1 border-t
+              border-sigil-border bg-sigil-bg-dark p-1 text-[80%]
             "
           >
-            {'Created by'}&nbsp;
-            <ExternalLink href="https://arcanewizards.com">
-              Arcane Wizards
+            <span>
+              {'Created by'}&nbsp;
+              <ExternalLink href="https://arcanewizards.com">
+                Arcane Wizards
+              </ExternalLink>
+            </span>
+            <ToolbarDivider />
+            <ExternalLink href={SOURCE_CODE_URL}>
+              {STRINGS.sourceCode}
             </ExternalLink>
+            <ToolbarDivider />
+            <TextButton
+              onClick={() =>
+                setWindowMode((mode) => (mode === 'license' ? null : 'license'))
+              }
+            >
+              {STRINGS.license}
+            </TextButton>
           </div>
         )}
       </div>
@@ -318,6 +346,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       windowMode,
       isMainWindow,
       windowedTimecodeId,
+      info.license,
     ],
   );
 

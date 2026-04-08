@@ -189,6 +189,10 @@ export const TOOLBOX_CONFIG = z.object({
   inputs: z.record(z.string(), INPUT_CONFIG),
   generators: z.record(z.string(), GENERATOR_CONFIG),
   outputs: z.record(z.string(), OUTPUT_CONFIG),
+  /**
+   * Hash of the license the user has agreed to.
+   */
+  agreedToLicense: z.string().optional(),
 });
 
 export type ToolboxConfig = z.infer<typeof TOOLBOX_CONFIG>;
@@ -352,6 +356,7 @@ export type ToolboxRootComponent = BaseComponentProto<
   Namespace,
   'toolbox-root'
 > & {
+  license: string;
   config: ToolboxConfig;
   state: ApplicationState;
   handlers: Tree<AvailableHandlers>;

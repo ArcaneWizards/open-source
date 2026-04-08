@@ -2,6 +2,7 @@
   "name": "@arcanewizards/timecode-toolbox",
   "version": "0.1.0",
   "private": false,
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/ArcaneWizards/open-source.git",
@@ -26,8 +27,12 @@
     "./entrypoint.css": "./dist/entrypoint.css",
     "./package.json": "./package.json"
   },
+  "files": [
+    "LICENSE",
+    "dist"
+  ],
   "scripts": {
-    "build": "pnpm check:types && rm -rf dist && tsup && pnpm build:entrypoint && pnpm build:frontend && pnpm build:styles && check-export-map",
+    "build": "pnpm check:types && rm -rf dist && cp ../../LICENSE ./LICENSE && tsup && pnpm build:entrypoint && pnpm build:frontend && pnpm build:styles && check-export-map",
     "build:entrypoint": "arcane-build-frontend --entry src/components/frontend/entrypoint.ts --outfile dist/entrypoint.js --sourcemap",
     "build:frontend": "arcane-build-frontend --entry src/components/frontend/index.tsx --outfile dist/frontend.js --sourcemap",
     "build:styles": "tailwindcss -i ./src/components/frontend/frontend.css -o ./dist/entrypoint.css",
