@@ -1,7 +1,7 @@
 {
   "name": "@arcanewizards/timecode-toolbox",
   "version": "0.0.3",
-  "private": true,
+  "private": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/ArcaneWizards/open-source.git",
@@ -63,9 +63,7 @@
     "tsx": "^4.19.1",
     "typescript": "^5.7.3",
     "uuid": "^11.0.3",
-    "zod": "^3.22.4"
-  },
-  "dependencies": {
+    "zod": "^3.22.4",
     "@tailwindcss/cli": "^4.1.13",
     "music-metadata": "^11.0.0",
     "osc-js": "^2.4.1",

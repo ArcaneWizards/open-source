@@ -1,7 +1,7 @@
 {
   "name": "@arcanewizards/tcnet",
   "version": "0.1.1",
-  "private": true,
+  "private": false,
   "type": "module",
   "repository": {
     "type": "git",
