@@ -43,7 +43,7 @@ jobs:
           fi
 
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "tag=${{ inputs.app }}-desktop@v${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=@arcanewizards/${{ inputs.app }}@${VERSION}" >> $GITHUB_OUTPUT
 
           # Get the pnpm version that we need to use
           PNPM_VERSION=$(cat package.json | grep '"packageManager": "pnpm@' | sed 's/.*"pnpm@\([^"]*\)".*/\1/')
@@ -68,12 +68,17 @@ jobs:
 
           echo "Checking if release $TAG exists on GitHub..."
           if gh release view "$TAG" > /dev/null 2>&1; then
-            echo "Release $TAG already exists. Skipping desktop build and release."
-            echo "require_desktop_release=false" >> $GITHUB_OUTPUT
-          else
-            echo "Release $TAG does not exist. Desktop build and release will proceed."
-            echo "require_desktop_release=true" >> $GITHUB_OUTPUT
+            echo "Release $TAG already exists. Checking for published assets..."
+            released_assets=$(gh release view "$TAG" --json assets | jq '.assets | length')
+            if [ "$released_assets" -gt 0 ]; then
+              echo "Release $TAG already exists with published assets. Skipping desktop build and release."
+              echo "require_desktop_release=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
           fi
+
+          echo "Release $TAG does not exist or requires desktop assets. Desktop build and release will proceed."
+          echo "require_desktop_release=true" >> $GITHUB_OUTPUT
   build-macos:
     runs-on: macos-latest
     environment: ${{ inputs.notarize && 'package' || 'ci' }}
@@ -286,17 +291,9 @@ jobs:
           echo OUTPUT_MAC_X64: $OUTPUT_MAC_X64
           echo OUTPUT_MAC_ARM64: $OUTPUT_MAC_ARM64
           echo OUTPUT_WIN_X64: $OUTPUT_WIN_X64
-      - name: Extract Changelog
-        id: changelog
-        uses: nickohold/changelog-version-extractor@7cebc1c1092d2a08341dd7a75ee3a256c7bdaaf8 # v1.0.0
-        with:
-          version_prefix: '## '
-          version: ${{ needs.pre-release-checks.outputs.version }}
-          changelog_path: ${{ needs.pre-release-checks.outputs.changelog_path }}
-      - name: create release & upload assets
+      - name: upload assets to existing release
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
-          RELEASE_NOTES: ${{ steps.changelog.outputs.changelog }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.pre-release-checks.outputs.tag }}
-        run: gh release create --target ${{ github.sha }} --title "$RELEASE_TAG" --notes "$RELEASE_NOTES" "$RELEASE_TAG" "$OUTPUT_MAC_X64" "$OUTPUT_MAC_ARM64" "$OUTPUT_WIN_X64"
+        run: gh release upload "$RELEASE_TAG" "$OUTPUT_MAC_X64" "$OUTPUT_MAC_ARM64" "$OUTPUT_WIN_X64"
