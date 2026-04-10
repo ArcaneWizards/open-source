@@ -1,5 +1,11 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.1.2
+
+### Patch Changes
+
+- ec49a94: Add README to timecode-toolbox
+
 ## 0.1.1
 
 ### Patch Changes
