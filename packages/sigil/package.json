@@ -65,6 +65,12 @@
       "import": "./dist/frontend/styling.js",
       "require": "./dist/frontend/styling.cjs"
     },
+    "./frontend/styling.hooks": {
+      "@arcanewizards/source": "./src/frontend/styling.hooks.ts",
+      "types": "./dist/frontend/styling.hooks.d.ts",
+      "import": "./dist/frontend/styling.hooks.js",
+      "require": "./dist/frontend/styling.hooks.cjs"
+    },
     "./frontend/toolbars": {
       "@arcanewizards/source": "./src/frontend/toolbars.tsx",
       "types": "./dist/frontend/toolbars.d.ts",
