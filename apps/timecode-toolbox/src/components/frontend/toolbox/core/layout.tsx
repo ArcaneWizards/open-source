@@ -11,7 +11,7 @@ import { SizeAwareDiv } from './size-aware-div';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { StageContext } from '@arcanejs/toolkit-frontend';
 import { useBrowserPreferences } from '../preferences';
-import { useRootHintVariables } from '@arcanewizards/sigil/frontend/styling';
+import { useRootHintVariables } from '@arcanewizards/sigil/frontend/styling.hooks';
 
 type WindowModeDef<WindowMode extends string> = {
   child: (

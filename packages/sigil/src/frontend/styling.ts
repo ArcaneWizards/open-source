@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties } from 'react';
+import { type CSSProperties } from 'react';
 import { z } from 'zod';
 
 export const SIGIL_COLOR = z.enum([
@@ -70,20 +70,6 @@ export const cssSigilColorUsageVariables = (
 
 export const cssHintColorVariables = (color: SigilColor): CSSProperties =>
   cssSigilColorUsageVariables(`sigil-usage-hint`, sigilColorUsage(color));
-
-/**
- * Hook that will adjust the root hint color based on the given color.
- */
-export const useRootHintVariables = (color: SigilColor) => {
-  useEffect(() => {
-    const root = document.querySelector<HTMLElement>('.arcane-theme-root');
-    if (!root) return;
-
-    Object.entries(cssHintColorVariables(color)).forEach(([key, value]) => {
-      root.style.setProperty(key, value);
-    });
-  }, [color]);
-};
 
 export const cssVariables = (
   variables: Partial<Record<`--${string}`, string | number>>,

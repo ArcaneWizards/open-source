@@ -11,6 +11,7 @@ export default defineConfig({
     'src/frontend/input.ts',
     'src/frontend/preferences.ts',
     'src/frontend/styling.ts',
+    'src/frontend/styling.hooks.ts',
     'src/frontend/toolbars.tsx',
     'src/frontend/tooltip.tsx',
   ],
