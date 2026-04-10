@@ -1,5 +1,15 @@
 # @arcanewizards/sigil
 
+## 0.1.4
+
+### Patch Changes
+
+- 25a2f2b: Pull out styling hooks into own module
+
+  To allow for the core styling module to be used in server components,
+  pull out the hooks into their own module,
+  so that useEffect will not be imported unless required.
+
 ## 0.1.3
 
 ### Patch Changes
