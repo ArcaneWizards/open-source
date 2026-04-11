@@ -1,5 +1,12 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.1.3
+
+### Patch Changes
+
+- b091c07: Updated app icon to latest version
+- b091c07: Flesh out README with a bit more information
+
 ## 0.1.2
 
 ### Patch Changes
