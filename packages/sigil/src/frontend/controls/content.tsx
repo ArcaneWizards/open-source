@@ -53,20 +53,20 @@ export const ControlParagraph = forwardRef<
 
 ControlParagraph.displayName = 'ControlParagraph';
 
-export type ControlLabelProps = ComponentPropsWithoutRef<'div'> & {
+export type ControlLabelProps = ComponentPropsWithoutRef<'label'> & {
   subgrid?: boolean;
   position?: ControlPosition;
   disabled?: boolean;
   nonMicro?: boolean;
 };
 
-export const ControlLabel = forwardRef<HTMLDivElement, ControlLabelProps>(
+export const ControlLabel = forwardRef<HTMLLabelElement, ControlLabelProps>(
   (
     { className, disabled, nonMicro, position = 'label', subgrid, ...props },
     ref,
   ) => {
     return (
-      <div
+      <label
         {...props}
         ref={ref}
         className={cn(
