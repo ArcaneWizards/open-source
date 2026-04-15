@@ -21,13 +21,13 @@ export type SelectOption<T> = {
   active?: boolean;
 };
 
-type SelectProps<T extends string | null> = {
-  options: SelectOption<T>[];
+type SelectProps<T extends string | null, O extends SelectOption<T>> = {
+  options: O[];
   value: T | '';
   onChange: (value: T) => void;
-  triggerText?: (option: SelectOption<T>) => ReactNode;
-  triggerButton?: (option: null | SelectOption<T>) => ReactNode;
-  option?: (option: SelectOption<T>) => ReactNode;
+  triggerText?: (option: O) => ReactNode;
+  triggerButton?: (option: null | O) => ReactNode;
+  option?: (option: O) => ReactNode;
   variant: ControlButtonVariant;
   position?: ControlPosition;
   disabled?: boolean;
@@ -38,7 +38,10 @@ type SelectProps<T extends string | null> = {
 
 const NULL_VALUE = '__null_value__';
 
-export const ControlSelect = <T extends string | null>({
+export const ControlSelect = <
+  T extends string | null,
+  O extends SelectOption<T> = SelectOption<T>,
+>({
   options,
   value,
   onChange,
@@ -51,7 +54,7 @@ export const ControlSelect = <T extends string | null>({
   tooltip,
   placeholder,
   triggerClassName: className,
-}: SelectProps<T>) => {
+}: SelectProps<T, O>) => {
   const selectedOption = options.find((option) => option.value === value);
 
   const onValueChange = useCallback(
@@ -131,42 +134,33 @@ export const ControlSelect = <T extends string | null>({
   );
 };
 
-type ControlColorSelectProps = {
-  color: SigilColor | '';
-  onChange: (color: SigilColor) => void;
-} & Pick<
-  SelectProps<SigilColor>,
-  'variant' | 'position' | 'disabled' | 'tooltip' | 'placeholder'
->;
+type SigilOptionWithColor<T> = SelectOption<T> & { color: SigilColor };
 
-const COLOR_OPTIONS: Record<SigilColor, SelectOption<SigilColor>> = {
-  red: { label: 'Red', value: 'red' },
-  blue: { label: 'Blue', value: 'blue' },
-  teal: { label: 'Teal', value: 'teal' },
-  green: { label: 'Green', value: 'green' },
-  yellow: { label: 'Yellow', value: 'yellow' },
-  purple: { label: 'Purple', value: 'purple' },
-  orange: { label: 'Orange', value: 'orange' },
-  brown: { label: 'Brown', value: 'brown' },
-  gray: { label: 'Gray', value: 'gray' },
-};
+type ControlColoredSelectProps<
+  T extends string | null,
+  O extends SigilOptionWithColor<T>,
+> = SelectProps<T, O>;
 
-export const ControlColorSelect = ({
-  color,
+export const ControlColoredSelect = <
+  T extends string | null,
+  O extends SigilOptionWithColor<T> = SigilOptionWithColor<T>,
+>({
+  options,
+  value,
   onChange,
   variant,
   position,
   disabled,
   placeholder,
   ...props
-}: ControlColorSelectProps) => {
-  const options = Object.values(COLOR_OPTIONS);
-  const selectedColor = sigilColorUsage(color || 'gray');
+}: ControlColoredSelectProps<T, O>) => {
+  const selectedOption = options.find((option) => option.value === value);
+  const selectedColor = sigilColorUsage(selectedOption?.color ?? 'gray');
 
   return (
     <ControlSelect
       options={options}
-      value={color}
+      value={value}
       onChange={onChange}
       triggerButton={(option) => (
         <Select.Trigger
@@ -215,7 +209,7 @@ export const ControlColorSelect = ({
         <span
           className=""
           style={{
-            color: `var(--sigil-usage-${option.value}-foreground)`,
+            color: `var(--sigil-usage-${option.color}-foreground)`,
           }}
         >
           {option.label}
@@ -224,6 +218,40 @@ export const ControlColorSelect = ({
       variant={variant}
       position={position}
       disabled={disabled}
+      {...props}
+    />
+  );
+};
+
+type ControlColorSelectProps = {
+  color: SigilColor | '';
+} & Omit<
+  ControlColoredSelectProps<SigilColor, SigilOptionWithColor<SigilColor>>,
+  'value' | 'options'
+>;
+
+const COLOR_OPTIONS: Record<SigilColor, SigilOptionWithColor<SigilColor>> = {
+  red: { label: 'Red', value: 'red', color: 'red' },
+  blue: { label: 'Blue', value: 'blue', color: 'blue' },
+  teal: { label: 'Teal', value: 'teal', color: 'teal' },
+  green: { label: 'Green', value: 'green', color: 'green' },
+  yellow: { label: 'Yellow', value: 'yellow', color: 'yellow' },
+  purple: { label: 'Purple', value: 'purple', color: 'purple' },
+  orange: { label: 'Orange', value: 'orange', color: 'orange' },
+  brown: { label: 'Brown', value: 'brown', color: 'brown' },
+  gray: { label: 'Gray', value: 'gray', color: 'gray' },
+};
+
+const COLOR_OPTIONS_ARRAY = Object.values(COLOR_OPTIONS);
+
+export const ControlColorSelect = ({
+  color,
+  ...props
+}: ControlColorSelectProps) => {
+  return (
+    <ControlColoredSelect
+      options={COLOR_OPTIONS_ARRAY}
+      value={color}
       {...props}
     />
   );
