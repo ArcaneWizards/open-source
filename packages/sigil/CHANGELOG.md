@@ -1,5 +1,19 @@
 # @arcanewizards/sigil
 
+## 0.1.5
+
+### Patch Changes
+
+- 3d66107: Use label for ControlLabel
+
+  This allows using the htmlFor prop to link the label to the input.
+
+- 879ce15: Introduce ControlColoredSelect
+
+  Generalize the functionality from ControlColorSelect
+  so that it can be used for other types of select
+  where each option has a color associated with it.
+
 ## 0.1.4
 
 ### Patch Changes
