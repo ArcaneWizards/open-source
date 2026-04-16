@@ -24,7 +24,7 @@
     "start": "pnpm build && electron-forge start",
     "package": "pnpm build && electron-forge package",
     "make": "pnpm build && electron-forge make",
-    "version-sync": "jq -r '.version' ../timecode-toolbox/package.json | xargs -I {} jq --arg version {} '.version = $version' package.json > package.new.json && mv package.new.json package.json"
+    "version-sync": "jq -r '.version' ../timecode-toolbox/package.json | xargs -I {} jq --arg version {} '.version = $version' package.json > package.new.json && mv package.new.json package.json && cp ../timecode-toolbox/CHANGELOG.md ./CHANGELOG.md"
   },
   "dependencies": {
     "@arcanewizards/electron-media-service": "^0.3.1",
