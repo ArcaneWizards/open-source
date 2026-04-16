@@ -42,6 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           publish: pnpm changeset publish
+          version: pnpm run version
           createGithubReleases: true
           commitMode: github-api
   build-and-release-apps:
