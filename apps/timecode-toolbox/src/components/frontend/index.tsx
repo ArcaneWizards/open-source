@@ -2,6 +2,7 @@ import { FrontendComponentRenderer } from '@arcanejs/toolkit-frontend/types';
 import {
   BaseBrowserContext,
   startSigilFrontend,
+  createBrowserMediaSession,
 } from '@arcanewizards/sigil/frontend';
 import { isTimecodeToolboxComponent, NAMESPACE } from '../proto';
 import { ToolboxRoot } from './toolbox/root';
@@ -43,7 +44,9 @@ export const startTimecodeToolboxServerFrontend = (
 declare global {
   interface Window {
     startTimecodeToolboxServerFrontend?: typeof startTimecodeToolboxServerFrontend;
+    createBrowserMediaSession?: typeof createBrowserMediaSession;
   }
 }
 
 window.startTimecodeToolboxServerFrontend = startTimecodeToolboxServerFrontend;
+window.createBrowserMediaSession = createBrowserMediaSession;

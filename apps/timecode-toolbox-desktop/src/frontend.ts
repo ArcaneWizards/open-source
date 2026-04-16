@@ -9,14 +9,11 @@ declare global {
   }
 }
 
-if (!window.startTimecodeToolboxServerFrontend) {
+if (
+  !window.startTimecodeToolboxServerFrontend ||
+  !window.createBrowserMediaSession
+) {
   throw new Error('Timecode Toolbox frontend is not loaded properly.');
-}
-
-if (!window.electronAPI) {
-  throw new Error(
-    'Electron API is not available. This app is meant to be run in Electron.',
-  );
 }
 
 window.startTimecodeToolboxServerFrontend({
@@ -42,5 +39,6 @@ window.startTimecodeToolboxServerFrontend({
       window.electronAPI.confirmClose(message);
     }
   },
-  mediaSession: window.electronAPI.mediaSession,
+  mediaSession:
+    window.electronAPI?.mediaSession ?? window.createBrowserMediaSession(),
 });
