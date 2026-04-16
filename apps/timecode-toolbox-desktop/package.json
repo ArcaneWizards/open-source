@@ -23,7 +23,8 @@
     "build:frontend": "esbuild src/frontend.ts --bundle --platform=browser --format=iife --conditions=@arcanewizards/source --outfile=dist/frontend.js",
     "start": "pnpm build && electron-forge start",
     "package": "pnpm build && electron-forge package",
-    "make": "pnpm build && electron-forge make"
+    "make": "pnpm build && electron-forge make",
+    "version-sync": "jq -r '.version' ../timecode-toolbox/package.json | xargs -I {} jq --arg version {} '.version = $version' package.json > package.new.json && mv package.new.json package.json"
   },
   "dependencies": {
     "@arcanewizards/electron-media-service": "^0.3.1",

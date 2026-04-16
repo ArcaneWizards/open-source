@@ -13,7 +13,8 @@
     "format:fix": "prettier --write \"**/*.{ts,tsx,md,css}\"",
     "test": "turbo test",
     "test:watch": "turbo test:watch",
-    "start": "cd apps/server && pnpm start"
+    "start": "cd apps/server && pnpm start",
+    "version": "changeset version && pnpm --dir apps/timecode-toolbox-desktop version-sync"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0",
