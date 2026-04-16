@@ -35,11 +35,20 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
+      - uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        if: github.ref_name == 'main'
+        id: app-token
+        with:
+          client-id: ${{ vars.FAMILIAR_CLIENT_ID }}
+          private-key: ${{ secrets.FAMILIAR_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: |
+            open-source
       - name: Run Changeset Workflow
         if: github.ref_name == 'main'
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1.5.3
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           publish: pnpm changeset publish
           version: pnpm run version
