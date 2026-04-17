@@ -112,6 +112,8 @@
     "@arcanejs/toolkit": "^8.0.0",
     "@arcanejs/toolkit-frontend": "^0.11.0",
     "@arcanewizards/net-utils": "workspace:^",
+    "@types/escape-html": "^1.0.4",
+    "escape-html": "^1.0.3",
     "lodash": "^4.17.21",
     "pino": "^9.5.0",
     "radix-ui": "^1.4.3",

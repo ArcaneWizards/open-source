@@ -5,6 +5,7 @@ import { Toolkit, ToolkitOptions } from '@arcanejs/toolkit';
 import { EventEmitter } from 'node:events';
 import pino from 'pino';
 import { JSX } from 'react';
+import escapeHTML from 'escape-html';
 import { SIGIL_COMPONENTS } from './backend/app-root';
 import { ShutdownContextData } from './context';
 import {
@@ -166,6 +167,30 @@ export const runSigilApp = <TAppApi, TExtraAppProps extends object>({
       debug: upstreamLogger.debug.bind(upstreamLogger),
     },
     title,
+    htmlPage: (context) => `
+          <html>
+            <head>
+              <title>${escapeHTML(context.title)}</title>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, user-scalable=no" />
+              <style type="text/css">
+                @font-face {
+                  font-family: 'Material Symbols Outlined';
+                  font-style: normal;
+                  src: url(${context.coreAssets.materialSymbolsOutlined}) format('woff');
+                }
+              </style>
+              ${
+                context.coreAssets.entrypointCss
+                  ? `<link rel="stylesheet" href="${context.coreAssets.entrypointCss}" />`
+                  : ''
+              }
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="text/javascript" src="${context.coreAssets.entrypointJs}"></script>
+            </body>
+          </html>`,
     ...toolkitOptions,
   });
 
