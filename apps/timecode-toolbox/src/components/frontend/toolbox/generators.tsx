@@ -59,13 +59,13 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
 type GeneratorSettingsDialogProps = {
   target: DialogMode['target'];
   generator: GeneratorDefinition['type'];
-  close: () => void;
+  setDialogMode: (mode: DialogMode | null) => void;
 };
 
 export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
   target,
   generator,
-  close,
+  setDialogMode,
 }) => {
   const { config, updateConfig } = useContext(ConfigContext);
   const [newData, setNewData] = useState<GeneratorConfig>({
@@ -75,6 +75,8 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
       speed: 1,
     },
   });
+
+  const close = useCallback(() => setDialogMode(null), [setDialogMode]);
 
   const updateSettings: SettingsProps<GeneratorConfig>['updateSettings'] =
     useCallback(
@@ -190,7 +192,7 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
             updateSettings={updateDefinition}
           />
         ) : null}
-        {resolvedTarget === 'add' ? (
+        {target.type === 'add' ? (
           <ControlDialogButtons>
             <ControlButton onClick={close} variant="large">
               Cancel
@@ -199,13 +201,26 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
               Add Generator
             </ControlButton>
           </ControlDialogButtons>
-        ) : (
+        ) : target.type === 'edit' ? (
           <ControlDialogButtons>
+            <ControlButton
+              onClick={() =>
+                setDialogMode({
+                  section: { type: 'generators', generator },
+                  target: { type: 'delete', uuid: target.uuid },
+                })
+              }
+              variant="large"
+              destructive
+              icon="delete"
+            >
+              Delete
+            </ControlButton>
             <ControlButton onClick={close} variant="large">
               Close
             </ControlButton>
           </ControlDialogButtons>
-        )}
+        ) : null}
       </ControlDialog>
     </ChangeCommitContext.Provider>
   );

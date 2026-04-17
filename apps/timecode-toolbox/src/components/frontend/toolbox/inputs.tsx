@@ -167,13 +167,13 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
 type InputSettingsDialogProps = {
   target: DialogMode['target'];
   input: InputDefinition['type'];
-  close: () => void;
+  setDialogMode: (mode: DialogMode | null) => void;
 };
 
 export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
   target,
   input,
-  close,
+  setDialogMode,
 }) => {
   const { config, updateConfig } = useContext(ConfigContext);
   const [newData, setNewData] = useState<InputConfig>({
@@ -191,6 +191,8 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
             iface: '',
           },
   });
+
+  const close = useCallback(() => setDialogMode(null), [setDialogMode]);
 
   const updateSettings: SettingsProps<InputConfig>['updateSettings'] =
     useCallback(
@@ -331,22 +333,35 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
             }
           }}
         />
-        {resolvedTarget === 'add' ? (
+        {target.type === 'add' ? (
           <ControlDialogButtons>
             <ControlButton onClick={close} variant="large">
               Cancel
             </ControlButton>
-            <ControlButton onClick={addInput} variant="large">
+            <ControlButton onClick={addInput} variant="large" primary>
               Add Input
             </ControlButton>
           </ControlDialogButtons>
-        ) : (
+        ) : target?.type === 'edit' ? (
           <ControlDialogButtons>
+            <ControlButton
+              onClick={() =>
+                setDialogMode({
+                  section: { type: 'inputs', input },
+                  target: { type: 'delete', uuid: target.uuid },
+                })
+              }
+              variant="large"
+              destructive
+              icon="delete"
+            >
+              Delete
+            </ControlButton>
             <ControlButton onClick={close} variant="large">
               Close
             </ControlButton>
           </ControlDialogButtons>
-        )}
+        ) : null}
       </ControlDialog>
     </ChangeCommitContext.Provider>
   );
