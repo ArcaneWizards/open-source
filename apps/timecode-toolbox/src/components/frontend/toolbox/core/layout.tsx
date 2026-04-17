@@ -43,7 +43,7 @@ export const Layout = <WindowMode extends string>({
   useRootHintVariables(preferences.color);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-dvh flex-col">
       <ToolbarWrapper>
         <ToolbarRow>
           <div
