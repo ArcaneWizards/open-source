@@ -1,5 +1,33 @@
 # @arcanewizards/sigil
 
+## 0.1.6
+
+### Patch Changes
+
+- ce37aec: Introduce new appListenerChangesHandledExternally property
+
+  Introduce a new appListenerChangesHandledExternally property to the browser
+  context that indicates to the frontend code if any changes to the app listener
+  will be handled externally (by e.g. electron),
+  or whether the frontend code should attempt to repair the URL manually.
+
+- ce37aec: Introduce new network config zod types
+- e684bc3: Introduce destructive buttons & increase dialog gap
+  - Introduce a destructive mode to ControlButton to display buttons as red
+  - Increase the gap between control buttons in dialogs
+
+- 4b58c49: Prevent iOS zooming-in when focusing inputs
+
+  Prevent the default behavior of iOS zooming in to small inputs
+  (e.g. in timecode-toolbox when opening the edit dialog)
+
+  see #34
+
+- ce37aec: Prefer loopback (internal) interface in AppListenerManager
+
+  When multiple application listeners are available,
+  prefer the connection that's bound to an internal / loopback interface.
+
 ## 0.1.5
 
 ### Patch Changes
