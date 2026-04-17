@@ -29,16 +29,74 @@ import {
   ConfigContextData,
   NetworkContext,
 } from './context';
-import { AssignToOutputCallback, DialogMode } from './types';
+import {
+  AssignToOutputCallback,
+  DialogMode,
+  DialogModeDelete,
+  isDeleteDialogMode,
+} from './types';
 import { Settings } from './settings';
 import { getFragmentValue } from '../../../urls';
 import { FullscreenTimecodeDisplay } from './core/timecode-display';
 import { License } from './license';
 import { Layout } from './core/layout';
 import { UpdateBanner } from './core/updates';
+import {
+  ControlDialog,
+  ControlDialogButtons,
+} from '../../../../../../packages/sigil/src/frontend/controls/dialogs';
+import {
+  ControlButton,
+  ControlDetails,
+} from '@arcanewizards/sigil/frontend/controls';
 
 type Props = {
   info: ToolboxRootComponent;
+};
+
+const DeleteConfirmationDialog: FC<{
+  dialogMode: DialogModeDelete;
+  setDialogMode: (mode: DialogMode | null) => void;
+}> = ({ dialogMode, setDialogMode }) => {
+  const { updateConfig } = useContext(ConfigContext);
+
+  const deleteTarget = useCallback(() => {
+    updateConfig((current) => {
+      return {
+        ...current,
+        [dialogMode.section.type]: Object.fromEntries(
+          Object.entries(current[dialogMode.section.type]).filter(
+            ([uuid]) => uuid !== dialogMode.target.uuid,
+          ),
+        ),
+      };
+    });
+    setDialogMode(null);
+  }, [updateConfig, dialogMode, setDialogMode]);
+
+  return (
+    <ControlDialog
+      dialogClosed={() => setDialogMode(null)}
+      title={STRINGS[dialogMode.section.type].deleteDialog}
+    >
+      <ControlDetails position="row">
+        {STRINGS[dialogMode.section.type].deleteDialogDetails}
+      </ControlDetails>
+      <ControlDialogButtons>
+        <ControlButton onClick={() => setDialogMode(null)} variant="large">
+          Cancel
+        </ControlButton>
+        <ControlButton
+          onClick={deleteTarget}
+          variant="large"
+          destructive
+          icon="delete"
+        >
+          Delete
+        </ControlButton>
+      </ControlDialogButtons>
+    </ControlDialog>
+  );
 };
 
 export const ToolboxRoot: FC<Props> = ({ info }) => {
@@ -84,8 +142,6 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     }),
     [config, updateConfig],
   );
-
-  const closeDialog = useCallback(() => setDialogMode(null), []);
 
   const getNetworkInterfaces = useCallback(async () => {
     if (!call) {
@@ -233,33 +289,41 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
               </div>
             </>
           </Layout>
-          {dialogMode?.section.type === 'inputs' && (
-            <InputSettingsDialog
-              close={closeDialog}
-              input={dialogMode.section.input}
-              target={dialogMode.target}
+          {isDeleteDialogMode(dialogMode) ? (
+            <DeleteConfirmationDialog
+              dialogMode={dialogMode}
+              setDialogMode={setDialogMode}
             />
-          )}
-          {dialogMode?.section.type === 'generators' && (
-            <GeneratorSettingsDialog
-              close={closeDialog}
-              generator={dialogMode.section.generator}
-              target={dialogMode.target}
-            />
-          )}
-          {dialogMode?.section.type === 'outputs' && (
-            <OutputSettingsDialog
-              close={closeDialog}
-              output={dialogMode.section.output}
-              target={dialogMode.target}
-            />
+          ) : (
+            <>
+              {dialogMode?.section.type === 'inputs' && (
+                <InputSettingsDialog
+                  setDialogMode={setDialogMode}
+                  input={dialogMode.section.input}
+                  target={dialogMode.target}
+                />
+              )}
+              {dialogMode?.section.type === 'generators' && (
+                <GeneratorSettingsDialog
+                  setDialogMode={setDialogMode}
+                  generator={dialogMode.section.generator}
+                  target={dialogMode.target}
+                />
+              )}
+              {dialogMode?.section.type === 'outputs' && (
+                <OutputSettingsDialog
+                  setDialogMode={setDialogMode}
+                  output={dialogMode.section.output}
+                  target={dialogMode.target}
+                />
+              )}
+            </>
           )}
         </>
       ),
     [
       assignToOutput,
       assignToOutputCallback,
-      closeDialog,
       dialogMode,
       windowedTimecodeId,
       info.license,

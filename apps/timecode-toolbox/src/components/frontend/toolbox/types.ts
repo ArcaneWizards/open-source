@@ -17,7 +17,19 @@ export type DialogMode = {
     | {
         type: 'edit';
         uuid: string;
+      }
+    | {
+        type: 'delete';
+        uuid: string;
       };
+};
+
+export type DialogModeDelete = DialogMode & { target: { type: 'delete' } };
+
+export const isDeleteDialogMode = (
+  mode: DialogMode | null,
+): mode is DialogModeDelete => {
+  return mode?.target.type === 'delete';
 };
 
 export type SettingsProps<T> = {

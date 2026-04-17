@@ -2,19 +2,26 @@ import { FC, forwardRef } from 'react';
 import { Dialog, DialogProps } from '../dialogs';
 import { cn } from '@arcanejs/toolkit-frontend/util';
 import { cnd } from '../styling';
-import { ControlButtonGroup } from './buttons';
+import { clsControlPosition } from './utils';
 
 export const ControlDialogButtons = forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ children, className, ...props }, ref) => (
-  <ControlButtonGroup
+  <div
     ref={ref}
-    className={cn('control-grid-pos-row', className)}
+    className={cn(
+      `
+        flex items-stretch gap-1
+        [&>button]:grow
+      `,
+      clsControlPosition('row'),
+      className,
+    )}
     {...props}
   >
     {children}
-  </ControlButtonGroup>
+  </div>
 ));
 
 type ControlDialogProps = Omit<DialogProps, 'variant'> & {

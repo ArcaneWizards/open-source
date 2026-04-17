@@ -38,6 +38,8 @@ export const STRINGS = {
     addDialog: (protocol: string) => `Add ${protocol} Input`,
     editDialog: (protocol: string, name: string) =>
       `Edit ${protocol} Input ${name}`,
+    deleteDialog: `Delete input?`,
+    deleteDialogDetails: `Are you sure you want to delete this input? This action cannot be undone.`,
   },
   smtpeModes: {
     SMPTE: `SMPTE ${TIMECODE_FPS.SMPTE}FPS`,
@@ -63,6 +65,8 @@ export const STRINGS = {
     addDialog: (protocol: string) => `Add ${protocol} Generator`,
     editDialog: (protocol: string, name: string) =>
       `Edit ${protocol} Generator ${name}`,
+    deleteDialog: `Delete generator?`,
+    deleteDialogDetails: `Are you sure you want to delete this generator? This action cannot be undone.`,
   },
   outputs: {
     title: 'OUTPUTS',
@@ -71,6 +75,8 @@ export const STRINGS = {
     addDialog: (protocol: string) => `Add ${protocol} Output`,
     editDialog: (protocol: string, name: string) =>
       `Edit ${protocol} Output ${name}`,
+    deleteDialog: `Delete output?`,
+    deleteDialogDetails: `Are you sure you want to delete this output? This action cannot be undone.`,
   },
   settings: {
     title: 'Settings',

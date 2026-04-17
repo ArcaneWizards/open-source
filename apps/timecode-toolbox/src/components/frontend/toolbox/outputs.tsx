@@ -204,13 +204,13 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
 type OutputSettingsDialogProps = {
   target: DialogMode['target'];
   output: OutputDefinition['type'];
-  close: () => void;
+  setDialogMode: (mode: DialogMode | null) => void;
 };
 
 export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
   target,
   output,
-  close,
+  setDialogMode,
 }) => {
   const { config, updateConfig } = useContext(ConfigContext);
   const [newData, setNewData] = useState<OutputConfig>({
@@ -226,6 +226,8 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
     },
     link: null,
   });
+
+  const close = useCallback(() => setDialogMode(null), [setDialogMode]);
 
   const updateSettings: SettingsProps<OutputConfig>['updateSettings'] =
     useCallback(
@@ -361,7 +363,7 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
             }
           }}
         />
-        {resolvedTarget === 'add' ? (
+        {target.type === 'add' ? (
           <ControlDialogButtons>
             <ControlButton onClick={close} variant="large">
               Cancel
@@ -370,13 +372,26 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
               Add Output
             </ControlButton>
           </ControlDialogButtons>
-        ) : (
+        ) : target.type === 'edit' ? (
           <ControlDialogButtons>
+            <ControlButton
+              onClick={() =>
+                setDialogMode({
+                  section: { type: 'outputs', output },
+                  target: { type: 'delete', uuid: target.uuid },
+                })
+              }
+              variant="large"
+              destructive
+              icon="delete"
+            >
+              Delete
+            </ControlButton>
             <ControlButton onClick={close} variant="large">
               Close
             </ControlButton>
           </ControlDialogButtons>
-        )}
+        ) : null}
       </ControlDialog>
     </ChangeCommitContext.Provider>
   );
