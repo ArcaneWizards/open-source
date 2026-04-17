@@ -54,6 +54,7 @@ export type NewWindowOptions = {
 };
 
 export type BaseBrowserContext = {
+  appListenerChangesHandledExternally?: boolean;
   openExternalLink: (url: string) => void;
   openNewWidow: (url: string, options?: NewWindowOptions) => void;
   selectDirectory: (() => Promise<string | null>) | null;
@@ -68,6 +69,7 @@ export const createDefaultBrowserContext = <
   browser?: Partial<TBrowserContext> | null,
 ): TBrowserContext => {
   const defaults: BaseBrowserContext = {
+    appListenerChangesHandledExternally: false,
     openExternalLink: (url: string) => {
       window.open(url, '_blank', 'noopener,noreferrer');
     },

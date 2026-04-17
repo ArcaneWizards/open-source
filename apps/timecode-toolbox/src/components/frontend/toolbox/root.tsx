@@ -138,9 +138,10 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
   const configContext: ConfigContextData = useMemo(
     () => ({
       config,
+      network: info.network,
       updateConfig,
     }),
-    [config, updateConfig],
+    [config, info.network, updateConfig],
   );
 
   const getNetworkInterfaces = useCallback(async () => {

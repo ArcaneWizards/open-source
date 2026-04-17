@@ -92,6 +92,12 @@
     "./frontend/styles/base.css": {
       "default": "./dist/frontend/styles/base.css"
     },
+    "./shared/config": {
+      "@arcanewizards/source": "./src/shared/config.ts",
+      "types": "./dist/shared/config.d.ts",
+      "import": "./dist/shared/config.js",
+      "require": "./dist/shared/config.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [

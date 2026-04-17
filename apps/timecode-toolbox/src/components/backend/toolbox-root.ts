@@ -29,7 +29,7 @@ export type Events = {
 
 export type AppRootProps = Pick<
   ToolboxRootComponent,
-  'config' | 'state' | 'handlers' | 'license'
+  'config' | 'state' | 'handlers' | 'license' | 'network'
 > & {
   onUpdateConfig?: Events['updateConfig'];
   onCallHandler?: Events['callHandler'];
@@ -45,6 +45,10 @@ const DEFAULT_PROPS: AppRootProps = {
   },
   handlers: { children: {} },
   license: '',
+  network: {
+    envPort: null,
+    defaultPort: -1,
+  },
 };
 
 export class ToolboxRoot
@@ -87,6 +91,7 @@ export class ToolboxRoot
       state: this.props.state,
       handlers: this.props.handlers,
       license: this.props.license,
+      network: this.props.network,
     };
   }
 

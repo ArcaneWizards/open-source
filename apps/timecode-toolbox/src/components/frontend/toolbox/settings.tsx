@@ -1,10 +1,19 @@
-import { FC, useContext } from 'react';
+import {
+  FC,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { AppearanceSwitcher } from '@arcanewizards/sigil/frontend/appearance';
 import { useBrowserPreferences } from './preferences';
 import {
   ControlButton,
   ControlDetails,
+  ControlInput,
   ControlLabel,
   ControlSelect,
   SelectOption,
@@ -15,7 +24,13 @@ import {
   ToolbarWrapper,
 } from '@arcanewizards/sigil/frontend/toolbars';
 import { STRINGS } from '../constants';
-import { ConfigContext, useApplicationState } from './context';
+import { ConfigContext, NetworkContext, useApplicationState } from './context';
+import { ToolboxRootGetNetworkInterfacesReturn } from '../../proto';
+import { Icon } from '@arcanejs/toolkit-frontend/components/core';
+import { cn } from '@arcanejs/toolkit-frontend/util';
+import { useBrowserContext } from '@arcanewizards/sigil/frontend';
+import { ListenerConfig } from '@arcanewizards/sigil';
+import { portString } from '@arcanewizards/sigil/shared/config';
 
 type SettingsProps = {
   setWindowMode: (mode: null) => void;
@@ -29,6 +44,242 @@ const ENABLED_DISABLED_OPTIONS: SelectOption<'enabled' | 'disabled'>[] = [
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'medium',
 });
+
+type InterfaceChoice = 'any' | `specific:${string}`;
+
+const AppPortConfig: FC = () => {
+  const { getNetworkInterfaces } = useContext(NetworkContext);
+  const [interfaces, setInterfaces] =
+    useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
+
+  const refreshInterfaces = useCallback(() => {
+    setInterfaces(null);
+    getNetworkInterfaces().then((ifs) => setInterfaces(ifs));
+  }, [getNetworkInterfaces]);
+
+  useEffect(() => {
+    refreshInterfaces();
+  }, [refreshInterfaces]);
+
+  const { appListenerChangesHandledExternally } = useBrowserContext();
+
+  const { network, config, updateConfig } = useContext(ConfigContext);
+
+  const [nextPort, setNextPort] = useState<string | null>(null);
+  const [nextInterface, setNextInterface] = useState<InterfaceChoice | null>(
+    null,
+  );
+
+  const iface: InterfaceChoice =
+    nextInterface ??
+    (config.appListener?.interface
+      ? `specific:${config.appListener?.interface}`
+      : 'any');
+  const port = nextPort ?? config.appListener?.port;
+  const currentPortString = !port
+    ? ''
+    : typeof port === 'string'
+      ? port
+      : portString(port);
+
+  const hasNetworkChanges = nextPort !== null || nextInterface !== null;
+
+  const nextUrlRef = useRef<URL | null>(null);
+
+  const validatedPort:
+    | { type: 'invalid'; error: string }
+    | { type: 'valid'; port: ListenerConfig['port'] }
+    | { type: 'empty' }
+    | { type: 'unchanged' } = useMemo(() => {
+    if (nextPort === null) {
+      return { type: 'unchanged' };
+    }
+    if (nextPort.trim() === '') {
+      return { type: 'empty' };
+    }
+    const portParts = nextPort
+      .split('-')
+      .map((part) => parseInt(part.trim(), 10));
+    if (portParts.length === 1) {
+      const [singlePort] = portParts;
+      if (
+        !singlePort ||
+        isNaN(singlePort) ||
+        singlePort < 1 ||
+        singlePort > 65535
+      ) {
+        return {
+          type: 'invalid',
+          error: STRINGS.settings.network.invalidPortSingle,
+        };
+      }
+      return { type: 'valid', port: singlePort };
+    }
+    if (portParts.length === 2) {
+      const [from, to] = portParts;
+      if (
+        !from ||
+        isNaN(from) ||
+        from < 1 ||
+        from > 65535 ||
+        !to ||
+        isNaN(to) ||
+        to < 1 ||
+        to > 65535
+      ) {
+        return {
+          type: 'invalid',
+          error: STRINGS.settings.network.invalidPortSingle,
+        };
+      } else if (from > to) {
+        return {
+          type: 'invalid',
+          error: STRINGS.settings.network.invalidPortRange,
+        };
+      }
+      return { type: 'valid', port: { from, to } };
+    }
+    return { type: 'invalid', error: STRINGS.settings.network.invalidPort };
+  }, [nextPort]);
+
+  const canSave = hasNetworkChanges && validatedPort?.type !== 'invalid';
+
+  const saveNetworkConfig = useCallback(() => {
+    if (validatedPort?.type === 'invalid') {
+      return;
+    }
+    const newPort = validatedPort;
+    updateConfig((current) => {
+      const config = {
+        ...current,
+        appListener: {
+          port:
+            newPort.type === 'empty'
+              ? undefined
+              : newPort.type === 'valid'
+                ? newPort.port
+                : current.appListener?.port,
+          interface:
+            nextInterface === 'any'
+              ? undefined
+              : nextInterface
+                ? nextInterface.replace('specific:', '')
+                : current.appListener?.interface,
+        },
+      };
+      const nextUrl = new URL(window.location.href);
+      if (config.appListener?.interface) {
+        nextUrl.hostname =
+          interfaces?.[config.appListener.interface]?.address ??
+          nextUrl.hostname;
+      }
+      const port = config.appListener?.port ?? network.defaultPort;
+      nextUrl.port = (typeof port === 'number' ? port : port.from).toString();
+      nextUrlRef.current = nextUrl;
+      return config;
+    });
+    setNextPort(null);
+    setNextInterface(null);
+  }, [
+    interfaces,
+    nextInterface,
+    validatedPort,
+    updateConfig,
+    network.defaultPort,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (!appListenerChangesHandledExternally && nextUrlRef.current) {
+        // Update the URL when unmounted
+        window.location.href = nextUrlRef.current.href;
+      }
+    };
+  }, [appListenerChangesHandledExternally]);
+
+  return (
+    <>
+      <ControlLabel>{STRINGS.settings.network.appInterfaceLabel}</ControlLabel>
+      <ControlSelect<InterfaceChoice>
+        value={iface}
+        options={[
+          { label: STRINGS.settings.network.anyInterface, value: 'any' },
+          ...(!interfaces
+            ? []
+            : Object.values(interfaces).map((iface) => ({
+                label: `${iface.name} (${iface.address})`,
+                value: `specific:${iface.name}` satisfies InterfaceChoice,
+              }))),
+        ]}
+        onChange={setNextInterface}
+        position="first"
+        variant="large"
+        triggerClassName={cn('text-sigil-control')}
+      />
+      {iface && interfaces?.[iface]?.internal && (
+        <ControlDetails
+          position="second"
+          className="text-sigil-warning-foreground"
+        >
+          {STRINGS.settings.network.internalInterfaceUsed(iface)}
+        </ControlDetails>
+      )}
+      <ControlButton
+        onClick={refreshInterfaces}
+        title="Refresh Interfaces"
+        position="extra"
+        variant="large"
+      >
+        <Icon icon="refresh" className="text-arcane-normal" />
+      </ControlButton>
+      <ControlLabel>{STRINGS.settings.network.appPortLabel}</ControlLabel>
+      {network.envPort ? (
+        <ControlDetails position="both">
+          {STRINGS.settings.network.appPortEnvOverride(network.envPort)}
+        </ControlDetails>
+      ) : (
+        <>
+          <ControlInput
+            value={currentPortString}
+            onChange={setNextPort}
+            placeholder={STRINGS.settings.network.defaultPort(
+              portString(network.defaultPort),
+            )}
+          />
+          {validatedPort.type === 'invalid' && (
+            <ControlDetails
+              position="second"
+              className="text-sigil-error-foreground"
+            >
+              {validatedPort.error}
+            </ControlDetails>
+          )}
+        </>
+      )}
+      <ControlButton
+        onClick={saveNetworkConfig}
+        variant="large"
+        position="first"
+        disabled={!canSave}
+      >
+        {STRINGS.settings.network.saveChanges}
+      </ControlButton>
+      {hasNetworkChanges && appListenerChangesHandledExternally && (
+        <ControlDetails position="second">
+          {STRINGS.settings.network.saveWarning.external}
+        </ControlDetails>
+      )}
+      {hasNetworkChanges && !appListenerChangesHandledExternally && (
+        <ControlDetails
+          position="second"
+          className="text-sigil-warning-foreground"
+        >
+          {STRINGS.settings.network.saveWarning.internal}
+        </ControlDetails>
+      )}
+    </>
+  );
+};
 
 export const Settings: FC<SettingsProps> = ({ setWindowMode }) => {
   const { preferences, updateBrowserPrefs } = useBrowserPreferences();
@@ -82,6 +333,7 @@ export const Settings: FC<SettingsProps> = ({ setWindowMode }) => {
               )}
             </ControlDetails>
           )}
+          <AppPortConfig />
         </div>
       </div>
     </div>

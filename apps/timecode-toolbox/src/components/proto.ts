@@ -11,6 +11,10 @@ import { NetworkInterface } from '@arcanewizards/net-utils';
 import { TimecodeMode } from '@arcanewizards/artnet/constants';
 import { Tree } from '../tree';
 import { CheckForUpdatesResponse } from '@arcanewizards/apis';
+import {
+  APP_LISTENER_CONFIG,
+  ListenerConfig,
+} from '@arcanewizards/sigil/shared/config';
 
 /* Shared config & proto definitions */
 
@@ -187,6 +191,7 @@ const OUTPUT_CONFIG = z.object({
 export type OutputConfig = z.infer<typeof OUTPUT_CONFIG>;
 
 export const TOOLBOX_CONFIG = z.object({
+  appListener: APP_LISTENER_CONFIG.partial().optional(),
   inputs: z.record(z.string(), INPUT_CONFIG),
   generators: z.record(z.string(), GENERATOR_CONFIG),
   outputs: z.record(z.string(), OUTPUT_CONFIG),
@@ -383,6 +388,14 @@ export type ToolboxRootComponent = BaseComponentProto<
   config: ToolboxConfig;
   state: ApplicationState;
   handlers: Tree<AvailableHandlers>;
+  network: {
+    /**
+     * If the PORT environment variable is set,
+     * this will be set to that value.
+     */
+    envPort: number | null;
+    defaultPort: ListenerConfig['port'];
+  };
 };
 
 export type ToolboxLicenseGateComponent = BaseComponentProto<
