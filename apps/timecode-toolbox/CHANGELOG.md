@@ -1,5 +1,40 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.1.4
+
+### Patch Changes
+
+- 9281c7c: Address browser access to desktop edition of timecode-toolbox (#33)
+- e684bc3: Introduce delete buttons
+
+  It's now possible to delete inputs, generators, and outputs.
+
+- 4b58c49: Prevent iOS zooming-in when focusing inputs
+
+  Prevent the default behavior of iOS zooming in to small inputs
+  (e.g. in timecode-toolbox when opening the edit dialog)
+
+  see #34
+
+- ce37aec: Allow for the main port used by timecode-toolbox to be configured
+
+  Timecode-Toolbox will use attempt to find an open port in a range
+  on all interfaces by default,
+  but now users can customize the interface and port or range of ports
+  that the app uses for its websocket & browser UI.
+
+  Port config can be overridden with the PORT variable
+
+- 4d0e305: Fix icon size for some resolutions
+
+  The icon generation for some resolutions seems to be an incorrect size. This
+  change regenerates all icon images for timecode-toolbox.
+
+- 4b58c49: Correct height on iOS devices
+
+  When using a browser on iOS to connect to timecode-toolbox,
+  Ensure that the full UI is visible.
+
 ## 0.1.3
 
 ### Patch Changes
