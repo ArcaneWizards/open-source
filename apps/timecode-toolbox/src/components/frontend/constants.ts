@@ -80,6 +80,27 @@ export const STRINGS = {
   },
   settings: {
     title: 'Settings',
+    network: {
+      appPortLabel: 'Application Port',
+      appInterfaceLabel: 'Application Interface',
+      anyInterface: 'Any Interface',
+      internalInterfaceUsed: (iface: string) =>
+        `Note: The interface ${iface} is only accessible from this device, which means that other devices will not be able to connect to Timecode Toolbox.`,
+      appPortEnvOverride: (envPort: number) =>
+        `Note: The application port is currently set to ${envPort} via the PORT environment variable, and cannot be configured here.`,
+      defaultPort: (port: string) => `Default: (${port})`,
+      saveChanges: 'Save Changes',
+      saveWarning: {
+        external: 'When you hit Save, the UI will reload',
+        internal:
+          'When you hit Save, the app will attempt to reconnect using the new network settings, but may require you to adjust the URL manually.',
+      },
+      invalidPortSingle: 'Port numbers must be an integer between 1 and 65535',
+      invalidPort:
+        'Please enter a valid port number or range (e.g. "1234" or "8000-8100")',
+      invalidPortRange:
+        'The first port in a range must be less than or equal to the second port (e.g. "8000-8100")',
+    },
   },
   controls: {
     play: 'Play',

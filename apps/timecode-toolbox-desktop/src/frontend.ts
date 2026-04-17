@@ -17,6 +17,7 @@ if (
 }
 
 window.startTimecodeToolboxServerFrontend({
+  appListenerChangesHandledExternally: !!window.electronAPI,
   openExternalLink: (url) => {
     if (!window.electronAPI) {
       // Opened in browser, use default behavior

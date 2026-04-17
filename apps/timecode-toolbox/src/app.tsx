@@ -33,6 +33,9 @@ import { getTreeValue, mapTree, Tree } from './tree';
 import { useLicense } from './license';
 import { UpdateChecker } from './updates';
 import { getEnv } from './env';
+import { ListenerConfig } from '@arcanewizards/sigil/shared/config';
+
+const DEFAULT_PORT: ListenerConfig['port'] = { from: 4100, to: 4200 };
 
 export type AppApi = Record<never, never>;
 
@@ -118,14 +121,17 @@ export const App = ({
 
   const license = useLicense();
 
-  const appListenerConfig = useMemo(
-    () => ({
-      default: {
-        port: env.PORT,
-      },
-    }),
-    [env.PORT],
-  );
+  const appListenerConfig = useMemo(() => {
+    const baseConfig: ListenerConfig = {
+      port: data.appListener?.port ?? DEFAULT_PORT,
+      interface: data.appListener?.interface ?? undefined,
+    };
+    if (env.PORT) {
+      // Just override the port, keeping the interface config as-is
+      baseConfig.port = env.PORT;
+    }
+    return baseConfig;
+  }, [env.PORT, data.appListener]);
 
   if (!license) {
     // Wait for license to load before starting the app.
@@ -142,6 +148,10 @@ export const App = ({
           onUpdateConfig={onUpdateConfig}
           onCallHandler={callHandler}
           license={license.text}
+          network={{
+            envPort: env.PORT,
+            defaultPort: DEFAULT_PORT,
+          }}
         />
         <InputConnections state={state} setState={setState} />
         <Generators
@@ -186,7 +196,7 @@ export const App = ({
       <AppListenerManager
         toolkit={toolkit}
         setWindowUrl={setWindowUrl}
-        listenerConfig={appListenerConfig}
+        listenerConfig={{ appListenerConfig }}
       />
     </AppShell>
   );

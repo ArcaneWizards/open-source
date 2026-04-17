@@ -14,6 +14,7 @@ export default defineConfig({
     'src/frontend/styling.hooks.ts',
     'src/frontend/toolbars.tsx',
     'src/frontend/tooltip.tsx',
+    'src/shared/config.ts',
   ],
   format: ['cjs', 'esm'],
   splitting: true,

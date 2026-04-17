@@ -132,7 +132,7 @@ const logger = pino(
 
 const assetsPath = path.join(__dirname, '..', 'assets');
 
-const activeWindows = new Map<BrowserWindow, string | URL>();
+const activeWindows = new Map<BrowserWindow, URL>();
 
 type WindowModes = 'default' | typeof urls.WINDOW_MODE_TIMECODE;
 
@@ -180,7 +180,7 @@ const createWindow = (
   });
 
   win.loadURL(url.toString());
-  activeWindows.set(win, url);
+  activeWindows.set(win, new URL(url));
   win.on('closed', () => {
     activeWindows.delete(win);
     unregesterMediaSession(win);
@@ -376,6 +376,16 @@ app.whenReady().then(async () => {
     if (!hasOpenedFirstWindow) {
       hasOpenedFirstWindow = true;
       createWindow(url());
+    }
+    for (const [win, winUrl] of activeWindows.entries()) {
+      if (winUrl.hostname !== u.hostname || winUrl.port !== u.port) {
+        const newUrl = new URL(winUrl);
+        newUrl.port = u.port;
+        newUrl.hostname = u.hostname;
+        logger.info(`Updating URL for window: ${winUrl} -> ${newUrl}`);
+        win.loadURL(newUrl.toString());
+        activeWindows.set(win, newUrl);
+      }
     }
   });
 });

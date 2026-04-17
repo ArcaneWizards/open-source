@@ -4,12 +4,14 @@ import {
   AvailableHandlers,
   ToolboxConfig,
   ToolboxRootCallHandler,
+  ToolboxRootComponent,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
 import { Tree } from '../../../tree';
 
 export type ConfigContextData = {
   config: ToolboxConfig;
+  network: ToolboxRootComponent['network'];
   updateConfig: (change: (current: ToolboxConfig) => ToolboxConfig) => void;
 };
 

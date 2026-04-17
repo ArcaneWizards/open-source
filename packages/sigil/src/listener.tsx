@@ -6,18 +6,9 @@ import {
 import isEqual from 'lodash/isEqual';
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useLogger } from './context';
+import { AllListenerConfig, ListenerConfig } from './shared/config';
 
-export type ListenerConfig = {
-  port:
-    | number
-    | {
-        from: number;
-        to: number;
-      };
-  interface?: string | undefined;
-};
-
-export type AllListenerConfig = Record<string, ListenerConfig>;
+export type { AllListenerConfig, ListenerConfig };
 
 export type AppListenerManagerAppRegistration = {
   removeConnection: (uuid: string) => void;
@@ -30,6 +21,7 @@ type ConnectedListener = {
   config: ListenerConfig;
   host?: string;
   port: number;
+  internal: boolean;
 };
 
 type ListenerState = Record<
@@ -149,11 +141,14 @@ export const AppListenerManager: FC<AppListenerManagerProps> = ({
             portRange: for (let port = from; port <= to; port++) {
               const resolvedConnectionDetails: Pick<
                 ConnectedListener,
-                'config' | 'host' | 'port'
+                'config' | 'host' | 'port' | 'internal'
               > = {
                 config,
                 host,
                 port,
+                internal:
+                  !!config.interface &&
+                  !!interfaces[config.interface]?.internal,
               };
 
               try {
@@ -229,11 +224,21 @@ export const AppListenerManager: FC<AppListenerManagerProps> = ({
 
   useEffect(() => {
     for (const state of Object.values(listenerState)) {
+      let preferredConnection: ConnectedListener | null = null;
       if (state.state === 'connected') {
+        if (!preferredConnection) {
+          preferredConnection = state;
+        }
+        if (!preferredConnection.internal && state.internal) {
+          preferredConnection = state;
+        }
+      }
+      if (preferredConnection) {
         setWindowUrl(
-          new URL(`http://${state.host ?? 'localhost'}:${state.port}/`),
+          new URL(
+            `http://${preferredConnection.host ?? 'localhost'}:${preferredConnection.port}/`,
+          ),
         );
-        return;
       }
     }
   });

@@ -1,12 +1,7 @@
 import { Logger } from '@arcanejs/protocol/logging';
 
 export const getEnv = (logger: Logger) => {
-  const PORT = process.env.PORT
-    ? parseInt(process.env.PORT, 10)
-    : {
-        from: 4100,
-        to: 4200,
-      };
+  const PORT = (process.env.PORT && parseInt(process.env.PORT, 10)) || null;
 
   let API_BASE_URL: URL;
 
