@@ -29,11 +29,11 @@ releases,
 or downloaded below:
 
 <p align="center">
-  <a href="https://arcanewizards.com/download/timecode-toolbox/latest/macos-arm64"><img src="https://arcanewizards.com/download/timecode-toolbox/latest/macos-arm64/button" height="50" alt="Download MacOS (Apple Silicon / ARM) Desktop App"/></a>
+  <a href="https://arcanewizards.com/download/timecode-toolbox/latest/macos-arm64"><img src="https://arcanewizards.com/download/timecode-toolbox/latest/macos-arm64/button?cb=1" height="50" alt="Download MacOS (Apple Silicon / ARM) Desktop App"/></a>
   &nbsp;&nbsp;
-  <a href="https://arcanewizards.com/download/timecode-toolbox/latest/macos-x64"><img src="https://arcanewizards.com/download/timecode-toolbox/latest/macos-x64/button" height="50" alt="Download MacOS (Intel / x64) Desktop App"/></a>
+  <a href="https://arcanewizards.com/download/timecode-toolbox/latest/macos-x64"><img src="https://arcanewizards.com/download/timecode-toolbox/latest/macos-x64/button?cb=1" height="50" alt="Download MacOS (Intel / x64) Desktop App"/></a>
   &nbsp;&nbsp;
-  <a href="https://arcanewizards.com/download/timecode-toolbox/latest/windows-x64"><img src="https://arcanewizards.com/download/timecode-toolbox/latest/windows-x64/button" height="50" alt="Download Windows (x64) Desktop App"/></a>
+  <a href="https://arcanewizards.com/download/timecode-toolbox/latest/windows-x64"><img src="https://arcanewizards.com/download/timecode-toolbox/latest/windows-x64/button?cb=1" height="50" alt="Download Windows (x64) Desktop App"/></a>
 </p>
 
 ### Note on Windows Releases
