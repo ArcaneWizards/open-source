@@ -148,6 +148,7 @@ type TimecodeDisplayProps = {
   timecode: TimecodeInstance;
   config: UniversalConfig;
   headerComponents?: React.ReactNode;
+  disabled: boolean;
 };
 
 const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
@@ -155,6 +156,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   timecode: { state, metadata },
   config,
   headerComponents,
+  disabled,
 }) => {
   const { handlers, callHandler } = useApplicationHandlers();
 
@@ -216,33 +218,46 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           <div className="flex gap-0.25">{headerComponents}</div>
         )}
         <SizeAwareDiv
-          className={cn(
-            'relative min-h-timecode-min-height grow',
-            cnd(state?.state === 'stopped', 'opacity-50'),
-            cnd(
-              hooks?.play && hooks?.pause,
-              `
-                cursor-pointer
-                hover:opacity-100
-              `,
-            ),
-          )}
+          className="relative min-h-timecode-min-height grow"
           onClick={toggle}
         >
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className={cn('font-mono text-timecode-adaptive')}>
-              {state.state === 'none' ? (
-                '--:--:--:---'
-              ) : state.state === 'stopped' ? (
-                displayMillis(state.positionMillis)
-              ) : (
-                <ActiveTimecodeText
-                  effectiveStartTimeMillis={state.effectiveStartTimeMillis}
-                  speed={state.speed}
-                />
+          {disabled ? (
+            <SizeAwareDiv
+              className="
+                pointer-events-none absolute inset-0 flex items-center
+                justify-center
+              "
+            >
+              <Icon icon="pause" className="text-timecode-adaptive" />
+            </SizeAwareDiv>
+          ) : (
+            <div
+              className={cn(
+                'absolute inset-0 flex items-center justify-center',
+                cnd(state?.state === 'stopped', 'opacity-50'),
+                cnd(
+                  hooks?.play && hooks?.pause,
+                  `
+                    cursor-pointer
+                    hover:opacity-100
+                  `,
+                ),
               )}
-            </span>
-          </div>
+            >
+              <span className={cn('font-mono text-timecode-adaptive')}>
+                {state.state === 'none' ? (
+                  '--:--:--:---'
+                ) : state.state === 'stopped' ? (
+                  displayMillis(state.positionMillis)
+                ) : (
+                  <ActiveTimecodeText
+                    effectiveStartTimeMillis={state.effectiveStartTimeMillis}
+                    speed={state.speed}
+                  />
+                )}
+              </span>
+            </div>
+          )}
         </SizeAwareDiv>
         {hooks?.pause || hooks?.play ? (
           <div className="flex justify-center gap-px">
@@ -410,7 +425,7 @@ type TimecodeTreeDisplayProps = {
   name: string[];
   link?: LinkedSourceInfo;
   color: SigilColor | undefined;
-  timecode: TimecodeGroup | TimecodeInstance | null;
+  timecode: 'disabled' | TimecodeGroup | TimecodeInstance | null;
   namePlaceholder: string;
   buttons: ReactNode;
   /**
@@ -457,8 +472,13 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
     }
   }, [id, openNewWidow]);
 
-  name = timecode?.name ? [...name, timecode.name] : name;
-  if (isTimecodeGroup(timecode) && Object.values(timecode.timecodes).length) {
+  name =
+    timecode !== 'disabled' && timecode?.name ? [...name, timecode.name] : name;
+  if (
+    timecode !== 'disabled' &&
+    isTimecodeGroup(timecode) &&
+    Object.values(timecode.timecodes).length
+  ) {
     return Object.entries(timecode.timecodes).map(([key, child]) => (
       <TimecodeTreeDisplay
         config={config}
@@ -485,7 +505,12 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
     >
       <TimecodeDisplay
         id={id}
-        timecode={isTimecodeInstance(timecode) ? timecode : EMPTY_TIMECODE}
+        timecode={
+          timecode !== 'disabled' && isTimecodeInstance(timecode)
+            ? timecode
+            : EMPTY_TIMECODE
+        }
+        disabled={timecode === 'disabled'}
         config={config}
         headerComponents={
           <>
@@ -581,6 +606,7 @@ type FullscreenTimecodeConfig = {
   name: string[];
   color: SigilColor | undefined;
   namePlaceholder: string;
+  disabled: boolean;
 };
 
 export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
@@ -626,6 +652,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         name: c.name ? [c.name] : [],
         color: c.color,
         namePlaceholder: STRINGS.inputs.unnamed,
+        disabled: !c.enabled,
       };
     } else if (isGeneratorInstanceId(id)) {
       const c = config.generators[id[1]];
@@ -638,6 +665,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         name: c.name ? [c.name] : [],
         color: c.color,
         namePlaceholder: STRINGS.generators.unnamed,
+        disabled: false,
       };
     } else {
       const c = config.outputs[id[1]];
@@ -650,6 +678,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         name: c.name ? [c.name] : [],
         color: c.color,
         namePlaceholder: STRINGS.outputs.unnamed,
+        disabled: !c.enabled,
       };
     }
   }, [id, config]);
@@ -677,7 +706,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     >
       <TimecodeTreeDisplay
         id={id}
-        timecode={timecode}
+        timecode={instanceConfig.disabled ? 'disabled' : timecode}
         assignToOutput={null}
         buttons={null}
         link={linkedSourceInfo}

@@ -411,19 +411,21 @@ export const InputDisplay: FC<InputDisplayProps> = ({
       type={STRINGS.protocols[config.definition.type].short}
       name={config.name ? [config.name] : []}
       color={config.color}
-      timecode={state?.timecode ?? null}
+      timecode={config.enabled ? (state?.timecode ?? null) : 'disabled'}
       namePlaceholder={STRINGS.inputs.unnamed}
       buttons={
         <>
           <ControlButton
             variant="large"
-            title={config.enabled ? 'Stop Input' : 'Start Input'}
+            title={
+              config.enabled ? STRINGS.inputs.disable : STRINGS.inputs.enable
+            }
             onClick={toggleEnabled}
-            icon={config.enabled ? 'stop' : 'play_arrow'}
+            icon={config.enabled ? 'pause' : 'play_arrow'}
           />
           <ControlButton
             variant="large"
-            title="Edit Input"
+            title={STRINGS.inputs.edit}
             onClick={() =>
               setDialogMode({
                 section: { type: 'inputs', input: config.definition.type },

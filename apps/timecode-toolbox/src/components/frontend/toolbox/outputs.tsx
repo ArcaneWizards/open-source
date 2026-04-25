@@ -491,27 +491,31 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         type={STRINGS.protocols[config.definition.type].short}
         name={config.name ? [config.name] : []}
         color={config.color}
-        timecode={config.enabled ? timecode : null}
+        timecode={config.enabled ? timecode : 'disabled'}
         namePlaceholder={STRINGS.outputs.unnamed}
         link={link}
         buttons={
           <>
             <ControlButton
               variant="large"
-              title={config.enabled ? 'Stop Output' : 'Start Output'}
+              title={
+                config.enabled
+                  ? STRINGS.outputs.disable
+                  : STRINGS.outputs.enable
+              }
               onClick={toggleEnabled}
-              icon={config.enabled ? 'stop' : 'play_arrow'}
+              icon={config.enabled ? 'pause' : 'play_arrow'}
             />
             <ControlButton
               variant="large"
-              title="Link Output"
+              title={STRINGS.outputs.link}
               active={assignToOutput === uuid}
               onClick={linkCallback}
               icon={config.link ? 'link' : 'link_off'}
             />
             <ControlButton
               variant="large"
-              title="Edit Output"
+              title={STRINGS.outputs.edit}
               onClick={() =>
                 setDialogMode({
                   section: { type: 'outputs', output: config.definition.type },

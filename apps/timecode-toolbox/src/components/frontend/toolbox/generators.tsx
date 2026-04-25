@@ -255,7 +255,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
         <>
           <ControlButton
             variant="large"
-            title="Edit Generator"
+            title={STRINGS.generators.edit}
             onClick={() =>
               setDialogMode({
                 section: {
