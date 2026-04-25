@@ -2,6 +2,7 @@
   "extends": "@arcanewizards/typescript-config/react.json",
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
     "module": "esnext",
     "moduleResolution": "bundler",
   },

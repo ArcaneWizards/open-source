@@ -121,7 +121,7 @@ const ArtnetInputConnection: FC<ArtnetInputConnectionProps> = ({
       .then(() => {
         artnet = created;
         setArtnetInstance(created);
-        log.info('ArtNet Timecode output initialized');
+        log.info('ArtNet Timecode input initialized');
         setConnection({ ...connectionConfig, status: 'active' });
       })
       .catch((err) => {

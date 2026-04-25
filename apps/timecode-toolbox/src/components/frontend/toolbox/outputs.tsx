@@ -27,7 +27,7 @@ import {
   TimecodeInstance,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
-import { TimecodeTreeDisplay } from './core/timecode-display';
+import { LinkedSourceInfo, TimecodeTreeDisplay } from './core/timecode-display';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import {
   ChangeCommitContext,
@@ -413,7 +413,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
   setAssignToOutput,
 }) => {
   const applicationState = useApplicationState();
-  const { updateConfig } = useContext(ConfigContext);
+  const { config: allConfig, updateConfig } = useContext(ConfigContext);
   const clearLink = useCallback(() => {
     updateConfig((current) => {
       const currentOutput = current.outputs?.[uuid];
@@ -444,6 +444,39 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
       config.link && getTimecodeInstance(applicationState, config.link);
     return augmentUpstreamTimecodeWithOutputMetadata(tc, config);
   }, [applicationState, config]);
+
+  const link: LinkedSourceInfo | undefined = useMemo(() => {
+    if (!config.link) {
+      return undefined;
+    }
+
+    let info: LinkedSourceInfo | undefined = undefined;
+    if (config.link[0] === 'input') {
+      const input = allConfig.inputs?.[config.link[1]];
+      if (input) {
+        info = {
+          color: input.color,
+          type: STRINGS.protocols[input.definition.type].short,
+          name: input.name ? [input.name] : [],
+          namePlaceholder: STRINGS.inputs.unnamed,
+        };
+      }
+      // TODO: Handle timecode groups and nested names
+    } else if (config.link[0] === 'generator') {
+      const generator = allConfig.generators?.[config.link[1]];
+      if (generator) {
+        info = {
+          color: generator.color,
+          type: STRINGS.generators.type[generator.definition.type],
+          name: generator.name ? [generator.name] : [],
+          namePlaceholder: STRINGS.generators.unnamed,
+        };
+      }
+      // TODO: Handle timecode groups and nested names
+    }
+
+    return info;
+  }, [config.link, allConfig]);
 
   const toggleEnabled = useCallback(() => {
     updateConfig((current) => {
@@ -483,12 +516,13 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         name={config.name ? [config.name] : []}
         color={config.color}
         timecode={config.enabled ? timecode : null}
-        namePlaceholder={`Unnamed Output`}
+        namePlaceholder={STRINGS.outputs.unnamed}
+        link={link}
         buttons={
           <>
             <ControlButton
               variant="large"
-              title={config.enabled ? 'Stop Input' : 'Start Input'}
+              title={config.enabled ? 'Stop Output' : 'Start Output'}
               onClick={toggleEnabled}
               icon={config.enabled ? 'stop' : 'play_arrow'}
             />

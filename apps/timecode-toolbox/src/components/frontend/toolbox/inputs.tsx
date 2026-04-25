@@ -412,7 +412,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
       name={config.name ? [config.name] : []}
       color={config.color}
       timecode={state?.timecode ?? null}
-      namePlaceholder={`Unnamed Input`}
+      namePlaceholder={STRINGS.inputs.unnamed}
       buttons={
         <>
           <ControlButton

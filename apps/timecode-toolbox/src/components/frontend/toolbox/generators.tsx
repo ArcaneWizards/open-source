@@ -250,7 +250,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
       name={config.name ? [config.name] : []}
       color={config.color}
       timecode={state?.timecode ?? null}
-      namePlaceholder={`Unnamed Generator`}
+      namePlaceholder={STRINGS.generators.unnamed}
       buttons={
         <>
           <ControlButton

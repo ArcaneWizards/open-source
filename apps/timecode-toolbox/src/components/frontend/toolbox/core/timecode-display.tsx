@@ -212,7 +212,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         )}
       >
         {headerComponents && (
-          <div className="flex flex-wrap gap-0.25">{headerComponents}</div>
+          <div className="flex gap-0.25">{headerComponents}</div>
         )}
         <SizeAwareDiv
           className={cn(
@@ -356,6 +356,13 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   );
 };
 
+export type LinkedSourceInfo = {
+  color: SigilColor | undefined;
+  type: string;
+  name: string[];
+  namePlaceholder: string;
+};
+
 type TimecodeTreeDisplayProps = {
   config: UniversalConfig;
   /**
@@ -364,6 +371,7 @@ type TimecodeTreeDisplayProps = {
   id: TimecodeInstanceId;
   type: string;
   name: string[];
+  link?: LinkedSourceInfo;
   color: SigilColor | undefined;
   timecode: TimecodeGroup | TimecodeInstance | null;
   namePlaceholder: string;
@@ -394,6 +402,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   id,
   type,
   name,
+  link,
   color,
   timecode,
   namePlaceholder,
@@ -443,23 +452,62 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         config={config}
         headerComponents={
           <>
-            <div className="flex grow items-start gap-0.25">
-              <div
-                className="
-                  m-0.25 rounded-md border border-sigil-bg-light
-                  bg-timecode-usage-foreground px-1 py-0.25 text-sigil-control
-                  text-timecode-usage-text
-                "
-              >
-                {type}
-              </div>
-              <div
-                className={cn(
-                  'grow basis-0 truncate p-0.5',
-                  cnd(name.length, 'font-bold', 'italic opacity-50'),
+            <div className="flex grow basis-0 items-start gap-0.25">
+              <div className="grow">
+                <div className="flex items-center gap-0.25">
+                  <div
+                    className="
+                      m-0.25 rounded-md border border-sigil-bg-light
+                      bg-timecode-usage-foreground px-1 py-0.25
+                      text-sigil-control text-timecode-usage-text
+                    "
+                  >
+                    {type}
+                  </div>
+                  <div
+                    className={cn(
+                      'w-0 grow truncate p-0.5',
+                      cnd(name.length, 'font-bold', 'italic opacity-50'),
+                    )}
+                  >
+                    {name.length ? name.join(' / ') : namePlaceholder}
+                  </div>
+                </div>
+                {link && (
+                  <div
+                    className="
+                      flex items-center gap-0.25 text-timecode-usage-foreground
+                    "
+                    style={cssSigilColorUsageVariables(
+                      'timecode-usage',
+                      // Override timecode color with the user hint preferences
+                      // when no color is specified
+                      // as that will be what's used by the linked input/generator
+                      sigilColorUsage(link.color ?? 'hint'),
+                    )}
+                  >
+                    <div
+                      className="
+                        m-0.25 flex items-center gap-0.25 rounded-md border
+                        border-sigil-bg-light bg-timecode-usage-foreground px-1
+                        py-0.25 text-sigil-control text-timecode-usage-text
+                      "
+                    >
+                      <Icon icon="link" className="text-[120%]" />
+                      <span>{link.type}</span>
+                    </div>
+                    <div
+                      className={cn(
+                        'w-0 grow truncate p-0.5',
+                        cnd(link.name.length, 'font-bold', 'italic opacity-50'),
+                      )}
+                    >
+                      {link.name.length
+                        ? link.name.join(' / ')
+                        : link.namePlaceholder}
+                    </div>
+                  </div>
                 )}
-              >
-                {name.length ? name.join(' / ') : namePlaceholder}
               </div>
             </div>
             <ControlButtonGroup className="rounded-md bg-sigil-bg-light">
@@ -530,7 +578,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         type: STRINGS.protocols[c.definition.type].short,
         name: c.name ? [c.name] : [],
         color: c.color,
-        namePlaceholder: `Unnamed Input`,
+        namePlaceholder: STRINGS.inputs.unnamed,
       };
     } else if (isGeneratorInstanceId(id)) {
       const c = config.generators[id[1]];
@@ -542,7 +590,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         type: STRINGS.generators.type[c.definition.type],
         name: c.name ? [c.name] : [],
         color: c.color,
-        namePlaceholder: `Unnamed Generator`,
+        namePlaceholder: STRINGS.generators.unnamed,
       };
     } else {
       const c = config.outputs[id[1]];
@@ -554,7 +602,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         type: STRINGS.protocols[c.definition.type].short,
         name: c.name ? [c.name] : [],
         color: c.color,
-        namePlaceholder: `Unnamed Output`,
+        namePlaceholder: STRINGS.outputs.unnamed,
       };
     }
   }, [id, config]);

@@ -2,6 +2,7 @@
   "extends": "@arcanewizards/typescript-config/react.json",
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
     // Disable custom conditions, as we want it to use the raw JS here
     "customConditions": [],
     "sourceMap": true,
