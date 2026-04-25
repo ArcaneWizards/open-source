@@ -27,7 +27,11 @@ import {
   TimecodeInstance,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
-import { LinkedSourceInfo, TimecodeTreeDisplay } from './core/timecode-display';
+import {
+  getLinkedSourceInfo,
+  LinkedSourceInfo,
+  TimecodeTreeDisplay,
+} from './core/timecode-display';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import {
   ChangeCommitContext,
@@ -445,38 +449,10 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
     return augmentUpstreamTimecodeWithOutputMetadata(tc, config);
   }, [applicationState, config]);
 
-  const link: LinkedSourceInfo | undefined = useMemo(() => {
-    if (!config.link) {
-      return undefined;
-    }
-
-    let info: LinkedSourceInfo | undefined = undefined;
-    if (config.link[0] === 'input') {
-      const input = allConfig.inputs?.[config.link[1]];
-      if (input) {
-        info = {
-          color: input.color,
-          type: STRINGS.protocols[input.definition.type].short,
-          name: input.name ? [input.name] : [],
-          namePlaceholder: STRINGS.inputs.unnamed,
-        };
-      }
-      // TODO: Handle timecode groups and nested names
-    } else if (config.link[0] === 'generator') {
-      const generator = allConfig.generators?.[config.link[1]];
-      if (generator) {
-        info = {
-          color: generator.color,
-          type: STRINGS.generators.type[generator.definition.type],
-          name: generator.name ? [generator.name] : [],
-          namePlaceholder: STRINGS.generators.unnamed,
-        };
-      }
-      // TODO: Handle timecode groups and nested names
-    }
-
-    return info;
-  }, [config.link, allConfig]);
+  const link: LinkedSourceInfo | undefined = useMemo(
+    () => getLinkedSourceInfo(config.link, allConfig),
+    [config.link, allConfig],
+  );
 
   const toggleEnabled = useCallback(() => {
     updateConfig((current) => {

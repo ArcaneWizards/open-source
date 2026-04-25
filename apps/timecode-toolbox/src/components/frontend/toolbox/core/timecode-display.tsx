@@ -18,6 +18,7 @@ import {
   isOutputInstanceId,
   isInputInstanceId,
   isGeneratorInstanceId,
+  ToolboxConfig,
 } from '../../../proto';
 import { displayMillis } from '../util';
 import { StageContext } from '@arcanejs/toolkit-frontend';
@@ -363,6 +364,42 @@ export type LinkedSourceInfo = {
   namePlaceholder: string;
 };
 
+export const getLinkedSourceInfo = (
+  link: TimecodeInstanceId | null,
+  config: ToolboxConfig,
+): LinkedSourceInfo | undefined => {
+  if (!link) {
+    return undefined;
+  }
+
+  let info: LinkedSourceInfo | undefined = undefined;
+  if (link[0] === 'input') {
+    const input = config.inputs?.[link[1]];
+    if (input) {
+      info = {
+        color: input.color,
+        type: STRINGS.protocols[input.definition.type].short,
+        name: input.name ? [input.name] : [],
+        namePlaceholder: STRINGS.inputs.unnamed,
+      };
+    }
+    // TODO: Handle timecode groups and nested names
+  } else if (link[0] === 'generator') {
+    const generator = config.generators?.[link[1]];
+    if (generator) {
+      info = {
+        color: generator.color,
+        type: STRINGS.generators.type[generator.definition.type],
+        name: generator.name ? [generator.name] : [],
+        namePlaceholder: STRINGS.generators.unnamed,
+      };
+    }
+    // TODO: Handle timecode groups and nested names
+  }
+
+  return info;
+};
+
 type TimecodeTreeDisplayProps = {
   config: UniversalConfig;
   /**
@@ -567,6 +604,16 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     }
   }, [applicationState, id, config.outputs]);
 
+  const linkedSourceInfo = useMemo(() => {
+    if (isOutputInstanceId(id)) {
+      const c = config.outputs[id[1]];
+      if (c?.link) {
+        return getLinkedSourceInfo(c.link, config);
+      }
+    }
+    return undefined;
+  }, [id, config]);
+
   const instanceConfig: FullscreenTimecodeConfig | null = useMemo(() => {
     if (isInputInstanceId(id)) {
       const c = config.inputs[id[1]];
@@ -633,6 +680,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         timecode={timecode}
         assignToOutput={null}
         buttons={null}
+        link={linkedSourceInfo}
         {...instanceConfig}
       />
     </div>
