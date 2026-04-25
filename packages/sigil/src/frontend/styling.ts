@@ -33,7 +33,7 @@ export type SigilUsageColorUsage = {
 };
 
 export const sigilColorUsage = (
-  color: SigilUsageColor,
+  color: SigilUsageColor | 'hint',
 ): SigilUsageColorUsage => ({
   text: `var(--sigil-usage-${color}-text)`,
   foreground: `var(--sigil-usage-${color}-foreground)`,

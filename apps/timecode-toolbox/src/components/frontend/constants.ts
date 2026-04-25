@@ -33,6 +33,7 @@ export const STRINGS = {
   },
   inputs: {
     title: 'INPUTS',
+    unnamed: 'Unnamed Input',
     noChildren: 'No inputs yet. Please add one using the buttons below.',
     addButton: (protocol: string) => `Add ${protocol}`,
     addDialog: (protocol: string) => `Add ${protocol} Input`,
@@ -58,6 +59,7 @@ export const STRINGS = {
   delay: (delayMs: number) => `Delay: ${MS_FORMAT.format(delayMs)}`,
   generators: {
     title: 'GENERATORS',
+    unnamed: 'Unnamed Generator',
     noChildren: 'No generators yet. Please add one using the buttons below.',
     type: {
       clock: 'Clock',
@@ -70,6 +72,7 @@ export const STRINGS = {
   },
   outputs: {
     title: 'OUTPUTS',
+    unnamed: 'Unnamed Output',
     noChildren: 'No outputs yet. Please add one using the buttons below.',
     addButton: (protocol: string) => `Add ${protocol}`,
     addDialog: (protocol: string) => `Add ${protocol} Output`,
