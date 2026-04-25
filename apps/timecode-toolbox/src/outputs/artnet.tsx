@@ -18,7 +18,6 @@ import {
 import { adjustTimecodeForDelay, getTimecodeInstance } from '../util';
 import { useLogger } from '@arcanewizards/sigil';
 import { ArtNet, createArtnet } from '@arcanewizards/artnet';
-import { TIMECODE_FPS } from '@arcanewizards/artnet/constants';
 import { StateSensitiveComponentProps } from '../types';
 
 type ArtnetOutputConnectionProps = StateSensitiveComponentProps & {
@@ -129,13 +128,35 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
       timecodeState?.state === 'lagging'
     ) {
       const tcState = timecodeState;
-      const interval = setInterval(() => {
+      let timeoutId: NodeJS.Timeout | null = null;
+      const sendNextFrame = () => {
         const time =
           (Date.now() - tcState.effectiveStartTimeMillis) * tcState.speed;
-        artnetInstance.sendTimecode(mode, time);
-      }, 1000 / TIMECODE_FPS[mode]);
+        artnetInstance
+          .sendTimecode(mode, time)
+          .then(({ nextFrameTimeMillis }) => {
+            const delay = nextFrameTimeMillis - time + 1;
+            timeoutId = setTimeout(sendNextFrame, delay);
+          })
+          .catch(() => {
+            scheduleNextFrame();
+          });
+      };
+      const scheduleNextFrame = () => {
+        const time =
+          (Date.now() - tcState.effectiveStartTimeMillis) * tcState.speed;
+        const { nextFrameTimeMillis } = artnetInstance.getNextFrameTiming(
+          mode,
+          time,
+        );
+        const delay = nextFrameTimeMillis - time + 1;
+        timeoutId = setTimeout(sendNextFrame, delay);
+      };
+      scheduleNextFrame();
       return () => {
-        clearInterval(interval);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
       };
     } else if (timecodeState?.state === 'stopped') {
       artnetInstance.sendTimecode(mode, timecodeState?.positionMillis ?? 0);

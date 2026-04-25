@@ -191,9 +191,24 @@ const parseTimecodePacket = (
   };
 };
 
+export type FrameTimingResult = {
+  /**
+   * The time in milliseconds where the next frame will occur after the sent timecode.
+   * This can be used to schedule the next timecode update for smoother updates when sending timecodes in a loop.
+   */
+  nextFrameTimeMillis: number;
+};
+
 export type ArtNet = {
   connect: () => Promise<void>;
-  sendTimecode: (mode: TimecodeMode, timeMillis: number) => Promise<void>;
+  getNextFrameTiming: (
+    mode: TimecodeMode,
+    timeMillis: number,
+  ) => FrameTimingResult;
+  sendTimecode: (
+    mode: TimecodeMode,
+    timeMillis: number,
+  ) => Promise<FrameTimingResult>;
   on<K extends keyof ArtNetEventMap>(
     event: K,
     callback: (...args: ArtNetEventMap[K]) => void,
@@ -348,10 +363,33 @@ export const createArtnet = (config: ArtNetConnectionConfig): ArtNet => {
     return connectPromise;
   };
 
+  const getNextFrameTiming: ArtNet['getNextFrameTiming'] = (
+    mode,
+    timeMillis,
+  ) => {
+    const timecode = getTimecodeFromMillis(mode, timeMillis);
+    // Increment timecode by one frame
+    timecode.frame += 1;
+    if (timecode.frame >= TIMECODE_FPS[mode]) {
+      timecode.frame = 0;
+      timecode.seconds += 1;
+      if (timecode.seconds >= 60) {
+        timecode.seconds = 0;
+        timecode.minutes += 1;
+        if (timecode.minutes >= 60) {
+          timecode.minutes = 0;
+          timecode.hours += 1;
+        }
+      }
+    }
+    const nextFrameTimeMillis = getTimeMillisFromTimecode(timecode);
+    return { nextFrameTimeMillis };
+  };
+
   const sendTimecode: ArtNet['sendTimecode'] = (mode, timeMillis) => {
     if (timeMillis < 0) {
       // Ignore negative timecodes, as they don't exist on ArtNet
-      return Promise.resolve();
+      return Promise.resolve(getNextFrameTiming(mode, timeMillis));
     }
     if (!sendSocket) {
       return Promise.reject(new Error('ArtNet connection has not been opened'));
@@ -396,7 +434,7 @@ export const createArtnet = (config: ArtNetConnectionConfig): ArtNet => {
             events.emit('error', error);
             reject(error);
           } else {
-            resolve();
+            resolve(getNextFrameTiming(mode, timeMillis));
           }
         },
       ),
@@ -411,6 +449,7 @@ export const createArtnet = (config: ArtNetConnectionConfig): ArtNet => {
 
   return {
     connect,
+    getNextFrameTiming,
     sendTimecode,
     on,
     addListener,
