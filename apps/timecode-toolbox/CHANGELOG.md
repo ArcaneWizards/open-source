@@ -1,5 +1,18 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.1.6
+
+### Patch Changes
+
+- 0d50503: Address Art-Net output loop forking.
+
+  Maintaining a custom frame event loop using `setTimeout` caused previous
+  ArtNet states to continue sending even though they should have stopped.
+
+  This issue has now been addressed.
+
+  fixes #66
+
 ## 0.1.5
 
 ### Patch Changes
