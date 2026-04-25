@@ -1,4 +1,4 @@
-import { FC, useCallback, useContext, useState } from 'react';
+import { FC, useCallback, useContext, useMemo, useState } from 'react';
 import { STRINGS } from '../constants';
 import { PrimaryToolboxSection } from './util';
 import { NoToolboxChildren } from './content';
@@ -242,6 +242,8 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
   const { generators } = useApplicationState();
   const state = generators[uuid];
 
+  const rootState = useMemo(() => ({ errors: [], warnings: [] }), []);
+
   return (
     <TimecodeTreeDisplay
       id={['generator', uuid]}
@@ -250,6 +252,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
       name={config.name ? [config.name] : []}
       color={config.color}
       timecode={state?.timecode ?? null}
+      rootState={rootState}
       namePlaceholder={STRINGS.generators.unnamed}
       buttons={
         <>

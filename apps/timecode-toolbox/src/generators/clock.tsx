@@ -152,6 +152,8 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
             timecode: {
               metadata: null,
               name: null,
+              errors: [],
+              warnings: [],
               state: {
                 accuracyMillis: null,
                 smpteMode: null,

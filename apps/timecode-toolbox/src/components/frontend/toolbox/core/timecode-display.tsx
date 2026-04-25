@@ -149,6 +149,10 @@ type TimecodeDisplayProps = {
   config: UniversalConfig;
   headerComponents?: React.ReactNode;
   disabled: boolean;
+  rootState: {
+    errors: string[];
+    warnings: string[];
+  };
 };
 
 const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
@@ -157,6 +161,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   config,
   headerComponents,
   disabled,
+  rootState,
 }) => {
   const { handlers, callHandler } = useApplicationHandlers();
 
@@ -368,6 +373,36 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           </div>
         </TooltipWrapper>
       ) : null}
+      {rootState.errors.length > 0 && (
+        <div className="flex gap-px">
+          {rootState.errors.map((error, index) => (
+            <div
+              key={index}
+              className="
+                grow truncate bg-sigil-usage-red-background p-0.5
+                text-sigil-usage-red-text
+              "
+            >
+              {error}
+            </div>
+          ))}
+        </div>
+      )}
+      {rootState.warnings.length > 0 && (
+        <div className="flex gap-px">
+          {rootState.warnings.map((warning, index) => (
+            <div
+              key={index}
+              className="
+                grow truncate bg-sigil-usage-orange-background p-0.5
+                text-sigil-usage-orange-text
+              "
+            >
+              {warning}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -426,6 +461,7 @@ type TimecodeTreeDisplayProps = {
   link?: LinkedSourceInfo;
   color: SigilColor | undefined;
   timecode: 'disabled' | TimecodeGroup | TimecodeInstance | null;
+  rootState: TimecodeDisplayProps['rootState'];
   namePlaceholder: string;
   buttons: ReactNode;
   /**
@@ -457,6 +493,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   link,
   color,
   timecode,
+  rootState,
   namePlaceholder,
   buttons,
   assignToOutput,
@@ -488,6 +525,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         name={name}
         color={timecode.color ?? color}
         timecode={child}
+        rootState={rootState}
         namePlaceholder={namePlaceholder}
         buttons={buttons}
         assignToOutput={assignToOutput}
@@ -510,6 +548,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
             ? timecode
             : EMPTY_TIMECODE
         }
+        rootState={rootState}
         disabled={timecode === 'disabled'}
         config={config}
         headerComponents={
@@ -683,6 +722,25 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     }
   }, [id, config]);
 
+  const rootState: TimecodeDisplayProps['rootState'] = useMemo(() => {
+    if (isInputInstanceId(id)) {
+      return {
+        errors: applicationState.inputs?.[id[1]]?.errors ?? [],
+        warnings: applicationState.inputs?.[id[1]]?.warnings ?? [],
+      };
+    } else if (isGeneratorInstanceId(id)) {
+      return {
+        errors: [],
+        warnings: [],
+      };
+    } else {
+      return {
+        errors: applicationState.outputs?.[id[1]]?.errors ?? [],
+        warnings: applicationState.outputs?.[id[1]]?.warnings ?? [],
+      };
+    }
+  }, [id, applicationState]);
+
   if (!instanceConfig) {
     return (
       <SizeAwareDiv
@@ -707,6 +765,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
       <TimecodeTreeDisplay
         id={id}
         timecode={instanceConfig.disabled ? 'disabled' : timecode}
+        rootState={rootState}
         assignToOutput={null}
         buttons={null}
         link={linkedSourceInfo}
