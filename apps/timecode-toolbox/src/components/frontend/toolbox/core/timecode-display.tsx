@@ -594,7 +594,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
       return getTimecodeInstance(applicationState, id);
     } else {
       const c = config.outputs[id[1]];
-      if (!c) {
+      if (!c || !c.enabled) {
         return null;
       }
       return augmentUpstreamTimecodeWithOutputMetadata(
