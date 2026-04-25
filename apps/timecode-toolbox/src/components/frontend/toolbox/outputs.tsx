@@ -488,7 +488,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
           <>
             <ControlButton
               variant="large"
-              title={config.enabled ? 'Stop Input' : 'Start Input'}
+              title={config.enabled ? 'Stop Output' : 'Start Output'}
               onClick={toggleEnabled}
               icon={config.enabled ? 'stop' : 'play_arrow'}
             />
