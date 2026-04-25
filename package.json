@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
+    "clean": "turbo clean",
     "pre-deploy:web": "turbo pre-deploy --filter=web",
     "check:types": "turbo check:types",
     "dev": "turbo dev",

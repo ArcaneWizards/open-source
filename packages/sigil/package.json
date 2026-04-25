@@ -104,8 +104,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsup && pnpm build:styles && check-export-map",
+    "build": "pnpm clean && tsup && pnpm build:styles && check-export-map",
     "build:styles": "tailwindcss -i ./src/frontend/styles/sigil.css -o ./dist/frontend/styles/sigil.css && cp ./src/frontend/styles/theme.css ./dist/frontend/styles/theme.css && cp ./src/frontend/styles/base.css ./dist/frontend/styles/base.css",
+    "clean": "rm -rf dist",
     "check:types": "tsc --noEmit",
     "format:fix": "cd .. && pnpm format:fix",
     "lint": "eslint . --max-warnings 0",

@@ -28,7 +28,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsup && check-export-map",
+    "build": "pnpm clean && tsup && check-export-map",
+    "clean": "rm -rf dist",
     "check:types": "tsc --noEmit",
     "format:fix": "cd .. && pnpm format:fix",
     "lint": "eslint . --max-warnings 0",
