@@ -157,24 +157,22 @@ jobs:
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
           FULL_BUILD: ${{ inputs.notarize && 'true' || 'false' }}
-          INPUT: ${{ steps.build_vars.outputs.sourceFile }}
           OUTPUT: ${{ steps.build_vars.outputs.x64File }}
         run: |
           pnpm make --arch=x64
-          ls -la ${{ needs.pre-release-checks.outputs.app_dir }}/out/make
-          mv "${INPUT}" "${OUTPUT}"
-          ls -la ${{ needs.pre-release-checks.outputs.app_dir }}/out
+          ls -la out/make
+          mv out/make/*.dmg "${OUTPUT}"
+          ls -la out
       - name: Build ${{ steps.build_vars.outputs.arm64File }}
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
           FULL_BUILD: ${{ inputs.notarize && 'true' || 'false' }}
-          INPUT: ${{ steps.build_vars.outputs.sourceFile }}
           OUTPUT: ${{ steps.build_vars.outputs.arm64File }}
         run: |
           pnpm make --arch=arm64
-          ls -la ${{ needs.pre-release-checks.outputs.app_dir }}/out/make
-          mv "${INPUT}" "${OUTPUT}"
-          ls -la ${{ needs.pre-release-checks.outputs.app_dir }}/out
+          ls -la out/make
+          mv out/make/*.dmg "${OUTPUT}"
+          ls -la out
       - name: Clean up keychain
         if: ${{ always() && inputs.notarize }}
         run: |
