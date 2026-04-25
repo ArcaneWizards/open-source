@@ -1,5 +1,11 @@
 # @arcanewizards/sigil
 
+## 0.1.7
+
+### Patch Changes
+
+- 858eb09: Allow using hint with sigilColorUsage
+
 ## 0.1.6
 
 ### Patch Changes
