@@ -10,3 +10,5 @@ and rounding down to the nearest frame when converting millisecond timecodes
 to frame timecodes.
 
 We now schedule appropriate timeouts based on when the next frame starts.
+
+Fixes #30
