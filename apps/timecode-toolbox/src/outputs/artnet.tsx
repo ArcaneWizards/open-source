@@ -128,8 +128,17 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
       timecodeState?.state === 'lagging'
     ) {
       const tcState = timecodeState;
+      let transmit = true;
       let timeoutId: NodeJS.Timeout | null = null;
       const sendNextFrame = () => {
+        if (!transmit) {
+          /*
+           * A timeout may still be requested in the then/catch of the
+           * sendTimecode promise after the component has been unmounted.
+           * so we need to check if we should still transmit before sending the next frame.
+           */
+          return;
+        }
         const time =
           (Date.now() - tcState.effectiveStartTimeMillis) * tcState.speed;
         artnetInstance
@@ -154,6 +163,7 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
       };
       scheduleNextFrame();
       return () => {
+        transmit = false;
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
