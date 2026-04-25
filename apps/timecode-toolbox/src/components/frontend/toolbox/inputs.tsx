@@ -1,4 +1,11 @@
-import { FC, useCallback, useContext, useEffect, useState } from 'react';
+import {
+  FC,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { STRINGS } from '../constants';
 import { PrimaryToolboxSection } from './util';
 import { ConfigContext, NetworkContext, useApplicationState } from './context';
@@ -404,6 +411,11 @@ export const InputDisplay: FC<InputDisplayProps> = ({
     });
   }, [uuid, updateConfig]);
 
+  const rootState = useMemo(
+    () => ({ errors: state?.errors ?? [], warnings: state?.warnings ?? [] }),
+    [state?.errors, state?.warnings],
+  );
+
   return (
     <TimecodeTreeDisplay
       id={['input', uuid]}
@@ -412,6 +424,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
       name={config.name ? [config.name] : []}
       color={config.color}
       timecode={config.enabled ? (state?.timecode ?? null) : 'disabled'}
+      rootState={rootState}
       namePlaceholder={STRINGS.inputs.unnamed}
       buttons={
         <>

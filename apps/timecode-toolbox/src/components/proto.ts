@@ -283,8 +283,6 @@ export type TimecodeMetadata = {
 
 export type TimecodeInstance = {
   name: string | null;
-  errors?: string[];
-  warnings?: string[];
   state: TimecodeState;
   metadata: TimecodeMetadata | null;
 };

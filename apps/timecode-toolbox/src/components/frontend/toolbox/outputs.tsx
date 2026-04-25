@@ -473,6 +473,14 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
     });
   }, [uuid, updateConfig]);
 
+  const rootState = useMemo(
+    () => ({
+      errors: applicationState.outputs[uuid]?.errors ?? [],
+      warnings: applicationState.outputs[uuid]?.warnings ?? [],
+    }),
+    [applicationState.outputs, uuid],
+  );
+
   return (
     <div
       className="relative flex flex-col"
@@ -492,6 +500,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         name={config.name ? [config.name] : []}
         color={config.color}
         timecode={config.enabled ? timecode : 'disabled'}
+        rootState={rootState}
         namePlaceholder={STRINGS.outputs.unnamed}
         link={link}
         buttons={
