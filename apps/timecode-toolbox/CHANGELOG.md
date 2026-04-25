@@ -1,5 +1,44 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.1.5
+
+### Patch Changes
+
+- 858eb09: Correct some input/output mis-labelling
+- 4fdb9d6: Make it more obvious when output/input is paused/disabled
+
+  Replace the timecode display with a pause icon when an input/output is disabled,
+  making it very clear when a timecode won't be sending/receiving a signal.
+
+  Fixes #31
+
+- 858eb09: Clearly display when an output is linked to something
+
+  Previously, it wasn't obvious when an output was connected to an input or
+  generator, and which input or generator was linked.
+
+  This is now prominently displayed underneath the output type & name.
+
+  Fixes #55
+
+- 6d025db: Fix Art-Net Drift
+
+  The previous implementation of our artnet timecode broadcast would regularly be
+  out by about 1 frame, due to us not timing sending of the packets appropriately,
+  and rounding down to the nearest frame when converting millisecond timecodes
+  to frame timecodes.
+
+  We now schedule appropriate timeouts based on when the next frame starts.
+
+  Fixes #30
+
+- e342d52: Display errors & warnings prominently
+
+  Display any errors and warnings for inputs / outputs
+  (such as network / connectivity issues)
+
+  Fixes #59
+
 ## 0.1.4
 
 ### Patch Changes
