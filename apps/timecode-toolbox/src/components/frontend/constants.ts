@@ -34,6 +34,9 @@ export const STRINGS = {
   inputs: {
     title: 'INPUTS',
     unnamed: 'Unnamed Input',
+    enable: 'Enable Input',
+    disable: 'Disable Input',
+    edit: 'Edit Input',
     noChildren: 'No inputs yet. Please add one using the buttons below.',
     addButton: (protocol: string) => `Add ${protocol}`,
     addDialog: (protocol: string) => `Add ${protocol} Input`,
@@ -60,6 +63,7 @@ export const STRINGS = {
   generators: {
     title: 'GENERATORS',
     unnamed: 'Unnamed Generator',
+    edit: 'Edit Generator',
     noChildren: 'No generators yet. Please add one using the buttons below.',
     type: {
       clock: 'Clock',
@@ -73,6 +77,10 @@ export const STRINGS = {
   outputs: {
     title: 'OUTPUTS',
     unnamed: 'Unnamed Output',
+    enable: 'Enable Output',
+    disable: 'Disable Output',
+    link: 'Link Output',
+    edit: 'Edit Output',
     noChildren: 'No outputs yet. Please add one using the buttons below.',
     addButton: (protocol: string) => `Add ${protocol}`,
     addDialog: (protocol: string) => `Add ${protocol} Output`,

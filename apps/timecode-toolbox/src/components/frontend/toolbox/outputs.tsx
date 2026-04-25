@@ -27,7 +27,11 @@ import {
   TimecodeInstance,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
-import { LinkedSourceInfo, TimecodeTreeDisplay } from './core/timecode-display';
+import {
+  getLinkedSourceInfo,
+  LinkedSourceInfo,
+  TimecodeTreeDisplay,
+} from './core/timecode-display';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import {
   ChangeCommitContext,
@@ -445,38 +449,10 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
     return augmentUpstreamTimecodeWithOutputMetadata(tc, config);
   }, [applicationState, config]);
 
-  const link: LinkedSourceInfo | undefined = useMemo(() => {
-    if (!config.link) {
-      return undefined;
-    }
-
-    let info: LinkedSourceInfo | undefined = undefined;
-    if (config.link[0] === 'input') {
-      const input = allConfig.inputs?.[config.link[1]];
-      if (input) {
-        info = {
-          color: input.color,
-          type: STRINGS.protocols[input.definition.type].short,
-          name: input.name ? [input.name] : [],
-          namePlaceholder: STRINGS.inputs.unnamed,
-        };
-      }
-      // TODO: Handle timecode groups and nested names
-    } else if (config.link[0] === 'generator') {
-      const generator = allConfig.generators?.[config.link[1]];
-      if (generator) {
-        info = {
-          color: generator.color,
-          type: STRINGS.generators.type[generator.definition.type],
-          name: generator.name ? [generator.name] : [],
-          namePlaceholder: STRINGS.generators.unnamed,
-        };
-      }
-      // TODO: Handle timecode groups and nested names
-    }
-
-    return info;
-  }, [config.link, allConfig]);
+  const link: LinkedSourceInfo | undefined = useMemo(
+    () => getLinkedSourceInfo(config.link, allConfig),
+    [config.link, allConfig],
+  );
 
   const toggleEnabled = useCallback(() => {
     updateConfig((current) => {
@@ -515,27 +491,31 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         type={STRINGS.protocols[config.definition.type].short}
         name={config.name ? [config.name] : []}
         color={config.color}
-        timecode={config.enabled ? timecode : null}
+        timecode={config.enabled ? timecode : 'disabled'}
         namePlaceholder={STRINGS.outputs.unnamed}
         link={link}
         buttons={
           <>
             <ControlButton
               variant="large"
-              title={config.enabled ? 'Stop Output' : 'Start Output'}
+              title={
+                config.enabled
+                  ? STRINGS.outputs.disable
+                  : STRINGS.outputs.enable
+              }
               onClick={toggleEnabled}
-              icon={config.enabled ? 'stop' : 'play_arrow'}
+              icon={config.enabled ? 'pause' : 'play_arrow'}
             />
             <ControlButton
               variant="large"
-              title="Link Output"
+              title={STRINGS.outputs.link}
               active={assignToOutput === uuid}
               onClick={linkCallback}
               icon={config.link ? 'link' : 'link_off'}
             />
             <ControlButton
               variant="large"
-              title="Edit Output"
+              title={STRINGS.outputs.edit}
               onClick={() =>
                 setDialogMode({
                   section: { type: 'outputs', output: config.definition.type },
