@@ -53,13 +53,33 @@ export type NewWindowOptions = {
   mode?: string;
 };
 
+export type BrowserCloseListenerAction =
+  | {
+      action: 'allow';
+    }
+  | {
+      action: 'confirm';
+      confirmation: string;
+    };
+
+/**
+ * A listener that can be registered to listen for close events,
+ * and prevent them if needed.
+ *
+ * Note that in browser environments,
+ * preventing close will always display the same confirmation message that a user
+ * can then choose to proceed with or not.
+ */
+export type BrowserCloseListener = () => BrowserCloseListenerAction;
+
 export type BaseBrowserContext = {
   appListenerChangesHandledExternally?: boolean;
   openExternalLink: (url: string) => void;
   openNewWidow: (url: string, options?: NewWindowOptions) => void;
   selectDirectory: (() => Promise<string | null>) | null;
   openDevTools: (() => Promise<null>) | null;
-  confirmClose: (message: string) => void;
+  addCloseListener: (listener: BrowserCloseListener) => void;
+  removeCloseListener: (listener: BrowserCloseListener) => void;
   mediaSession: MediaSessionControl;
 };
 
@@ -68,6 +88,26 @@ export const createDefaultBrowserContext = <
 >(
   browser?: Partial<TBrowserContext> | null,
 ): TBrowserContext => {
+  const closeListeners = new Set<BrowserCloseListener>();
+
+  window.addEventListener('beforeunload', (e) => {
+    let confirm = false;
+    for (const listener of closeListeners) {
+      // In browsers, the message is fixed and cannot be customized,
+      // so we just check if any listener wants to prevent the close action.
+      if (listener().action === 'confirm') {
+        confirm = true;
+      }
+    }
+
+    if (confirm) {
+      // Give message to show confirmation dialog
+      e.preventDefault();
+      e.returnValue = '';
+      return;
+    }
+  });
+
   const defaults: BaseBrowserContext = {
     appListenerChangesHandledExternally: false,
     openExternalLink: (url: string) => {
@@ -78,9 +118,10 @@ export const createDefaultBrowserContext = <
     },
     selectDirectory: null,
     openDevTools: null,
-    confirmClose: () => {
-      // Browsers do not allow custom close confirmation text.
-    },
+    addCloseListener: (listener: BrowserCloseListener) =>
+      closeListeners.add(listener),
+    removeCloseListener: (listener: BrowserCloseListener) =>
+      closeListeners.delete(listener),
     mediaSession: createBrowserMediaSession(),
   };
 
