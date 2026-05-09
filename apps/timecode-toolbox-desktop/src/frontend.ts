@@ -2,6 +2,7 @@ import '@arcanewizards/timecode-toolbox/frontend';
 import '@arcanewizards/timecode-toolbox/entrypoint.css';
 
 import type { ElectronAPI } from './preload';
+import { BrowserCloseListener } from '@arcanewizards/sigil/frontend';
 
 declare global {
   interface Window {
@@ -15,6 +16,20 @@ if (
 ) {
   throw new Error('Timecode Toolbox frontend is not loaded properly.');
 }
+
+const closeListeners = new Set<BrowserCloseListener>();
+
+window.electronAPI?.onCloseRequested(() => {
+  for (const listener of closeListeners) {
+    const result = listener();
+    if (result.action === 'confirm') {
+      window.electronAPI?.confirmClose(result.confirmation);
+      return;
+    }
+  }
+  // If no listener returned a 'confirm' action, directly close the window
+  window.close();
+});
 
 window.startTimecodeToolboxServerFrontend({
   appListenerChangesHandledExternally: !!window.electronAPI,
@@ -35,11 +50,10 @@ window.startTimecodeToolboxServerFrontend({
   },
   selectDirectory: window.electronAPI?.selectDirectory ?? null,
   openDevTools: window.electronAPI?.openDevTools ?? null,
-  confirmClose: (message: string) => {
-    if (window.electronAPI) {
-      window.electronAPI.confirmClose(message);
-    }
-  },
+  addCloseListener: (listener: BrowserCloseListener) =>
+    closeListeners.add(listener),
+  removeCloseListener: (listener: BrowserCloseListener) =>
+    closeListeners.delete(listener),
   mediaSession:
     window.electronAPI?.mediaSession ?? window.createBrowserMediaSession(),
 });

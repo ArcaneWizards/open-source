@@ -6,6 +6,8 @@ export {
   useBrowserContext,
 } from './frontend/browser-context';
 export type {
+  BrowserCloseListener,
+  BrowserCloseListenerAction,
   BaseBrowserContext,
   NewWindowOptions,
   MediaMetadata,

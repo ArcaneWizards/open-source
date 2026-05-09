@@ -31,6 +31,8 @@ const ELECTRON_API = {
   confirmClose: (message: string) => {
     ipcRenderer.send('confirm-close', message);
   },
+  onCloseRequested: (callback: () => void) =>
+    ipcRenderer.on('window-close', () => callback()),
   mediaSession,
 };
 
