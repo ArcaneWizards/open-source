@@ -1,5 +1,15 @@
 # @arcanewizards/sigil
 
+## 0.1.8
+
+### Patch Changes
+
+- 661bff4: Refactor close confirmation API
+
+  Make it possible for electron apps to block closing windows properly by
+  listening to the `close` event,
+  by introducing a new API for registering window close confirmation behavior.
+
 ## 0.1.7
 
 ### Patch Changes
