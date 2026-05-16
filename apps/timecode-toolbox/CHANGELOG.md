@@ -1,5 +1,16 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.1.7
+
+### Patch Changes
+
+- 4755e41: Ensure TCNet errors are correctly displayed
+
+  Previously only warnings were being displayed on the timecode itself,
+  and you needed to go to the logs to see errors.
+
+- f65c6ee: Fix port binding in inputs for windows (#70)
+
 ## 0.1.6
 
 ### Patch Changes

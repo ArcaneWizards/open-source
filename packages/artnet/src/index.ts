@@ -306,7 +306,10 @@ export const createArtnet = (config: ArtNetConnectionConfig): ArtNet => {
     }
 
     const iface = await getInterface();
-    const bindAddress = iface.internal ? iface.address : iface.broadcastAddress;
+    const bindAddress =
+      iface.internal || process.platform === 'win32'
+        ? iface.address
+        : iface.broadcastAddress;
     const socket = createSocket({ type: 'udp4', reuseAddr: true });
     receiveSocket = socket;
     socket.on('message', (packet, source) => {

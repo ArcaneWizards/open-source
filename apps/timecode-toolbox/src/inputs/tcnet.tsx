@@ -104,16 +104,18 @@ const TcnetInputConnection: FC<TcnetInputConnectionProps> = ({
           protocolVersion: nodeInfo.protocolVersion,
           details: [`Type: ${nodeInfo.nodeType}`],
         }));
-      const hasError = Object.values(connections).some(
-        (port) => port?.status === 'error',
+      const errors = Object.values(connections).flatMap(
+        (port) => port?.errors ?? [],
       );
       const isConnecting = Object.values(connections).some(
         (port) => port?.status === 'connecting',
       );
       setConnection({
-        status: hasError ? 'error' : isConnecting ? 'connecting' : 'active',
+        status:
+          errors.length > 0 ? 'error' : isConnecting ? 'connecting' : 'active',
         clients,
         warnings,
+        errors,
         timecode: timecodeGroup,
       });
     };

@@ -1,5 +1,11 @@
 # @arcanewizards/tcnet
 
+## 0.1.4
+
+### Patch Changes
+
+- f65c6ee: Fix tcnet port binding on windows (#70)
+
 ## 0.1.3
 
 ### Patch Changes

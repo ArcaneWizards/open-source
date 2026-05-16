@@ -1,5 +1,11 @@
 # @arcanewizards/artnet
 
+## 0.1.5
+
+### Patch Changes
+
+- 9ba5ba7: Fix bug binding to interface in windows (#70)
+
 ## 0.1.4
 
 ### Patch Changes
