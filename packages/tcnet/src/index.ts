@@ -73,15 +73,6 @@ const bindSocket = (
   return new Promise((resolve, reject) => {
     socket.once('error', reject);
 
-    // Enable SO_REUSEPORT manually on macOS
-    // if (process.platform === 'darwin') {
-    //   try {
-    //     (socket as any)._handle?.setOption?.(1, 15, 1); // SOL_SOCKET, SO_REUSEPORT, 1
-    //   } catch (err) {
-    //     console.warn('Failed to set SO_REUSEPORT:', err);
-    //   }
-    // }
-
     socket.bind(port, address, () => {
       socket.removeListener('error', reject);
       resolve();
@@ -112,7 +103,7 @@ export const createTCNetNode = (props: Props): TCNetNode => {
 
   const portInformation: Record<TCNetPortUsage, NetworkPortStatus> = {
     broadcastSend: {
-      direction: 'output',
+      direction: process.platform === 'win32' ? 'both' : 'output',
       target: { type: 'interface', interface: props.networkInterface },
       port: PORT_BROADCAST,
       status: 'disabled',
@@ -506,7 +497,7 @@ export const createTCNetNode = (props: Props): TCNetNode => {
         {
           type: 'udp4',
           reuseAddr: true,
-          reusePort: process.platform !== 'darwin',
+          reusePort: process.platform === 'linux',
         },
         handleBroadcastMessage,
       );
@@ -515,7 +506,7 @@ export const createTCNetNode = (props: Props): TCNetNode => {
         await bindSocket(broadcastSendPort, PORT_BROADCAST, iface.address);
       } catch (err) {
         const error = new TCNetInitializationError(
-          `Failed to bind broadcast port ${PORT_BROADCAST} on interface ${props.networkInterface}`,
+          `Failed to bind broadcast (send) port ${PORT_BROADCAST} on interface ${props.networkInterface}`,
           err instanceof Error ? err : new Error(String(err)),
         );
         portInformation.broadcastSend.status = 'error';
@@ -528,49 +519,51 @@ export const createTCNetNode = (props: Props): TCNetNode => {
       // Send update for newly bound port
       sendPortStateChanged();
 
-      portInformation.broadcastRecv.status = 'connecting';
-      const broadcastRecvPort = createSocket(
-        {
-          type: 'udp4',
-          reuseAddr: true,
-          reusePort: process.platform !== 'darwin',
-        },
-        handleBroadcastMessage,
-      );
-      sockets.broadcastRecv = broadcastRecvPort;
-      try {
-        await bindSocket(
-          broadcastRecvPort,
-          PORT_BROADCAST,
-          iface.broadcastAddress,
+      if (process.platform !== 'win32') {
+        portInformation.broadcastRecv.status = 'connecting';
+        const broadcastRecvPort = createSocket(
+          {
+            type: 'udp4',
+            reuseAddr: true,
+            reusePort: process.platform === 'linux',
+          },
+          handleBroadcastMessage,
         );
-      } catch (err) {
-        const error = new TCNetInitializationError(
-          `Failed to bind broadcast port ${PORT_BROADCAST} on interface ${props.networkInterface}`,
-          err instanceof Error ? err : new Error(String(err)),
-        );
-        portInformation.broadcastRecv.status = 'error';
-        portInformation.broadcastRecv.errors = [error.message];
-        throw error;
-      }
-      broadcastRecvPort.setBroadcast(true);
-      portInformation.broadcastRecv.status = 'active';
+        sockets.broadcastRecv = broadcastRecvPort;
+        try {
+          await bindSocket(
+            broadcastRecvPort,
+            PORT_BROADCAST,
+            iface.broadcastAddress,
+          );
+        } catch (err) {
+          const error = new TCNetInitializationError(
+            `Failed to bind broadcast (receive) port ${PORT_BROADCAST} on interface ${props.networkInterface}`,
+            err instanceof Error ? err : new Error(String(err)),
+          );
+          portInformation.broadcastRecv.status = 'error';
+          portInformation.broadcastRecv.errors = [error.message];
+          throw error;
+        }
+        broadcastRecvPort.setBroadcast(true);
+        portInformation.broadcastRecv.status = 'active';
 
-      // Send update for newly bound port
-      sendPortStateChanged();
+        // Send update for newly bound port
+        sendPortStateChanged();
+      }
 
       portInformation.time.status = 'connecting';
       const timePort = createSocket(
         {
           type: 'udp4',
           reuseAddr: true,
-          reusePort: process.platform !== 'darwin',
+          reusePort: process.platform === 'linux',
         },
         handleTimeMessage,
       );
       sockets.time = timePort;
       try {
-        await bindSocket(timePort, PORT_TIME, iface.broadcastAddress);
+        await bindSocket(timePort, PORT_TIME, iface.address);
       } catch (err) {
         const error = new TCNetInitializationError(
           `Failed to bind time port ${PORT_TIME} on interface ${props.networkInterface}`,
