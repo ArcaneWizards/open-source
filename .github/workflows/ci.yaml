@@ -26,10 +26,8 @@ jobs:
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 24.x
-      - name: Extract pnpm version and install
-        run: |
-          VERSION=$(cat package.json | grep '"packageManager": "pnpm@' | sed 's/.*"pnpm@\([^"]*\)".*/\1/')
-          npm install -g pnpm@$VERSION
+      - name: Enable pnpm
+        run: corepack enable pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm lint

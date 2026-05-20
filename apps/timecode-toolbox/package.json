@@ -45,9 +45,9 @@
   },
   "devDependencies": {
     "@arcanejs/build-utils": "^0.1.2",
-    "@arcanejs/diff": "^0.5.2",
-    "@arcanejs/protocol": "^0.8.0",
-    "@arcanejs/toolkit-frontend": "^0.11.0",
+    "@arcanejs/diff": "^0.6.0",
+    "@arcanejs/protocol": "^0.9.0",
+    "@arcanejs/toolkit-frontend": "^0.12.0",
     "@arcanewizards/apis": "workspace:^",
     "@arcanewizards/artnet": "workspace:^",
     "@arcanewizards/eslint-config": "workspace:^",
@@ -75,8 +75,8 @@
     "radix-ui": "^1.4.3"
   },
   "dependencies": {
-    "@arcanejs/react-toolkit": "^0.15.1",
-    "@arcanejs/toolkit": "^8.0.0",
+    "@arcanejs/react-toolkit": "^0.16.0",
+    "@arcanejs/toolkit": "^9.0.0",
     "pino": "^9.5.0",
     "pino-pretty": "^11.3.0",
     "react": "^19.2.0"
