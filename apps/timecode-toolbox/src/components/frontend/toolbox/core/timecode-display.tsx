@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -42,6 +43,7 @@ import {
   ApplicationStateContext,
   ConfigContext,
   useApplicationHandlers,
+  useGlobalUserInteractions,
 } from '../context';
 import { getTreeValue } from '../../../../tree';
 import { useBrowserContext } from '@arcanewizards/sigil/frontend';
@@ -153,6 +155,7 @@ type TimecodeDisplayProps = {
     errors: string[];
     warnings: string[];
   };
+  loadFile: null | ((file: File) => void);
 };
 
 const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
@@ -162,6 +165,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   headerComponents,
   disabled,
   rootState,
+  loadFile,
 }) => {
   const { handlers, callHandler } = useApplicationHandlers();
 
@@ -197,18 +201,77 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
     }
   }, [callHandler, id]);
 
-  const toggle = useCallback(() => {
-    if (hooks?.play && hooks?.pause) {
-      if (state.state === 'none' || state.state === 'stopped') {
-        play();
-      } else {
-        pause();
-      }
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const clickAction = useMemo(() => {
+    if (!disabled && hooks?.play && hooks?.pause) {
+      return () => {
+        if (state.state === 'none' || state.state === 'stopped') {
+          play();
+        } else {
+          pause();
+        }
+      };
+    } else if (loadFile) {
+      return () => {
+        fileRef.current?.click();
+      };
     }
-  }, [hooks, play, pause, state.state]);
+  }, [hooks, play, pause, state.state, loadFile, disabled]);
+
+  const [isDroppingFile, setIsDroppingFile] = useState(false);
+
+  type DragEvents = {
+    onDragEnter: React.DragEventHandler;
+    onDragLeave: React.DragEventHandler;
+    onDragOver: React.DragEventHandler;
+    onDrop: React.DragEventHandler;
+  };
+
+  const dropEvents: DragEvents | null = useMemo(() => {
+    if (!loadFile) {
+      return null;
+    }
+
+    return {
+      onDragEnter: (e) => {
+        e.preventDefault();
+        setIsDroppingFile(true);
+      },
+      onDragLeave: (e) => {
+        e.preventDefault();
+        setIsDroppingFile(false);
+      },
+      onDragOver: (e) => {
+        e.preventDefault();
+        setIsDroppingFile(true);
+      },
+      onDrop: (e) => {
+        e.preventDefault();
+        setIsDroppingFile(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          if (e.dataTransfer.files[0]) {
+            loadFile(e.dataTransfer.files[0]);
+          }
+          e.dataTransfer.clearData();
+        }
+      },
+    } satisfies DragEvents;
+  }, [loadFile]);
+
+  const { draggingFileIntoWindow } = useGlobalUserInteractions();
 
   return (
     <div className="flex grow flex-col gap-px">
+      {loadFile && (
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && loadFile(e.target.files[0])}
+          accept="audio/*"
+        />
+      )}
       <div
         className={cn(
           'flex grow flex-col p-0.5',
@@ -224,45 +287,56 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         )}
         <SizeAwareDiv
           className="relative min-h-timecode-min-height grow"
-          onClick={toggle}
+          onClick={clickAction}
         >
-          {disabled ? (
-            <SizeAwareDiv
-              className="
-                pointer-events-none absolute inset-0 flex items-center
-                justify-center
-              "
-            >
-              <Icon icon="pause" className="text-timecode-adaptive" />
-            </SizeAwareDiv>
-          ) : (
-            <div
-              className={cn(
-                'absolute inset-0 flex items-center justify-center',
-                cnd(state?.state === 'stopped', 'opacity-50'),
-                cnd(
-                  hooks?.play && hooks?.pause,
+          <div
+            className={cn(
+              'group absolute inset-0 flex items-center justify-center',
+              cnd(state?.state === 'stopped', 'opacity-50'),
+              cnd(
+                clickAction,
+                `
+                  cursor-pointer
+                  hover:opacity-100
+                `,
+              ),
+              cnd(
+                state.state === 'none' && dropEvents && !isDroppingFile,
+                'opacity-50',
+              ),
+              cnd(isDroppingFile, 'opacity-100'),
+            )}
+            {...dropEvents}
+          >
+            {dropEvents && draggingFileIntoWindow && (
+              <div
+                className={cn(
                   `
-                    cursor-pointer
-                    hover:opacity-100
+                    absolute inset-1 z-10 border-4 border-dotted
+                    border-timecode-usage-border
                   `,
-                ),
-              )}
-            >
-              <span className={cn('font-mono text-timecode-adaptive')}>
-                {state.state === 'none' ? (
-                  '--:--:--:---'
-                ) : state.state === 'stopped' ? (
-                  displayMillis(state.positionMillis)
-                ) : (
-                  <ActiveTimecodeText
-                    effectiveStartTimeMillis={state.effectiveStartTimeMillis}
-                    speed={state.speed}
-                  />
                 )}
-              </span>
-            </div>
-          )}
+              />
+            )}
+            <span className="font-mono text-timecode-adaptive">
+              {disabled ? (
+                <Icon icon="pause" className="text-timecode-adaptive" />
+              ) : state.state === 'none' ? (
+                loadFile ? (
+                  <Icon icon="file_open" className="text-timecode-adaptive" />
+                ) : (
+                  '--:--:--:---'
+                )
+              ) : state.state === 'stopped' ? (
+                displayMillis(state.positionMillis)
+              ) : (
+                <ActiveTimecodeText
+                  effectiveStartTimeMillis={state.effectiveStartTimeMillis}
+                  speed={state.speed}
+                />
+              )}
+            </span>
+          </div>
         </SizeAwareDiv>
         {hooks?.pause || hooks?.play ? (
           <div className="flex justify-center gap-px">
@@ -468,6 +542,11 @@ type TimecodeTreeDisplayProps = {
    * If set, calling this will assign the instance to the given output on
    */
   assignToOutput: AssignToOutputCallback;
+  /**
+   * If it's possible to load a file into this timecode instance,
+   * the callback should be provided here.
+   */
+  loadFile?: null | ((file: File) => void);
 };
 
 const EMPTY_TIMECODE: TimecodeInstance = {
@@ -497,6 +576,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   namePlaceholder,
   buttons,
   assignToOutput,
+  loadFile,
 }) => {
   const { openNewWidow } = useBrowserContext();
 
@@ -529,6 +609,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         namePlaceholder={namePlaceholder}
         buttons={buttons}
         assignToOutput={assignToOutput}
+        loadFile={loadFile}
       />
     ));
   }
@@ -551,6 +632,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         rootState={rootState}
         disabled={timecode === 'disabled'}
         config={config}
+        loadFile={loadFile ?? null}
         headerComponents={
           <>
             <div className="flex grow basis-0 items-start gap-0.25">

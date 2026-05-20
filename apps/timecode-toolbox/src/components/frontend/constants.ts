@@ -67,6 +67,7 @@ export const STRINGS = {
     noChildren: 'No generators yet. Please add one using the buttons below.',
     type: {
       clock: 'Clock',
+      player: 'Audio Player',
     },
     addDialog: (protocol: string) => `Add ${protocol} Generator`,
     editDialog: (protocol: string, name: string) =>

@@ -78,6 +78,7 @@ export type BaseBrowserContext = {
   openNewWidow: (url: string, options?: NewWindowOptions) => void;
   selectDirectory: (() => Promise<string | null>) | null;
   openDevTools: (() => Promise<null>) | null;
+  getPathForFile: ((file: File) => string) | null;
   addCloseListener: (listener: BrowserCloseListener) => void;
   removeCloseListener: (listener: BrowserCloseListener) => void;
   mediaSession: MediaSessionControl;
@@ -116,6 +117,7 @@ export const createDefaultBrowserContext = <
     openNewWidow: (url: string) => {
       window.open(url, '_blank', 'noopener,noreferrer');
     },
+    getPathForFile: null,
     selectDirectory: null,
     openDevTools: null,
     addCloseListener: (listener: BrowserCloseListener) =>

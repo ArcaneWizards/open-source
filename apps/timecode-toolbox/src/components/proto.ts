@@ -99,7 +99,20 @@ export type GeneratorClockDefinition = z.infer<
   typeof GENERATOR_CLOCK_DEFINITION
 >;
 
-const GENERATOR_DEFINITION = GENERATOR_CLOCK_DEFINITION;
+const GENERATOR_PLAYER_DEFINITION = z.object({
+  type: z.literal('player'),
+  /**
+   * The last file to be loaded into the generator
+   */
+  filePath: z.string().nullable(),
+  speed: z.number(),
+  volume: z.number(),
+});
+
+const GENERATOR_DEFINITION = z.union([
+  GENERATOR_CLOCK_DEFINITION,
+  GENERATOR_PLAYER_DEFINITION,
+]);
 
 export type GeneratorDefinition = z.infer<typeof GENERATOR_DEFINITION>;
 

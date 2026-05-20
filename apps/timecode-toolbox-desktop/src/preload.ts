@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type {
   MediaSessionControl,
   MediaSessionHandler,
@@ -28,6 +28,7 @@ const ELECTRON_API = {
     ipcRenderer.send('open-window', url, options),
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   openDevTools: () => ipcRenderer.invoke('open-dev-tools'),
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
   confirmClose: (message: string) => {
     ipcRenderer.send('confirm-close', message);
   },

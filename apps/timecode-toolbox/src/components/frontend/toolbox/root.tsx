@@ -27,6 +27,8 @@ import {
   ApplicationStateContext,
   ConfigContext,
   ConfigContextData,
+  GlobalUserInteractionsContext,
+  GlobalUserInteractionsContextData,
   NetworkContext,
 } from './context';
 import {
@@ -103,6 +105,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
   const { config } = info;
   const { sendMessage, call } = useContext(StageContext);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
+  const [draggingFileIntoWindow, setDraggingFileIntoWindow] = useState(false);
 
   const [assignToOutput, setAssignToOutput] = useState<string | null>(null);
 
@@ -119,6 +122,32 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       };
     }
   }, [assignToOutput]);
+
+  useEffect(() => {
+    // Prevent dragging outside of drag zones from changing page
+    const onDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer?.types.includes('Files')) {
+        setDraggingFileIntoWindow(true);
+      }
+    };
+    const onDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      setDraggingFileIntoWindow(false);
+    };
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      setDraggingFileIntoWindow(false);
+    };
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('dragleave', onDragLeave);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('dragleave', onDragLeave);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, []);
 
   const updateConfig = useCallback(
     (change: (current: ToolboxConfig) => ToolboxConfig) => {
@@ -331,15 +360,24 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     ],
   );
 
+  const interactions: GlobalUserInteractionsContextData = useMemo(
+    () => ({
+      draggingFileIntoWindow,
+    }),
+    [draggingFileIntoWindow],
+  );
+
   return (
-    <ConfigContext.Provider value={configContext}>
-      <NetworkContext.Provider value={networkContextValue}>
-        <ApplicationStateContext.Provider value={info.state}>
-          <ApplicationHandlersContext.Provider value={handlers}>
-            {root}
-          </ApplicationHandlersContext.Provider>
-        </ApplicationStateContext.Provider>
-      </NetworkContext.Provider>
-    </ConfigContext.Provider>
+    <GlobalUserInteractionsContext.Provider value={interactions}>
+      <ConfigContext.Provider value={configContext}>
+        <NetworkContext.Provider value={networkContextValue}>
+          <ApplicationStateContext.Provider value={info.state}>
+            <ApplicationHandlersContext.Provider value={handlers}>
+              {root}
+            </ApplicationHandlersContext.Provider>
+          </ApplicationStateContext.Provider>
+        </NetworkContext.Provider>
+      </ConfigContext.Provider>
+    </GlobalUserInteractionsContext.Provider>
   );
 };

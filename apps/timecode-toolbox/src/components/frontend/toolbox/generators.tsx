@@ -19,6 +19,7 @@ import {
   useChangeCommitBoundary,
 } from '@arcanewizards/sigil/frontend/context';
 import { TimecodeTreeDisplay } from './core/timecode-display';
+import { useFileResolver } from './hooks';
 
 const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
   data,
@@ -70,10 +71,15 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
   const { config, updateConfig } = useContext(ConfigContext);
   const [newData, setNewData] = useState<GeneratorConfig>({
     name: '',
-    definition: {
-      type: generator,
-      speed: 1,
-    },
+    definition:
+      generator === 'clock'
+        ? { type: 'clock', speed: 1 }
+        : {
+            type: generator,
+            filePath: null,
+            speed: 1,
+            volume: 1,
+          },
   });
 
   const close = useCallback(() => setDialogMode(null), [setDialogMode]);
@@ -244,6 +250,17 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
 
   const rootState = useMemo(() => ({ errors: [], warnings: [] }), []);
 
+  const resolveFile = useFileResolver();
+
+  const loadFile = useMemo(() => {
+    if (config.definition.type === 'player') {
+      return (file: File) => {
+        resolveFile(file);
+      };
+    }
+    return null;
+  }, [config.definition.type, resolveFile]);
+
   return (
     <TimecodeTreeDisplay
       id={['generator', uuid]}
@@ -254,6 +271,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
       timecode={state?.timecode ?? null}
       rootState={rootState}
       namePlaceholder={STRINGS.generators.unnamed}
+      loadFile={loadFile}
       buttons={
         <>
           <ControlButton
@@ -292,7 +310,7 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
       title={STRINGS.generators.title}
       buttons={
         <>
-          {(['clock'] as const).map((generator) => (
+          {(['clock', 'player'] as const).map((generator) => (
             <ControlButton
               key={generator}
               onClick={() =>

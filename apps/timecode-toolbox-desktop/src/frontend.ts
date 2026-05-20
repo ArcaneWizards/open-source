@@ -48,6 +48,7 @@ window.startTimecodeToolboxServerFrontend({
     }
     window.electronAPI.openWindow(url, options);
   },
+  getPathForFile: window.electronAPI?.getPathForFile ?? null,
   selectDirectory: window.electronAPI?.selectDirectory ?? null,
   openDevTools: window.electronAPI?.openDevTools ?? null,
   addCloseListener: (listener: BrowserCloseListener) =>
