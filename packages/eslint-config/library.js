@@ -27,6 +27,9 @@ module.exports = {
         project,
       },
     },
+    'react-hooks': {
+      additionalEffectHooks: '(useNotificationHandler)',
+    },
   },
   ignorePatterns: [
     // Ignore dotfiles
@@ -45,7 +48,13 @@ module.exports = {
     ],
     'no-console': 'error',
     'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': 'error',
+    'react-hooks/exhaustive-deps': [
+      'error',
+      {
+        // TODO: remove once we have updated eslint-plugin-react-hooks to v6.1.1 or later
+        additionalHooks: '(useNotificationHandler)',
+      },
+    ],
     'unused-imports/no-unused-imports': 'error',
     'unused-imports/no-unused-vars': [
       'warn',
