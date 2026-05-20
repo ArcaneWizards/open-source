@@ -42,14 +42,14 @@
   "devDependencies": {
     "@arcanewizards/eslint-config": "workspace:^",
     "@arcanewizards/typescript-config": "workspace:^",
-    "@types/lodash": "^4.17.13",
-    "@types/node": "^22.19.3",
+    "@types/lodash": "^4.17.24",
+    "@types/node": "^22.19.15",
     "check-export-map": "^1.3.1",
-    "eslint": "^9",
-    "lodash": "^4.17.21",
-    "pino": "^9.5.0",
-    "tsup": "^8.1.0",
-    "typescript": "^5.7.3"
+    "eslint": "^9.39.4",
+    "lodash": "^4.18.1",
+    "pino": "^9.14.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "eslintConfig": {
     "extends": [
