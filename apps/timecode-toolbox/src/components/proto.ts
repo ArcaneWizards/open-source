@@ -336,6 +336,8 @@ export type InputState = {
 
 export type GeneratorState = {
   timecode: TimecodeInstance | null;
+  errors?: string[];
+  warnings?: string[];
 };
 
 export type OutputState = {

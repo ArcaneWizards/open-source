@@ -20,6 +20,8 @@ import {
   AvailableHandlers,
   DEFAULT_CONFIG,
   TimecodeHandlerMethods,
+  TimecodeMetadata,
+  TimecodeState,
   ToolboxConfig,
   ToolboxRootCallHandler,
   UpdateCheckResult,
@@ -34,6 +36,11 @@ import { useLicense } from './license';
 import { UpdateChecker } from './updates';
 import { getEnv } from './env';
 import { ListenerConfig } from '@arcanewizards/sigil/shared/config';
+import {
+  INITIAL_PLAYER_STATE,
+  PlayerMetadataFetchers,
+  PlayerState,
+} from './generators/player';
 
 const DEFAULT_PORT: ListenerConfig['port'] = { from: 4100, to: 4200 };
 
@@ -133,6 +140,62 @@ export const App = ({
     return baseConfig;
   }, [env.PORT, data.appListener]);
 
+  const [playerState, setPlayerState] =
+    useState<PlayerState>(INITIAL_PLAYER_STATE);
+
+  const augmentedState = useMemo(() => {
+    // Augment generator timecode with player metadata if available
+
+    const playerStates: ApplicationState['generators'] = {};
+
+    for (const [uuid, config] of Object.entries(data.generators ?? {})) {
+      if (config.definition.type !== 'player') {
+        continue;
+      }
+
+      let metadata: TimecodeMetadata | null = null;
+      let state: TimecodeState = {
+        state: 'none',
+        accuracyMillis: null,
+        smpteMode: null,
+        onAir: null,
+      };
+      const errors: string[] = [];
+
+      const ps = playerState.metadata[uuid];
+      if (ps?.path === config.definition.filePath) {
+        // File has been selected/loaded, so state is not 'none'
+        state = {
+          ...state,
+          state: 'stopped',
+          positionMillis: 0,
+        };
+        if (ps?.state.state === 'loaded') {
+          metadata = ps.state.metadata;
+        } else if (ps?.state.state === 'error') {
+          errors.push(ps.state.error);
+        }
+      }
+
+      playerStates[uuid] = {
+        timecode: {
+          metadata,
+          name: null,
+          state,
+        },
+        errors,
+      };
+    }
+
+    return {
+      ...state,
+      generators: {
+        ...state.generators,
+        ...playerStates,
+      },
+    };
+  }, [data.generators, state, playerState]);
+
   if (!license) {
     // Wait for license to load before starting the app.
     return;
@@ -143,7 +206,7 @@ export const App = ({
       <>
         <C.ToolboxRoot
           config={data}
-          state={state}
+          state={augmentedState}
           handlers={availableHandlers}
           onUpdateConfig={onUpdateConfig}
           onCallHandler={callHandler}
@@ -154,6 +217,7 @@ export const App = ({
           }}
         />
         <InputConnections state={state} setState={setState} />
+        <PlayerMetadataFetchers updateState={setPlayerState} />
         <Generators
           state={state}
           setState={setState}

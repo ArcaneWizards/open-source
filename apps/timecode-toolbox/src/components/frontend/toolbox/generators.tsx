@@ -253,7 +253,10 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
   const { generators } = useApplicationState();
   const state = generators[uuid];
 
-  const rootState = useMemo(() => ({ errors: [], warnings: [] }), []);
+  const rootState = useMemo(
+    () => ({ errors: state?.errors ?? [], warnings: state?.warnings ?? [] }),
+    [state?.errors, state?.warnings],
+  );
 
   return (
     <TimecodeTreeDisplay

@@ -4,11 +4,11 @@ import { useFileResolver } from '../hooks';
 import { ConfigContext } from '../context';
 import { SettingsProps } from '../types';
 
+export type LoadFileCallback = (file: File | null) => void;
+
 type WithAudioPlayerProps = {
   uuid: string;
-  timecodeDisplay: (props: {
-    loadFile: (file: File) => void;
-  }) => React.ReactNode;
+  timecodeDisplay: (props: { loadFile: LoadFileCallback }) => React.ReactNode;
 };
 
 export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
@@ -39,22 +39,23 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     );
 
   const loadFile = useCallback(
-    (file: File) => {
+    (file: File | null) => {
       updateSettings((current) => {
         if (current.definition.type !== 'player') {
           return current;
         }
-        const resolvedFile = resolveFile(file);
+        const resolvedFile = file ? resolveFile(file) : null;
         return {
           ...current,
           definition: {
             ...current.definition,
             filePath:
-              resolvedFile.type === 'local' ? resolvedFile.filePath : null,
+              resolvedFile && resolvedFile.type === 'local'
+                ? resolvedFile.filePath
+                : null,
           },
         };
       });
-      resolveFile(file);
     },
     [resolveFile, updateSettings],
   );

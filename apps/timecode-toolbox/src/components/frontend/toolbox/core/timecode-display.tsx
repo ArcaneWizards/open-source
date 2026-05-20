@@ -52,7 +52,7 @@ import {
   augmentUpstreamTimecodeWithOutputMetadata,
   getTimecodeInstance,
 } from '../../../../util';
-import { WithAudioPlayer } from './audio-player';
+import { LoadFileCallback, WithAudioPlayer } from './audio-player';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -156,7 +156,7 @@ export type TimecodeDisplayProps = {
     errors: string[];
     warnings: string[];
   };
-  loadFile: null | ((file: File) => void);
+  loadFile: null | LoadFileCallback;
 };
 
 const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
@@ -213,7 +213,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           pause();
         }
       };
-    } else if (loadFile) {
+    } else if (state.state === 'none' && loadFile) {
       return () => {
         fileRef.current?.click();
       };
@@ -547,7 +547,7 @@ type TimecodeTreeDisplayProps = {
    * If it's possible to load a file into this timecode instance,
    * the callback should be provided here.
    */
-  loadFile?: null | ((file: File) => void);
+  loadFile?: null | ((file: File | null) => void);
 };
 
 const EMPTY_TIMECODE: TimecodeInstance = {
@@ -589,6 +589,19 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
       });
     }
   }, [id, openNewWidow]);
+
+  const clearFile = useMemo(() => {
+    if (timecode === 'disabled' || !loadFile || !isTimecodeInstance(timecode)) {
+      return null;
+    }
+    if (timecode.state.state === 'none') {
+      // No file is loaded
+      return null;
+    }
+    return () => {
+      loadFile(null);
+    };
+  }, [timecode, loadFile]);
 
   name =
     timecode !== 'disabled' && timecode?.name ? [...name, timecode.name] : name;
@@ -695,6 +708,14 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               </div>
             </div>
             <ControlButtonGroup className="rounded-md bg-sigil-bg-light">
+              {clearFile && (
+                <ControlButton
+                  variant="toolbar"
+                  icon="close"
+                  title={STRINGS.clearFile}
+                  onClick={clearFile}
+                />
+              )}
               <ControlButton
                 variant="toolbar"
                 icon="open_in_new"
@@ -823,8 +844,8 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
       };
     } else if (isGeneratorInstanceId(id)) {
       return {
-        errors: [],
-        warnings: [],
+        errors: applicationState.generators?.[id[1]]?.errors ?? [],
+        warnings: applicationState.generators?.[id[1]]?.warnings ?? [],
       };
     } else {
       return {
