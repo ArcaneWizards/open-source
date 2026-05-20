@@ -10,6 +10,34 @@ minimumReleaseAgeExclude:
   - '@arcanejs/react-toolkit@0.16.0'
   - '@arcanejs/toolkit-frontend@0.12.0'
   - '@arcanejs/toolkit@9.0.0'
+  - electron@35.7.5
+  - tmp@0.2.4
+  - tar@7.5.7
+  - tar@7.5.3
+  - tar@7.5.8
+  - '@tootallnate/once@3.0.1'
+  - tar@7.5.10
+  - tar@7.5.11
+  - tar@7.5.4
+  - lodash@4.17.24
+  - electron@38.8.6
+  - electron@39.8.1
+  - electron@39.8.5
+  - '@xmldom/xmldom@0.8.12'
+  - uuid@11.1.1
+  - fast-uri@3.1.1
+  - fast-uri@3.1.2
+  - '@xmldom/xmldom@0.8.13'
+  - ip-address@10.1.1
+  - brace-expansion@5.0.6
+  - ws@8.20.1
+  - turbo@2.9.14
+  - '@turbo/darwin-64@2.9.14'
+  - '@turbo/darwin-arm64@2.9.14'
+  - '@turbo/linux-64@2.9.14'
+  - '@turbo/linux-arm64@2.9.14'
+  - '@turbo/windows-64@2.9.14'
+  - '@turbo/windows-arm64@2.9.14'
 allowBuilds:
   '@arcanewizards/electron-media-service': true
   '@parcel/watcher': true

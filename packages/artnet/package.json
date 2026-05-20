@@ -38,11 +38,11 @@
   "devDependencies": {
     "@arcanewizards/eslint-config": "workspace:^",
     "@arcanewizards/typescript-config": "workspace:^",
-    "@types/node": "^25.0.3",
+    "@types/node": "^25.5.0",
     "check-export-map": "^1.3.1",
-    "eslint": "^9",
-    "tsup": "^8.1.0",
-    "typescript": "^5.7.3"
+    "eslint": "^9.39.4",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@arcanewizards/net-utils": "workspace:^"
