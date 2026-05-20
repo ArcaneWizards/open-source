@@ -194,8 +194,8 @@ importers:
         specifier: ^8.57.2
         version: 8.57.2(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
       electron:
-        specifier: ^35.7.5
-        version: 35.7.5
+        specifier: ^36.9.5
+        version: 36.9.5
       electron-squirrel-startup:
         specifier: ^1.0.1
         version: 1.0.1
@@ -3344,8 +3344,8 @@ packages:
     resolution: {integrity: sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==}
     engines: {node: '>=8.0.0'}
 
-  electron@35.7.5:
-    resolution: {integrity: sha512-dnL+JvLraKZl7iusXTVTGYs10TKfzUi30uEDTqsmTm0guN9V2tbOjTzyIZbh9n3ygUjgEYyo+igAwMRXIi3IPw==}
+  electron@36.9.5:
+    resolution: {integrity: sha512-1UCss2IqxqujSzg/2jkRjuiT3G+EEXgd6UKB5kUekwQW1LJ6d4QCr8YItfC3Rr9VIGRDJ29eOERmnRNO1Eh+NA==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
@@ -9239,7 +9239,7 @@ snapshots:
       - supports-color
     optional: true
 
-  electron@35.7.5:
+  electron@36.9.5:
     dependencies:
       '@electron/get': 2.0.3
       '@types/node': 22.19.15
