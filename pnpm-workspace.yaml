@@ -1,6 +1,10 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+publicHoistPattern:
+  - '@electron-forge/*'
+  - '@electron/*'
+  - 'electron*'
 minimumReleaseAge: 10080 # 7 days
 minimumReleaseAgeStrict: true
 blockExoticSubdeps: false # TODO: https://github.com/ArcaneWizards/open-source/issues/73
