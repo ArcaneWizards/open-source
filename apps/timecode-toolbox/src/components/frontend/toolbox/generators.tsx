@@ -18,8 +18,11 @@ import {
   ChangeCommitContext,
   useChangeCommitBoundary,
 } from '@arcanewizards/sigil/frontend/context';
-import { TimecodeTreeDisplay } from './core/timecode-display';
-import { useFileResolver } from './hooks';
+import {
+  TimecodeDisplayProps,
+  TimecodeTreeDisplay,
+} from './core/timecode-display';
+import { WithAudioPlayer } from './core/audio-player';
 
 const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
   data,
@@ -237,6 +240,7 @@ type GeneratorDisplayProps = {
   config: GeneratorConfig;
   setDialogMode: (mode: DialogMode | null) => void;
   assignToOutput: AssignToOutputCallback;
+  loadFile: TimecodeDisplayProps['loadFile'] | null;
 };
 
 const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
@@ -244,22 +248,12 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
   config,
   setDialogMode,
   assignToOutput,
+  loadFile,
 }) => {
   const { generators } = useApplicationState();
   const state = generators[uuid];
 
   const rootState = useMemo(() => ({ errors: [], warnings: [] }), []);
-
-  const resolveFile = useFileResolver();
-
-  const loadFile = useMemo(() => {
-    if (config.definition.type === 'player') {
-      return (file: File) => {
-        resolveFile(file);
-      };
-    }
-    return null;
-  }, [config.definition.type, resolveFile]);
 
   return (
     <TimecodeTreeDisplay
@@ -338,15 +332,33 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
             min-[900px]:grid-cols-3
           "
         >
-          {Object.entries(config.generators).map(([uuid, generator]) => (
-            <GeneratorDisplay
-              key={uuid}
-              uuid={uuid}
-              config={generator}
-              setDialogMode={setDialogMode}
-              assignToOutput={assignToOutput}
-            />
-          ))}
+          {Object.entries(config.generators).map(([uuid, generator]) =>
+            generator.definition.type === 'player' ? (
+              <WithAudioPlayer
+                key={uuid}
+                uuid={uuid}
+                timecodeDisplay={({ loadFile }) => (
+                  <GeneratorDisplay
+                    key={uuid}
+                    uuid={uuid}
+                    config={generator}
+                    setDialogMode={setDialogMode}
+                    assignToOutput={assignToOutput}
+                    loadFile={loadFile}
+                  />
+                )}
+              />
+            ) : (
+              <GeneratorDisplay
+                key={uuid}
+                uuid={uuid}
+                config={generator}
+                setDialogMode={setDialogMode}
+                assignToOutput={assignToOutput}
+                loadFile={null}
+              />
+            ),
+          )}
         </div>
       )}
     </PrimaryToolboxSection>

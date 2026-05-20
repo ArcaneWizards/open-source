@@ -52,6 +52,7 @@ import {
   augmentUpstreamTimecodeWithOutputMetadata,
   getTimecodeInstance,
 } from '../../../../util';
+import { WithAudioPlayer } from './audio-player';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -145,7 +146,7 @@ type UniversalConfig = {
   delayMs: number | null;
 };
 
-type TimecodeDisplayProps = {
+export type TimecodeDisplayProps = {
   id: TimecodeInstanceId;
   timecode: TimecodeInstance;
   config: UniversalConfig;
@@ -761,6 +762,16 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     return undefined;
   }, [id, config]);
 
+  const audioConfig = useMemo(() => {
+    if (isGeneratorInstanceId(id)) {
+      const c = config.generators[id[1]];
+      if (c?.definition.type === 'player') {
+        return c;
+      }
+    }
+    return null;
+  }, [id, config.generators]);
+
   const instanceConfig: FullscreenTimecodeConfig | null = useMemo(() => {
     if (isInputInstanceId(id)) {
       const c = config.inputs[id[1]];
@@ -844,15 +855,33 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         scrollbar-sigil
       "
     >
-      <TimecodeTreeDisplay
-        id={id}
-        timecode={instanceConfig.disabled ? 'disabled' : timecode}
-        rootState={rootState}
-        assignToOutput={null}
-        buttons={null}
-        link={linkedSourceInfo}
-        {...instanceConfig}
-      />
+      {audioConfig ? (
+        <WithAudioPlayer
+          uuid={id[1]}
+          timecodeDisplay={({ loadFile }) => (
+            <TimecodeTreeDisplay
+              id={id}
+              timecode={instanceConfig.disabled ? 'disabled' : timecode}
+              rootState={rootState}
+              assignToOutput={null}
+              buttons={null}
+              link={linkedSourceInfo}
+              loadFile={loadFile}
+              {...instanceConfig}
+            />
+          )}
+        />
+      ) : (
+        <TimecodeTreeDisplay
+          id={id}
+          timecode={instanceConfig.disabled ? 'disabled' : timecode}
+          rootState={rootState}
+          assignToOutput={null}
+          buttons={null}
+          link={linkedSourceInfo}
+          {...instanceConfig}
+        />
+      )}
     </div>
   );
 };
