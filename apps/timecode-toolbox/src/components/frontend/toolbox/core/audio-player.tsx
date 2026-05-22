@@ -25,6 +25,10 @@ import {
   StageContext,
   useNotificationHandler,
 } from '@arcanejs/toolkit-frontend';
+import {
+  BrowserCloseListener,
+  useBrowserContext,
+} from '@arcanewizards/sigil/frontend';
 
 export type LoadFileCallback = (file: File | null) => void;
 
@@ -96,6 +100,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   const { downloadAudioFile, updatePlayerState } = useContext(RootAudioContext);
   const resolveFile = useFileResolver();
 
+  const { addCloseListener, removeCloseListener } = useBrowserContext();
+
   const context = useMemo(() => {
     const ctx = new AudioContext();
     const masterGain = ctx.createGain();
@@ -108,6 +114,21 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   const [playingAudio, setPlayingAudio] = useState<PlayingAudio | null>(null);
 
   const [errors, setErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (playingAudio && isPlaying(playingAudio.state)) {
+      // Prevent window from being closed without confirmation
+      const handleClose: BrowserCloseListener = () => ({
+        action: 'confirm',
+        confirmation:
+          'Music is playing from this window, closing it will stop it. Are you sure you want to close?',
+      });
+      addCloseListener(handleClose);
+      return () => {
+        removeCloseListener(handleClose);
+      };
+    }
+  }, [playingAudio, addCloseListener, removeCloseListener]);
 
   const updateSettings: SettingsProps<GeneratorConfig>['updateSettings'] =
     useCallback(
