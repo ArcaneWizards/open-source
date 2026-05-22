@@ -1,5 +1,25 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.2.0
+
+### Minor Changes
+
+- 04a01dc: Implement local audio player generator (#54)
+
+  Implement a brand new feature that allows for music files to be loaded into
+  the app, and used as a timecode source. Players can load music on the same
+  device, or remotely via a web browser. Multiple devices are also able to
+  control playback regardless as to which device is playing the music.
+
+- 04a01dc: Allow delay to be added to clock generators
+
+### Patch Changes
+
+- 588a2e7: Update electron and dependencies
+
+  Update electron from v33 to v41, addressing a number of security vulnerabilities
+  in addition to security updates from other dependencies in use by the app.
+
 ## 0.1.7
 
 ### Patch Changes
