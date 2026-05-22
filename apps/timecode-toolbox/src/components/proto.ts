@@ -5,6 +5,7 @@ import {
   BaseClientComponentCallDownload,
   BaseClientComponentMessage,
   BaseComponentProto,
+  BaseNotificationMessage,
 } from '@arcanejs/protocol';
 import { SIGIL_COLOR, SigilColor } from '@arcanewizards/sigil/frontend/styling';
 import { Diff } from '@arcanejs/diff';
@@ -388,6 +389,7 @@ export type TimecodeHandlerMethods = {
   play?: () => void;
   pause?: () => void;
   seekRelative?: (deltaMillis: number) => void;
+  seekAbsolute?: (positionMillis: number) => void;
   beginning?: () => void;
 };
 
@@ -507,6 +509,27 @@ export type TimecodeToolboxDownloadAudioFile = BaseClientComponentCallDownload<
 export type TimecodeToolboxComponentCallDownload =
   TimecodeToolboxDownloadAudioFile;
 
+export type TimecodeToolboxControlPlaybackRequest = BaseNotificationMessage<
+  Namespace,
+  'control-playback'
+> & {
+  generatorUuid: string;
+  action:
+    | {
+        type: 'play' | 'pause' | 'beginning';
+      }
+    | {
+        type: 'seekRelative';
+        deltaMillis: number;
+      }
+    | {
+        type: 'seekAbsolute';
+        positionMillis: number;
+      };
+};
+
+export type TimecodeToolboxNotification = TimecodeToolboxControlPlaybackRequest;
+
 export const isTimecodeToolboxComponentMessage = <
   C extends TimecodeToolboxComponentMessage['component'],
 >(
@@ -531,3 +554,14 @@ export const isTimecodeToolboxComponentCallDownload = <
   action: A,
 ): call is TimecodeToolboxComponentCallDownload =>
   call.namespace === NAMESPACE && call.action === action;
+
+export const isTimecodeToolboxNotification = (
+  message: BaseNotificationMessage<string, string>,
+  notification: TimecodeToolboxNotification['notification'],
+): message is TimecodeToolboxNotification =>
+  message.namespace === NAMESPACE &&
+  (message as TimecodeToolboxNotification).notification === notification;
+
+export const isTimecodeToolboxControlPlaybackRequest = (
+  message: BaseNotificationMessage<string, string>,
+) => isTimecodeToolboxNotification(message, 'control-playback');

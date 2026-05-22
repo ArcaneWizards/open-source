@@ -163,6 +163,7 @@ const createWindow = (
     ...windowOptions,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      autoplayPolicy: 'no-user-gesture-required',
     },
     ...(process.platform === 'darwin'
       ? {

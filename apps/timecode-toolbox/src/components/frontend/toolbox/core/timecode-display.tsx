@@ -91,9 +91,10 @@ const ActiveTimecodeText: FC<ActiveTimecodeTextProps> = ({
 type TimelineProps = {
   state: TimecodeState;
   totalTime: TimecodeTotalTime;
+  seekAbsolute: null | ((positionMillis: number) => void);
 };
 
-const Timeline: FC<TimelineProps> = ({ state, totalTime }) => {
+const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
   const [millis, setMillis] = useState(0);
 
   const { timeDifferenceMs } = useContext(StageContext);
@@ -128,11 +129,44 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime }) => {
     };
   }, [state, timeDifferenceMs]);
 
+  const ref = useRef<HTMLDivElement>(null);
+
+  const onClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (seekAbsolute) {
+        const rect = ref.current?.getBoundingClientRect();
+        if (rect) {
+          const clickPosition = e.clientX - rect.left;
+          const positionMillis =
+            (clickPosition / rect.width) * totalTime.timeMillis;
+          seekAbsolute(positionMillis);
+        }
+      }
+    },
+    [seekAbsolute, totalTime],
+  );
+
   return (
-    <div className="w-full border border-timecode-usage-foreground p-px">
+    <div
+      ref={ref}
+      className={cn(
+        'group w-full border border-timecode-usage-foreground p-px',
+        cnd(
+          seekAbsolute,
+          `
+            cursor-crosshair
+            hover:border-timecode-usage-selected-border
+          `,
+        ),
+      )}
+      onClick={onClick}
+    >
       <div className="relative h-1 w-full overflow-hidden">
         <div
-          className="absolute inset-y-0 left-0 bg-timecode-usage-foreground"
+          className={cn(
+            'absolute inset-y-0 left-0 bg-timecode-usage-foreground',
+            cnd(seekAbsolute, 'group-hover:bg-timecode-usage-selected-border'),
+          )}
           style={{
             width: `${Math.min((millis / totalTime.timeMillis) * 100, 100)}%`,
           }}
@@ -197,6 +231,19 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
       callHandler({ handler: 'seekRelative', path: id, args: [5000] });
     }
   }, [callHandler, id]);
+
+  const seekAbsolute = useCallback(
+    (positionMillis: number) => {
+      if (id) {
+        callHandler({
+          handler: 'seekAbsolute',
+          path: id,
+          args: [positionMillis],
+        });
+      }
+    },
+    [callHandler, id],
+  );
 
   const beginning = useCallback(() => {
     if (id) {
@@ -274,7 +321,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           type="file"
           className="hidden"
           onChange={(e) => e.target.files?.[0] && loadFile(e.target.files[0])}
-          accept="audio/*"
+          accept="audio/*,audio/aac,audio/wav,audio/ogg,.flac,audio/mpeg,audio/webm"
         />
       )}
       <div
@@ -403,7 +450,11 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           </div>
         ) : null}
         {metadata?.totalTime && (
-          <Timeline state={state} totalTime={metadata.totalTime} />
+          <Timeline
+            state={state}
+            totalTime={metadata.totalTime}
+            seekAbsolute={hooks?.seekAbsolute ? seekAbsolute : null}
+          />
         )}
       </div>
       {(state.smpteMode !== null ||

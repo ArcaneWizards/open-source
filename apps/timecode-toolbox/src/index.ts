@@ -36,7 +36,12 @@ export const runTimecodeToolboxServer = ({
     version,
     edition,
     appProps,
-    toolkitOptions,
+    toolkitOptions: {
+      ...toolkitOptions,
+      clockSync: {
+        pingIntervalMs: 1000,
+      },
+    },
     createApp,
     componentNamespaces: [CoreComponents, SIGIL_COMPONENTS, C],
   });

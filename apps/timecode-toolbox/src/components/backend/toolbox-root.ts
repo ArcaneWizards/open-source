@@ -139,7 +139,7 @@ export class ToolboxRoot
       isTimecodeToolboxComponentCall(call, 'toolbox-root-call-handler')
     ) {
       const result = await this.events.emit('callHandler', call);
-      if (result[0]) {
+      if (result.length === 1) {
         return result[0];
       }
       throw new Error(`No handler for callHandler`);

@@ -10,13 +10,20 @@ import {
 import {
   GeneratorConfig,
   GeneratorState,
+  isPlaying,
+  isTimecodeToolboxControlPlaybackRequest,
   TimecodeMetadata,
   TimecodePlayStatePlayingOrLagging,
+  TimecodePlayStateStopped,
 } from '../../../proto';
 import { useFileResolver } from '../hooks';
 import { ConfigContext } from '../context';
 import { SettingsProps } from '../types';
 import { parseBuffer } from 'music-metadata';
+import {
+  StageContext,
+  useNotificationHandler,
+} from '@arcanejs/toolkit-frontend';
 
 export type LoadFileCallback = (file: File | null) => void;
 
@@ -60,9 +67,9 @@ type LoadedAudio = {
 };
 
 type PlayingAudio = {
-  metadata: TimecodeMetadata;
-  source: AudioBufferSourceNode;
-  state: TimecodePlayStatePlayingOrLagging;
+  loadedAudio: LoadedAudio;
+  source?: AudioBufferSourceNode;
+  state: TimecodePlayStatePlayingOrLagging | TimecodePlayStateStopped;
 };
 
 const readFile = (file: File) =>
@@ -214,9 +221,9 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
       const source = context.ctx.createBufferSource();
       source.buffer = loadedAudio.buffer;
       source.connect(context.masterGain);
-      source.start();
+      source.start(context.ctx.currentTime);
       setPlayingAudio({
-        metadata: loadedAudio.metadata,
+        loadedAudio,
         source,
         state: {
           effectiveStartTimeMillis: Date.now(),
@@ -231,30 +238,193 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     // Ensure playback is stopped whenever the playing audio is replaced
     if (playingAudio) {
       return () => {
-        playingAudio.source.stop();
+        playingAudio.source?.stop();
       };
     }
   }, [playingAudio]);
 
+  const { timeDifferenceMs } = useContext(StageContext);
+
+  const play = useCallback(
+    () =>
+      setPlayingAudio((current) => {
+        if (!current) {
+          return current;
+        }
+        if (isPlaying(current.state)) {
+          return current;
+        }
+        const source = context.ctx.createBufferSource();
+        source.buffer = current.loadedAudio.buffer;
+        source.connect(context.masterGain);
+        source.start(
+          context.ctx.currentTime,
+          current.state.positionMillis / 1000,
+        );
+        return {
+          ...current,
+          source,
+          state: {
+            state: 'playing',
+            effectiveStartTimeMillis: Date.now() - current.state.positionMillis,
+            speed: 1,
+          },
+        } satisfies PlayingAudio;
+      }),
+    [context],
+  );
+
+  const pause = useCallback(
+    () =>
+      setPlayingAudio((current) => {
+        if (!current || !isPlaying(current.state)) {
+          return current;
+        }
+        const positionMillis =
+          (Date.now() - current.state.effectiveStartTimeMillis) *
+          current.state.speed;
+        return {
+          ...current,
+          state: {
+            state: 'stopped',
+            positionMillis,
+          },
+        } satisfies PlayingAudio;
+      }),
+    [],
+  );
+
+  const seekRelative = useCallback(
+    (deltaMillis: number) =>
+      setPlayingAudio((current) => {
+        if (!current) {
+          return current;
+        }
+        if (isPlaying(current.state)) {
+          const positionMillis = Math.max(
+            0,
+            (Date.now() - current.state.effectiveStartTimeMillis) *
+              current.state.speed +
+              deltaMillis,
+          );
+          const source = context.ctx.createBufferSource();
+          source.buffer = current.loadedAudio.buffer;
+          source.connect(context.masterGain);
+          source.start(context.ctx.currentTime, positionMillis / 1000);
+          return {
+            ...current,
+            source,
+            state: {
+              state: 'playing',
+              effectiveStartTimeMillis: Date.now() - positionMillis,
+              speed: current.state.speed,
+            },
+          } satisfies PlayingAudio;
+        } else {
+          const positionMillis = current.state.positionMillis + deltaMillis;
+          return {
+            ...current,
+            state: {
+              ...current.state,
+              positionMillis,
+            },
+          } satisfies PlayingAudio;
+        }
+      }),
+    [context],
+  );
+
+  const seekAbsolute = useCallback(
+    (positionMillis: number) =>
+      setPlayingAudio((current) => {
+        if (!current) {
+          return current;
+        }
+        if (isPlaying(current.state)) {
+          const source = context.ctx.createBufferSource();
+          source.buffer = current.loadedAudio.buffer;
+          source.connect(context.masterGain);
+          positionMillis = Math.max(positionMillis, 0);
+          source.start(context.ctx.currentTime, positionMillis / 1000);
+          return {
+            ...current,
+            source,
+            state: {
+              state: 'playing',
+              effectiveStartTimeMillis: Date.now() - positionMillis,
+              speed: current.state.speed,
+            },
+          } satisfies PlayingAudio;
+        } else {
+          return {
+            ...current,
+            state: {
+              ...current.state,
+              positionMillis,
+            },
+          } satisfies PlayingAudio;
+        }
+      }),
+    [context],
+  );
+
+  useNotificationHandler(
+    isTimecodeToolboxControlPlaybackRequest,
+    ({ action, generatorUuid }) => {
+      if (generatorUuid !== uuid) {
+        // For a different player
+        return;
+      }
+
+      if (action.type === 'play') {
+        play();
+      }
+      if (action.type === 'pause') {
+        pause();
+      }
+      if (action.type === 'seekRelative') {
+        seekRelative(action.deltaMillis);
+      }
+      if (action.type === 'seekAbsolute') {
+        seekAbsolute(action.positionMillis);
+      }
+      if (action.type === 'beginning') {
+        seekAbsolute(0);
+      }
+    },
+    [play, pause, seekRelative, seekAbsolute, uuid],
+  );
+
   useEffect(() => {
-    if (!playingAudio) {
+    if (!playingAudio || !timeDifferenceMs) {
       return;
     }
+
+    const adjustedState:
+      | TimecodePlayStatePlayingOrLagging
+      | TimecodePlayStateStopped =
+      playingAudio.state.state === 'stopped'
+        ? playingAudio.state
+        : {
+            ...playingAudio.state,
+            effectiveStartTimeMillis:
+              playingAudio.state.effectiveStartTimeMillis - timeDifferenceMs,
+          };
 
     // Update the server with the current player state whenever it changes
     updatePlayerState(uuid, false, {
       timecode: {
         name: null,
-        metadata: playingAudio.metadata,
+        metadata: playingAudio.loadedAudio.metadata,
         state: {
           accuracyMillis: 0,
           onAir: null,
           smpteMode: null,
-          ...playingAudio.state,
+          ...adjustedState,
         },
       },
     });
-  }, [uuid, updatePlayerState, playingAudio]);
+  }, [uuid, updatePlayerState, playingAudio, timeDifferenceMs]);
 
   return timecodeDisplay({ loadFile, startPlayer, errors });
 };

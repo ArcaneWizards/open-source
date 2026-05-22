@@ -7,7 +7,6 @@ import {
   JSX,
   ReactNode,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -21,9 +20,12 @@ import {
   ApplicationState,
   AvailableHandlers,
   DEFAULT_CONFIG,
+  GeneratorInstanceId,
+  NAMESPACE,
   TimecodeHandlerMethods,
   TimecodeMetadata,
   TimecodeState,
+  TimecodeToolboxControlPlaybackRequest,
   ToolboxConfig,
   ToolboxRootCallHandler,
   ToolboxRootUpdatePlayerState,
@@ -34,21 +36,21 @@ import { InputConnections } from './inputs';
 import { OutputConnections } from './outputs';
 import { Generators } from './generators';
 import { TimecodeHandlers } from './types';
-import { getTreeValue, mapTree, Tree } from './tree';
+import { getTreeValue, mapTree, Tree, updateTreeState } from './tree';
 import { useLicense } from './license';
 import { UpdateChecker } from './updates';
 import { getEnv } from './env';
 import { ListenerConfig } from '@arcanewizards/sigil/shared/config';
 import {
   INITIAL_PLAYER_STATE,
-  PlayerMetadataFetchers,
+  PlayerStateManager,
   PlayerState,
 } from './generators/player';
 import { AppRootProps } from './components/backend/toolbox-root';
 import { CallDownloadResponse } from '@arcanejs/toolkit/components/base';
 import {
-  ConnectionsContext,
   ConnectionsContextProvider,
+  useNotificationSender,
 } from '@arcanejs/react-toolkit/connections';
 import { ToolkitConnection } from '@arcanejs/toolkit';
 
@@ -241,6 +243,12 @@ export const App = ({
     [data.generators],
   );
 
+  const sendNotification =
+    useNotificationSender<TimecodeToolboxControlPlaybackRequest>(
+      NAMESPACE,
+      'control-playback',
+    );
+
   const updatePlayerState: AppRootProps['onUpdatePlayerState'] = useCallback(
     (
       { generatorUuid, claim, state }: ToolboxRootUpdatePlayerState,
@@ -252,6 +260,48 @@ export const App = ({
           // Connection does not have control, ignore update
           return current;
         }
+
+        if (claim) {
+          // Set up handlers to point to this connection
+          const id: GeneratorInstanceId = ['generator', generatorUuid];
+
+          const sendControlNotification = (
+            action: TimecodeToolboxControlPlaybackRequest['action'],
+          ) => {
+            sendNotification(
+              { action, generatorUuid },
+              ({ uuid }) => uuid === connection.uuid,
+            );
+          };
+
+          setHandlers((current) =>
+            updateTreeState(current, id, {
+              play: () =>
+                sendControlNotification({
+                  type: 'play',
+                }),
+              pause: () =>
+                sendControlNotification({
+                  type: 'pause',
+                }),
+              beginning: () =>
+                sendControlNotification({
+                  type: 'beginning',
+                }),
+              seekRelative: (deltaMillis) =>
+                sendControlNotification({
+                  type: 'seekRelative',
+                  deltaMillis,
+                }),
+              seekAbsolute: (positionMillis) =>
+                sendControlNotification({
+                  type: 'seekAbsolute',
+                  positionMillis,
+                }),
+            }),
+          );
+        }
+
         return {
           ...current,
           generators: {
@@ -264,28 +314,8 @@ export const App = ({
         };
       });
     },
-    [],
+    [sendNotification],
   );
-
-  const { connections } = useContext(ConnectionsContext);
-
-  useEffect(() => {
-    // Clean up controlledBy for any connections that have been closed
-    const knownConnectionIds = new Set(connections.map((c) => c.uuid));
-    setState((current) => {
-      return {
-        ...current,
-        generators: Object.fromEntries(
-          Object.entries(current.generators ?? {}).filter(([_, gen]) => {
-            if (!gen.controlledBy) {
-              return true;
-            }
-            return knownConnectionIds.has(gen.controlledBy.uuid);
-          }),
-        ),
-      };
-    });
-  }, [connections]);
 
   if (!license) {
     // Wait for license to load before starting the app.
@@ -310,7 +340,12 @@ export const App = ({
           }}
         />
         <InputConnections state={state} setState={setState} />
-        <PlayerMetadataFetchers updateState={setPlayerState} />
+        <PlayerStateManager
+          state={state}
+          setState={setState}
+          setPlayerState={setPlayerState}
+          setHandlers={setHandlers}
+        />
         <Generators
           state={state}
           setState={setState}

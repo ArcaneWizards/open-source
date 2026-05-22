@@ -1,9 +1,23 @@
-import { FC, useCallback, useEffect } from 'react';
-import { TimecodeMetadata } from '../components/proto';
+import {
+  Dispatch,
+  FC,
+  SetStateAction,
+  useCallback,
+  useContext,
+  useEffect,
+} from 'react';
+import {
+  ApplicationState,
+  GeneratorInstanceId,
+  TimecodeMetadata,
+} from '../components/proto';
 import { ToolboxConfigData } from '../config';
 import { useDataFileData } from '@arcanejs/react-toolkit/data';
 import { parseFile } from 'music-metadata';
 import { useLogger } from '@arcanewizards/sigil';
+import { ConnectionsContext } from '@arcanejs/react-toolkit/connections';
+import { TimecodeHandlers } from '../types';
+import { updateTreeState } from '../tree';
 
 type LoadedMetadata = {
   path: string;
@@ -30,11 +44,17 @@ export const INITIAL_PLAYER_STATE: PlayerState = {
 };
 
 type PlayerMetadataFetchersProps = {
-  updateState: (update: (current: PlayerState) => PlayerState) => void;
+  setPlayerState: Dispatch<SetStateAction<PlayerState>>;
+  state: ApplicationState;
+  setState: Dispatch<SetStateAction<ApplicationState>>;
+  setHandlers: Dispatch<SetStateAction<TimecodeHandlers>>;
 };
 
-export const PlayerMetadataFetchers: FC<PlayerMetadataFetchersProps> = ({
-  updateState,
+export const PlayerStateManager: FC<PlayerMetadataFetchersProps> = ({
+  setPlayerState,
+  state,
+  setState,
+  setHandlers,
 }) => {
   const { generators } = useDataFileData(ToolboxConfigData);
 
@@ -43,23 +63,69 @@ export const PlayerMetadataFetchers: FC<PlayerMetadataFetchersProps> = ({
       {Object.entries(generators)
         .filter(([_, gen]) => gen.definition.type === 'player')
         .map(([uuid]) => (
-          <PlayerMetadataFetcher
-            key={uuid}
-            uuid={uuid}
-            updateState={updateState}
-          />
+          <>
+            <PlayerCleanup
+              key={`${uuid}-cleanup`}
+              uuid={uuid}
+              state={state}
+              setState={setState}
+              setHandlers={setHandlers}
+            />
+            <PlayerMetadataFetcher
+              key={uuid}
+              uuid={uuid}
+              setPlayerState={setPlayerState}
+            />
+          </>
         ))}
     </>
   );
 };
 
-type PlayerMetadataFetcherProps = PlayerMetadataFetchersProps & {
+type PlayerCleanupProps = {
   uuid: string;
+  state: ApplicationState;
+  setState: Dispatch<SetStateAction<ApplicationState>>;
+  setHandlers: Dispatch<SetStateAction<TimecodeHandlers>>;
+};
+
+const PlayerCleanup: FC<PlayerCleanupProps> = ({
+  uuid,
+  state,
+  setState,
+  setHandlers,
+}) => {
+  const { connections } = useContext(ConnectionsContext);
+
+  const matchingConnection = !!connections.find(
+    (c) => c.uuid === state.generators?.[uuid]?.controlledBy?.uuid,
+  );
+
+  useEffect(() => {
+    if (!matchingConnection) {
+      // Clean up state & handlers for this player
+      setState((current) => ({
+        ...current,
+        generators: Object.fromEntries(
+          Object.entries(current.generators ?? {}).filter(([g]) => g !== uuid),
+        ),
+      }));
+      const id: GeneratorInstanceId = ['generator', uuid];
+      setHandlers((current) => updateTreeState(current, id, {}));
+    }
+  }, [uuid, matchingConnection, setState, setHandlers]);
+
+  return null;
+};
+
+type PlayerMetadataFetcherProps = {
+  uuid: string;
+  setPlayerState: Dispatch<SetStateAction<PlayerState>>;
 };
 
 const PlayerMetadataFetcher: FC<PlayerMetadataFetcherProps> = ({
   uuid,
-  updateState,
+  setPlayerState,
 }) => {
   const { generators } = useDataFileData(ToolboxConfigData);
   const logger = useLogger();
@@ -71,7 +137,7 @@ const PlayerMetadataFetcher: FC<PlayerMetadataFetcherProps> = ({
 
   const updateMetadata = useCallback(
     (metadata: LoadedMetadata['state'], force?: boolean) =>
-      updateState((current) => {
+      setPlayerState((current) => {
         const existing = current.metadata[uuid];
         if (!force && existing?.path !== filePath) {
           // File path has changed, don't update metadata for old file
@@ -88,7 +154,7 @@ const PlayerMetadataFetcher: FC<PlayerMetadataFetcherProps> = ({
           },
         };
       }),
-    [uuid, filePath, updateState],
+    [uuid, filePath, setPlayerState],
   );
 
   useEffect(() => {
@@ -126,7 +192,7 @@ const PlayerMetadataFetcher: FC<PlayerMetadataFetcherProps> = ({
           error: error.message,
         });
       });
-  }, [filePath, updateState, updateMetadata, logger]);
+  }, [filePath, updateMetadata, logger]);
 
   return null;
 };
