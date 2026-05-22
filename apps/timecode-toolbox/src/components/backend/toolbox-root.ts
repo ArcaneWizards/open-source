@@ -38,6 +38,10 @@ export type Events = {
     call: ToolboxRootUpdatePlayerState,
     connection: ToolkitConnection,
   ) => void;
+  releasePlayerControl: (
+    generatorUuid: string,
+    connection: ToolkitConnection,
+  ) => void;
 };
 
 export type AppRootProps = Pick<
@@ -48,6 +52,7 @@ export type AppRootProps = Pick<
   onCallHandler?: Events['callHandler'];
   onDownloadAudioFile?: Events['downloadAudioFile'];
   onUpdatePlayerState?: Events['updatePlayerState'];
+  onReleasePlayerControl?: Events['releasePlayerControl'];
 };
 
 const DEFAULT_PROPS: AppRootProps = {
@@ -87,6 +92,7 @@ export class ToolboxRoot
             onCallHandler: 'callHandler',
             onDownloadAudioFile: 'downloadAudioFile',
             onUpdatePlayerState: 'updatePlayerState',
+            onReleasePlayerControl: 'releasePlayerControl',
           },
           oldProps,
           this.props,
@@ -122,6 +128,12 @@ export class ToolboxRoot
         this.events.emit('updateConfig', message.diff);
       } else if (message.action === 'update-player-state') {
         this.events.emit('updatePlayerState', message, connection);
+      } else if (message.action === 'release-player-control') {
+        this.events.emit(
+          'releasePlayerControl',
+          message.generatorUuid,
+          connection,
+        );
       }
     }
   };

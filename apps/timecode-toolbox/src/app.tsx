@@ -250,6 +250,25 @@ export const App = ({
       'control-playback',
     );
 
+  const releasePlayerControl: AppRootProps['onReleasePlayerControl'] =
+    useCallback((generatorUuid: string, connection: ToolkitConnection) => {
+      setState((current) => {
+        const existing = current.generators?.[generatorUuid];
+        if (existing?.controlledBy?.uuid !== connection.uuid) {
+          // Connection does not have control, ignore release
+          return current;
+        }
+
+        const { [generatorUuid]: _, ...remainingGenerators } =
+          current.generators ?? {};
+
+        return {
+          ...current,
+          generators: remainingGenerators,
+        };
+      });
+    }, []);
+
   const updatePlayerState: AppRootProps['onUpdatePlayerState'] = useCallback(
     (
       { generatorUuid, claim, state }: ToolboxRootUpdatePlayerState,
@@ -299,6 +318,13 @@ export const App = ({
                   type: 'seekAbsolute',
                   positionMillis,
                 }),
+              clear: () => {
+                sendControlNotification({
+                  type: 'pause',
+                });
+                // And release control immediately
+                releasePlayerControl(generatorUuid, connection);
+              },
             }),
           );
         }
@@ -315,7 +341,7 @@ export const App = ({
         };
       });
     },
-    [sendNotification],
+    [sendNotification, releasePlayerControl],
   );
 
   if (!license) {
@@ -334,6 +360,7 @@ export const App = ({
           onCallHandler={callHandler}
           onDownloadAudioFile={downloadAudioFile}
           onUpdatePlayerState={updatePlayerState}
+          onReleasePlayerControl={releasePlayerControl}
           license={license.text}
           network={{
             envPort: env.PORT,

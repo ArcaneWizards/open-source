@@ -42,6 +42,7 @@ export type RootAudioContextData = {
     claim: boolean,
     state: Omit<GeneratorState, 'controlledBy'>,
   ) => void;
+  releasePlayerControl: (generatorUuid: string) => void;
 };
 
 export const RootAudioContext = createContext<RootAudioContextData>({
@@ -49,6 +50,9 @@ export const RootAudioContext = createContext<RootAudioContextData>({
     throw new Error('RootAudioContext not initialized');
   },
   updatePlayerState: () => {
+    throw new Error('RootAudioContext not initialized');
+  },
+  releasePlayerControl: () => {
     throw new Error('RootAudioContext not initialized');
   },
 });
@@ -98,7 +102,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   timecodeDisplay,
 }) => {
   const { updateConfig } = useContext(ConfigContext);
-  const { downloadAudioFile, updatePlayerState } = useContext(RootAudioContext);
+  const { downloadAudioFile, updatePlayerState, releasePlayerControl } =
+    useContext(RootAudioContext);
   const resolveFile = useFileResolver();
 
   const { mediaSession, addCloseListener, removeCloseListener } =
@@ -542,6 +547,14 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
       },
     });
   }, [uuid, updatePlayerState, playingAudio, timeDifferenceMs, delayMs]);
+
+  useEffect(() => {
+    // Release control when the component is unmounted
+    // (e.g. switched to different screen)
+    return () => {
+      releasePlayerControl(uuid);
+    };
+  }, [releasePlayerControl, uuid]);
 
   return timecodeDisplay({ loadFile, startPlayer, errors });
 };

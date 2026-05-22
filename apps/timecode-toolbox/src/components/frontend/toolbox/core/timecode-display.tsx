@@ -652,6 +652,9 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
     }
   }, [id, openNewWidow]);
 
+  const { handlers, callHandler } = useApplicationHandlers();
+  const hooks = id && getTreeValue(handlers, id);
+
   const clearFile = useMemo(() => {
     if (timecode === 'disabled' || !loadFile || !isTimecodeInstance(timecode)) {
       return null;
@@ -660,10 +663,15 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
       // No file is loaded
       return null;
     }
+    if (hooks?.clear) {
+      return () => {
+        callHandler({ handler: 'clear', path: id, args: [] });
+      };
+    }
     return () => {
       loadFile(null);
     };
-  }, [timecode, loadFile]);
+  }, [timecode, loadFile, callHandler, id, hooks]);
 
   name =
     timecode !== 'disabled' && timecode?.name ? [...name, timecode.name] : name;

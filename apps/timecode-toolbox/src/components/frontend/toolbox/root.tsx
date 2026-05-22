@@ -15,6 +15,7 @@ import {
   ToolboxConfig,
   ToolboxRootComponent,
   ToolboxRootConfigUpdate,
+  ToolboxRootReleasePlayerControl,
   ToolboxRootUpdatePlayerState,
 } from '../../proto';
 
@@ -298,12 +299,32 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       [sendMessage, info.key],
     );
 
+  const releasePlayerControl: RootAudioContextData['releasePlayerControl'] =
+    useCallback(
+      async (generatorUuid: string) => {
+        if (!sendMessage) {
+          throw new Error('No sendMessage function available');
+        }
+
+        sendMessage?.<ToolboxRootReleasePlayerControl>({
+          type: 'component-message',
+          namespace: 'timecode-toolbox',
+          component: 'toolbox-root',
+          componentKey: info.key,
+          action: 'release-player-control',
+          generatorUuid,
+        });
+      },
+      [sendMessage, info.key],
+    );
+
   const audioContextValue: RootAudioContextData = useMemo(
     () => ({
       downloadAudioFile,
       updatePlayerState,
+      releasePlayerControl,
     }),
-    [downloadAudioFile, updatePlayerState],
+    [downloadAudioFile, updatePlayerState, releasePlayerControl],
   );
 
   const windowedTimecodeId = useMemo(

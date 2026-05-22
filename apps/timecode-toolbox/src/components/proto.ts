@@ -405,6 +405,7 @@ export type TimecodeHandlerMethods = {
   seekRelative?: (deltaMillis: number) => void;
   seekAbsolute?: (positionMillis: number) => void;
   beginning?: () => void;
+  clear?: () => void;
 };
 
 export type AvailableHandlers = Partial<
@@ -507,11 +508,18 @@ export type ToolboxRootUpdatePlayerState =
     claim: boolean;
     state: Omit<GeneratorState, 'controlledBy'>;
   };
+export type ToolboxRootReleasePlayerControl =
+  BaseClientComponentMessage<Namespace> & {
+    component: 'toolbox-root';
+    action: 'release-player-control';
+    generatorUuid: string;
+  };
 
 export type TimecodeToolboxComponentMessage =
   | ToolboxRootConfigUpdate
   | ToolboxLicenseGateAcceptLicense
-  | ToolboxRootUpdatePlayerState;
+  | ToolboxRootUpdatePlayerState
+  | ToolboxRootReleasePlayerControl;
 
 export type TimecodeToolboxDownloadAudioFile = BaseClientComponentCallDownload<
   Namespace,
