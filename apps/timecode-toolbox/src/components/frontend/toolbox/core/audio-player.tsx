@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {
   GeneratorConfig,
+  GeneratorInstanceId,
   GeneratorState,
   isPlaying,
   isTimecodeToolboxControlPlaybackRequest,
@@ -18,7 +19,7 @@ import {
   UniversalConfig,
 } from '../../../proto';
 import { useFileResolver } from '../hooks';
-import { ConfigContext } from '../context';
+import { ConfigContext, useApplicationHandlers } from '../context';
 import { SettingsProps } from '../types';
 import { parseBuffer } from 'music-metadata';
 import {
@@ -100,7 +101,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   const { downloadAudioFile, updatePlayerState } = useContext(RootAudioContext);
   const resolveFile = useFileResolver();
 
-  const { addCloseListener, removeCloseListener } = useBrowserContext();
+  const { mediaSession, addCloseListener, removeCloseListener } =
+    useBrowserContext();
 
   const context = useMemo(() => {
     const ctx = new AudioContext();
@@ -112,6 +114,7 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   const [loadedAudio, setLoadedAudio] = useState<LoadedAudio | null>(null);
 
   const [playingAudio, setPlayingAudio] = useState<PlayingAudio | null>(null);
+  const { callHandler } = useApplicationHandlers();
 
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -419,6 +422,79 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     },
     [play, pause, seekRelative, seekAbsolute, uuid],
   );
+
+  useEffect(() => {
+    if (!playingAudio) {
+      // Don't explicitly change handlers when track is unmounted
+      // as there may be another player in the same window
+      return;
+    }
+
+    // Send playback change requests using handler so they go via the server
+    const path: GeneratorInstanceId = ['generator', uuid];
+    const playing = isPlaying(playingAudio.state);
+
+    mediaSession.setHandler((action) => {
+      if (action.action === 'play') {
+        callHandler({ path, handler: 'play', args: [] });
+      } else if (action.action === 'pause') {
+        callHandler({ path, handler: 'pause', args: [] });
+      } else if (action.action === 'playpause') {
+        callHandler({ path, handler: playing ? 'pause' : 'play', args: [] });
+      } else if (action.action === 'seekto') {
+        callHandler({
+          path,
+          handler: 'seekAbsolute',
+          args: [action.seekTimeMillis],
+        });
+      } else if (
+        action.action === 'seekbackward' ||
+        action.action === 'seekforward'
+      ) {
+        const seekOffsetMillis = action.seekOffsetMillis ?? 5000;
+        callHandler({
+          path,
+          handler: 'seekRelative',
+          args: [
+            action.action === 'seekbackward'
+              ? -seekOffsetMillis
+              : seekOffsetMillis,
+          ],
+        });
+      }
+    });
+  }, [mediaSession, callHandler, uuid, playingAudio]);
+
+  useEffect(() => {
+    if (!navigator.mediaSession) {
+      return;
+    }
+
+    const durationMillis =
+      playingAudio?.loadedAudio.metadata.totalTime?.timeMillis;
+
+    if (!playingAudio || !durationMillis) {
+      mediaSession.setMetaData(null);
+      return;
+    }
+
+    mediaSession.setMetaData({
+      title: playingAudio?.loadedAudio.metadata.title ?? undefined,
+      artist: playingAudio?.loadedAudio.metadata.artist ?? undefined,
+      durationMillis,
+      state: isPlaying(playingAudio.state)
+        ? {
+            state: 'playing',
+            effectiveStartTime: playingAudio.state.effectiveStartTimeMillis,
+            speed: playingAudio.state.speed,
+          }
+        : {
+            state: 'stopped',
+            currentTimeMillis: playingAudio.state.positionMillis,
+            speed: 1,
+          },
+    });
+  }, [mediaSession, playingAudio]);
 
   const { delayMs } = config;
 

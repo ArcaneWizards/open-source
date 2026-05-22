@@ -109,7 +109,7 @@ export const createDefaultBrowserContext = <
     }
   });
 
-  const defaults: BaseBrowserContext = {
+  const defaults: Omit<BaseBrowserContext, 'mediaSession'> = {
     appListenerChangesHandledExternally: false,
     openExternalLink: (url: string) => {
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -124,12 +124,14 @@ export const createDefaultBrowserContext = <
       closeListeners.add(listener),
     removeCloseListener: (listener: BrowserCloseListener) =>
       closeListeners.delete(listener),
-    mediaSession: createBrowserMediaSession(),
   };
 
   return {
     ...defaults,
     ...browser,
+    // Media session must be set separately to defaults to make sure we don't run
+    // createBrowserMediaSession() multiple times
+    mediaSession: browser?.mediaSession ?? createBrowserMediaSession(),
   } as TBrowserContext;
 };
 
