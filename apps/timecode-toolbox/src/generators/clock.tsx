@@ -153,6 +153,7 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
         generators: {
           ...current.generators,
           [uuid]: {
+            controlledBy: null,
             timecode: {
               metadata: null,
               name: null,

@@ -7,6 +7,7 @@ import {
   JSX,
   ReactNode,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useState,
@@ -25,6 +26,7 @@ import {
   TimecodeState,
   ToolboxConfig,
   ToolboxRootCallHandler,
+  ToolboxRootUpdatePlayerState,
   UpdateCheckResult,
 } from './components/proto';
 import { patchJson, Diff } from '@arcanejs/diff';
@@ -44,6 +46,11 @@ import {
 } from './generators/player';
 import { AppRootProps } from './components/backend/toolbox-root';
 import { CallDownloadResponse } from '@arcanejs/toolkit/components/base';
+import {
+  ConnectionsContext,
+  ConnectionsContextProvider,
+} from '@arcanejs/react-toolkit/connections';
+import { ToolkitConnection } from '@arcanejs/toolkit';
 
 const DEFAULT_PORT: ListenerConfig['port'] = { from: 4100, to: 4200 };
 
@@ -148,16 +155,21 @@ export const App = ({
 
   const augmentedState = useMemo(() => {
     // Augment generator timecode with player metadata if available
+    // and no client is controlling the connection
 
     const playerStates: ApplicationState['generators'] = {};
 
     for (const [uuid, config] of Object.entries(data.generators ?? {})) {
-      if (config.definition.type !== 'player') {
+      if (
+        config.definition.type !== 'player' ||
+        state.generators?.[uuid]?.controlledBy
+      ) {
+        // Only modify players without a controller
         continue;
       }
 
       let metadata: TimecodeMetadata | null = null;
-      let state: TimecodeState = {
+      let tcState: TimecodeState = {
         state: 'none',
         accuracyMillis: null,
         smpteMode: null,
@@ -167,8 +179,8 @@ export const App = ({
 
       const ps = playerState.metadata[uuid];
       if (ps?.path === config.definition.filePath) {
-        state = {
-          ...state,
+        tcState = {
+          ...tcState,
           state: 'unloaded',
         };
         if (ps?.state.state === 'loaded') {
@@ -179,10 +191,11 @@ export const App = ({
       }
 
       playerStates[uuid] = {
+        controlledBy: null,
         timecode: {
           metadata,
           name: null,
-          state,
+          state: tcState,
         },
         errors,
       };
@@ -198,7 +211,7 @@ export const App = ({
   }, [data.generators, state, playerState]);
 
   const downloadAudioFile: AppRootProps['onDownloadAudioFile'] = useCallback(
-    ({ generatorUuid }) => {
+    ({ generatorUuid }: { generatorUuid: string }) => {
       const config = data.generators?.[generatorUuid]?.definition;
       if (!config) {
         throw new Error(`Invalid generator id ${generatorUuid}`);
@@ -228,6 +241,52 @@ export const App = ({
     [data.generators],
   );
 
+  const updatePlayerState: AppRootProps['onUpdatePlayerState'] = useCallback(
+    (
+      { generatorUuid, claim, state }: ToolboxRootUpdatePlayerState,
+      connection: ToolkitConnection,
+    ) => {
+      setState((current) => {
+        const existing = current.generators?.[generatorUuid];
+        if (!claim && existing?.controlledBy?.uuid !== connection.uuid) {
+          // Connection does not have control, ignore update
+          return current;
+        }
+        return {
+          ...current,
+          generators: {
+            ...current.generators,
+            [generatorUuid]: {
+              ...state,
+              controlledBy: { uuid: connection.uuid },
+            },
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const { connections } = useContext(ConnectionsContext);
+
+  useEffect(() => {
+    // Clean up controlledBy for any connections that have been closed
+    const knownConnectionIds = new Set(connections.map((c) => c.uuid));
+    setState((current) => {
+      return {
+        ...current,
+        generators: Object.fromEntries(
+          Object.entries(current.generators ?? {}).filter(([_, gen]) => {
+            if (!gen.controlledBy) {
+              return true;
+            }
+            return knownConnectionIds.has(gen.controlledBy.uuid);
+          }),
+        ),
+      };
+    });
+  }, [connections]);
+
   if (!license) {
     // Wait for license to load before starting the app.
     return;
@@ -243,6 +302,7 @@ export const App = ({
           onUpdateConfig={onUpdateConfig}
           onCallHandler={callHandler}
           onDownloadAudioFile={downloadAudioFile}
+          onUpdatePlayerState={updatePlayerState}
           license={license.text}
           network={{
             envPort: env.PORT,
@@ -301,10 +361,12 @@ export const App = ({
 
 export const createApp = (props: AppProps): JSX.Element => {
   return (
-    <ToolboxConfigData.Provider
-      path={path.join(props.dataDirectory, 'config.json')}
-    >
-      <App {...props} />
-    </ToolboxConfigData.Provider>
+    <ConnectionsContextProvider toolkit={props.toolkit}>
+      <ToolboxConfigData.Provider
+        path={path.join(props.dataDirectory, 'config.json')}
+      >
+        <App {...props} />
+      </ToolboxConfigData.Provider>
+    </ConnectionsContextProvider>
   );
 };

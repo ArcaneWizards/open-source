@@ -18,6 +18,7 @@ import {
   ToolboxRootCallHandler,
   TimecodeToolboxComponentCallDownload,
   isTimecodeToolboxComponentCallDownload,
+  ToolboxRootUpdatePlayerState,
 } from '../proto';
 import {
   AnyClientComponentCall,
@@ -25,6 +26,7 @@ import {
   AnyClientComponentMessage,
 } from '@arcanejs/protocol';
 import { getNetworkInterfaces } from '@arcanewizards/net-utils';
+import { ToolkitConnection } from '@arcanejs/toolkit';
 
 export type Events = {
   updateConfig: (diff: Diff<ToolboxConfig>) => void;
@@ -32,6 +34,10 @@ export type Events = {
   downloadAudioFile: (
     call: TimecodeToolboxComponentCallDownload,
   ) => Promise<ReturnType<CallDownloadResponse>>;
+  updatePlayerState: (
+    call: ToolboxRootUpdatePlayerState,
+    connection: ToolkitConnection,
+  ) => void;
 };
 
 export type AppRootProps = Pick<
@@ -41,6 +47,7 @@ export type AppRootProps = Pick<
   onUpdateConfig?: Events['updateConfig'];
   onCallHandler?: Events['callHandler'];
   onDownloadAudioFile?: Events['downloadAudioFile'];
+  onUpdatePlayerState?: Events['updatePlayerState'];
 };
 
 const DEFAULT_PROPS: AppRootProps = {
@@ -79,6 +86,7 @@ export class ToolboxRoot
             onUpdateConfig: 'updateConfig',
             onCallHandler: 'callHandler',
             onDownloadAudioFile: 'downloadAudioFile',
+            onUpdatePlayerState: 'updatePlayerState',
           },
           oldProps,
           this.props,
@@ -105,10 +113,15 @@ export class ToolboxRoot
   }
 
   /** @hidden */
-  public handleMessage = (message: AnyClientComponentMessage) => {
+  public handleMessage = (
+    message: AnyClientComponentMessage,
+    connection: ToolkitConnection,
+  ) => {
     if (isTimecodeToolboxComponentMessage(message, 'toolbox-root')) {
       if (message.action === 'update-config') {
         this.events.emit('updateConfig', message.diff);
+      } else if (message.action === 'update-player-state') {
+        this.events.emit('updatePlayerState', message, connection);
       }
     }
   };

@@ -16,6 +16,7 @@ import {
   APP_LISTENER_CONFIG,
   ListenerConfig,
 } from '@arcanewizards/sigil/shared/config';
+import { ToolkitConnection } from '@arcanejs/toolkit';
 
 /* Shared config & proto definitions */
 
@@ -341,6 +342,7 @@ export type InputState = {
 };
 
 export type GeneratorState = {
+  controlledBy: Pick<ToolkitConnection, 'uuid'> | null;
   timecode: TimecodeInstance | null;
   errors?: string[];
   warnings?: string[];
@@ -477,9 +479,23 @@ export type ToolboxLicenseGateAcceptLicense =
     hash: string;
   };
 
+export type ToolboxRootUpdatePlayerState =
+  BaseClientComponentMessage<Namespace> & {
+    component: 'toolbox-root';
+    action: 'update-player-state';
+    generatorUuid: string;
+    /**
+     * True if this connection should claim control of the player if it
+     * is not already controlled by this connection.
+     */
+    claim: boolean;
+    state: Omit<GeneratorState, 'controlledBy'>;
+  };
+
 export type TimecodeToolboxComponentMessage =
   | ToolboxRootConfigUpdate
-  | ToolboxLicenseGateAcceptLicense;
+  | ToolboxLicenseGateAcceptLicense
+  | ToolboxRootUpdatePlayerState;
 
 export type TimecodeToolboxDownloadAudioFile = BaseClientComponentCallDownload<
   Namespace,

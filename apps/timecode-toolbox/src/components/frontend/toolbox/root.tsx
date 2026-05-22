@@ -8,12 +8,14 @@ import {
   useState,
 } from 'react';
 import {
+  GeneratorState,
   TIMECODE_INSTANCE_ID,
   TimecodeToolboxComponentCalls,
   TimecodeToolboxDownloadAudioFile,
   ToolboxConfig,
   ToolboxRootComponent,
   ToolboxRootConfigUpdate,
+  ToolboxRootUpdatePlayerState,
 } from '../../proto';
 
 import { STRINGS } from '../constants';
@@ -271,11 +273,37 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       [download, info.key],
     );
 
+  const updatePlayerState: RootAudioContextData['updatePlayerState'] =
+    useCallback(
+      async (
+        generatorUuid: string,
+        claim: boolean,
+        state: Omit<GeneratorState, 'controlledBy'>,
+      ) => {
+        if (!sendMessage) {
+          throw new Error('No sendMessage function available');
+        }
+
+        sendMessage?.<ToolboxRootUpdatePlayerState>({
+          type: 'component-message',
+          namespace: 'timecode-toolbox',
+          component: 'toolbox-root',
+          componentKey: info.key,
+          action: 'update-player-state',
+          generatorUuid,
+          claim,
+          state,
+        });
+      },
+      [sendMessage, info.key],
+    );
+
   const audioContextValue: RootAudioContextData = useMemo(
     () => ({
       downloadAudioFile,
+      updatePlayerState,
     }),
-    [downloadAudioFile],
+    [downloadAudioFile, updatePlayerState],
   );
 
   const windowedTimecodeId = useMemo(
