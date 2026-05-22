@@ -10,6 +10,7 @@ import {
 import {
   TIMECODE_INSTANCE_ID,
   TimecodeToolboxComponentCalls,
+  TimecodeToolboxDownloadAudioFile,
   ToolboxConfig,
   ToolboxRootComponent,
   ToolboxRootConfigUpdate,
@@ -51,6 +52,7 @@ import {
   ControlButton,
   ControlDetails,
 } from '@arcanewizards/sigil/frontend/controls';
+import { RootAudioContext, RootAudioContextData } from './core/audio-player';
 
 type Props = {
   info: ToolboxRootComponent;
@@ -103,7 +105,7 @@ const DeleteConfirmationDialog: FC<{
 
 export const ToolboxRoot: FC<Props> = ({ info }) => {
   const { config } = info;
-  const { sendMessage, call } = useContext(StageContext);
+  const { sendMessage, call, download } = useContext(StageContext);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [draggingFileIntoWindow, setDraggingFileIntoWindow] = useState(false);
 
@@ -252,6 +254,30 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     [info.handlers, callHandler],
   );
 
+  const downloadAudioFile: RootAudioContextData['downloadAudioFile'] =
+    useCallback(
+      async (generatorUuid) => {
+        if (!download) {
+          throw new Error('No download function available');
+        }
+        return download<TimecodeToolboxDownloadAudioFile>({
+          namespace: 'timecode-toolbox',
+          type: 'component-call-download',
+          componentKey: info.key,
+          action: 'toolbox-root-download-audio-file',
+          generatorUuid,
+        });
+      },
+      [download, info.key],
+    );
+
+  const audioContextValue: RootAudioContextData = useMemo(
+    () => ({
+      downloadAudioFile,
+    }),
+    [downloadAudioFile],
+  );
+
   const windowedTimecodeId = useMemo(
     () => getFragmentValue('tc', TIMECODE_INSTANCE_ID),
     [],
@@ -371,11 +397,13 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     <GlobalUserInteractionsContext.Provider value={interactions}>
       <ConfigContext.Provider value={configContext}>
         <NetworkContext.Provider value={networkContextValue}>
-          <ApplicationStateContext.Provider value={info.state}>
-            <ApplicationHandlersContext.Provider value={handlers}>
-              {root}
-            </ApplicationHandlersContext.Provider>
-          </ApplicationStateContext.Provider>
+          <RootAudioContext.Provider value={audioContextValue}>
+            <ApplicationStateContext.Provider value={info.state}>
+              <ApplicationHandlersContext.Provider value={handlers}>
+                {root}
+              </ApplicationHandlersContext.Provider>
+            </ApplicationStateContext.Provider>
+          </RootAudioContext.Provider>
         </NetworkContext.Provider>
       </ConfigContext.Provider>
     </GlobalUserInteractionsContext.Provider>

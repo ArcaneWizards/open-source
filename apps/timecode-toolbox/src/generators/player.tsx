@@ -106,12 +106,12 @@ const PlayerMetadataFetcher: FC<PlayerMetadataFetcherProps> = ({
           metadata: {
             title: common.title ?? null,
             artist: common.artist ?? null,
-            totalTime: metadata.format.duration
-              ? {
-                  precisionMillis: 0,
-                  timeMillis: Math.round(metadata.format.duration * 1000),
-                }
-              : null,
+            /**
+             * Avoid loading time until we have actually loaded it in the player,
+             * so we don't have any issues caused by a discrepancy between
+             * metadata parsing and AudioContext decoded track data.
+             */
+            totalTime: null,
           },
         });
       })

@@ -241,6 +241,8 @@ type GeneratorDisplayProps = {
   setDialogMode: (mode: DialogMode | null) => void;
   assignToOutput: AssignToOutputCallback;
   loadFile: TimecodeDisplayProps['loadFile'] | null;
+  startPlayer: TimecodeDisplayProps['startPlayer'] | null;
+  additionalErrors: string[];
 };
 
 const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
@@ -249,13 +251,18 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
   setDialogMode,
   assignToOutput,
   loadFile,
+  startPlayer,
+  additionalErrors,
 }) => {
   const { generators } = useApplicationState();
   const state = generators[uuid];
 
   const rootState = useMemo(
-    () => ({ errors: state?.errors ?? [], warnings: state?.warnings ?? [] }),
-    [state?.errors, state?.warnings],
+    () => ({
+      errors: [...(state?.errors ?? []), ...additionalErrors],
+      warnings: state?.warnings ?? [],
+    }),
+    [state?.errors, state?.warnings, additionalErrors],
   );
 
   return (
@@ -269,6 +276,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
       rootState={rootState}
       namePlaceholder={STRINGS.generators.unnamed}
       loadFile={loadFile}
+      startPlayer={startPlayer}
       buttons={
         <>
           <ControlButton
@@ -340,7 +348,7 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
               <WithAudioPlayer
                 key={uuid}
                 uuid={uuid}
-                timecodeDisplay={({ loadFile }) => (
+                timecodeDisplay={({ loadFile, startPlayer, errors }) => (
                   <GeneratorDisplay
                     key={uuid}
                     uuid={uuid}
@@ -348,6 +356,8 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
                     setDialogMode={setDialogMode}
                     assignToOutput={assignToOutput}
                     loadFile={loadFile}
+                    startPlayer={startPlayer}
+                    additionalErrors={errors}
                   />
                 )}
               />
@@ -359,6 +369,8 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
                 setDialogMode={setDialogMode}
                 assignToOutput={assignToOutput}
                 loadFile={null}
+                startPlayer={null}
+                additionalErrors={[]}
               />
             ),
           )}

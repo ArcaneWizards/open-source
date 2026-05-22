@@ -14,6 +14,7 @@ import {
 import { C } from './components/backend';
 import { ToolboxConfigData } from './config';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import { useDataFileContext } from '@arcanejs/react-toolkit/data';
 import {
   ApplicationState,
@@ -41,6 +42,8 @@ import {
   PlayerMetadataFetchers,
   PlayerState,
 } from './generators/player';
+import { AppRootProps } from './components/backend/toolbox-root';
+import { CallDownloadResponse } from '@arcanejs/toolkit/components/base';
 
 const DEFAULT_PORT: ListenerConfig['port'] = { from: 4100, to: 4200 };
 
@@ -107,7 +110,7 @@ export const App = ({
     [handlers],
   );
 
-  const callHandler = useCallback(
+  const callHandler: AppRootProps['onCallHandler'] = useCallback(
     async <H extends keyof AvailableHandlers>(
       call: ToolboxRootCallHandler<H>,
     ) => {
@@ -164,11 +167,9 @@ export const App = ({
 
       const ps = playerState.metadata[uuid];
       if (ps?.path === config.definition.filePath) {
-        // File has been selected/loaded, so state is not 'none'
         state = {
           ...state,
-          state: 'stopped',
-          positionMillis: 0,
+          state: 'unloaded',
         };
         if (ps?.state.state === 'loaded') {
           metadata = ps.state.metadata;
@@ -196,6 +197,37 @@ export const App = ({
     };
   }, [data.generators, state, playerState]);
 
+  const downloadAudioFile: AppRootProps['onDownloadAudioFile'] = useCallback(
+    ({ generatorUuid }) => {
+      const config = data.generators?.[generatorUuid]?.definition;
+      if (!config) {
+        throw new Error(`Invalid generator id ${generatorUuid}`);
+      }
+      if (config?.type !== 'player' || !config.filePath) {
+        throw new Error(
+          `Generator ${generatorUuid} is not a player with a file configured`,
+        );
+      }
+      return fs
+        .open(config.filePath, 'r')
+        .then<ReturnType<CallDownloadResponse>>(async (fileHandle) => {
+          const stream = fileHandle.createReadStream();
+          return {
+            stream,
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+          };
+        })
+        .catch((error) => {
+          throw new Error(
+            `Failed to create file stream for generator ${generatorUuid}: ${error}`,
+          );
+        });
+    },
+    [data.generators],
+  );
+
   if (!license) {
     // Wait for license to load before starting the app.
     return;
@@ -210,6 +242,7 @@ export const App = ({
           handlers={availableHandlers}
           onUpdateConfig={onUpdateConfig}
           onCallHandler={callHandler}
+          onDownloadAudioFile={downloadAudioFile}
           license={license.text}
           network={{
             envPort: env.PORT,

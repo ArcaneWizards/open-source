@@ -99,7 +99,7 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime }) => {
   const { timeDifferenceMs } = useContext(StageContext);
 
   useEffect(() => {
-    if (state.state === 'none') {
+    if (state.state === 'none' || state.state === 'unloaded') {
       setMillis(0);
       return;
     }
@@ -157,6 +157,7 @@ export type TimecodeDisplayProps = {
     warnings: string[];
   };
   loadFile: null | LoadFileCallback;
+  startPlayer: null | (() => void);
 };
 
 const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
@@ -167,6 +168,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   disabled,
   rootState,
   loadFile,
+  startPlayer,
 }) => {
   const { handlers, callHandler } = useApplicationHandlers();
 
@@ -217,8 +219,10 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
       return () => {
         fileRef.current?.click();
       };
+    } else if (state.state === 'unloaded' && startPlayer) {
+      return startPlayer;
     }
-  }, [hooks, play, pause, state.state, loadFile, disabled]);
+  }, [hooks, play, pause, state.state, loadFile, startPlayer, disabled]);
 
   const [isDroppingFile, setIsDroppingFile] = useState(false);
 
@@ -326,7 +330,13 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
                 loadFile ? (
                   <Icon icon="file_open" className="text-timecode-adaptive" />
                 ) : (
-                  '--:--:--:---'
+                  displayMillis(null)
+                )
+              ) : state.state === 'unloaded' ? (
+                startPlayer ? (
+                  <Icon icon="play_arrow" className="text-timecode-adaptive" />
+                ) : (
+                  displayMillis(null)
                 )
               ) : state.state === 'stopped' ? (
                 displayMillis(state.positionMillis)
@@ -547,7 +557,8 @@ type TimecodeTreeDisplayProps = {
    * If it's possible to load a file into this timecode instance,
    * the callback should be provided here.
    */
-  loadFile?: null | ((file: File | null) => void);
+  loadFile: TimecodeDisplayProps['loadFile'];
+  startPlayer: TimecodeDisplayProps['startPlayer'];
 };
 
 const EMPTY_TIMECODE: TimecodeInstance = {
@@ -578,6 +589,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   buttons,
   assignToOutput,
   loadFile,
+  startPlayer,
 }) => {
   const { openNewWidow } = useBrowserContext();
 
@@ -624,6 +636,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         buttons={buttons}
         assignToOutput={assignToOutput}
         loadFile={loadFile}
+        startPlayer={startPlayer}
       />
     ));
   }
@@ -647,6 +660,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         disabled={timecode === 'disabled'}
         config={config}
         loadFile={loadFile ?? null}
+        startPlayer={startPlayer ?? null}
         headerComponents={
           <>
             <div className="flex grow basis-0 items-start gap-0.25">
@@ -879,15 +893,19 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
       {audioConfig ? (
         <WithAudioPlayer
           uuid={id[1]}
-          timecodeDisplay={({ loadFile }) => (
+          timecodeDisplay={({ loadFile, startPlayer, errors }) => (
             <TimecodeTreeDisplay
               id={id}
               timecode={instanceConfig.disabled ? 'disabled' : timecode}
-              rootState={rootState}
+              rootState={{
+                ...rootState,
+                errors: [...rootState.errors, ...errors],
+              }}
               assignToOutput={null}
               buttons={null}
               link={linkedSourceInfo}
               loadFile={loadFile}
+              startPlayer={startPlayer}
               {...instanceConfig}
             />
           )}
@@ -900,6 +918,8 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
           assignToOutput={null}
           buttons={null}
           link={linkedSourceInfo}
+          loadFile={null}
+          startPlayer={null}
           {...instanceConfig}
         />
       )}

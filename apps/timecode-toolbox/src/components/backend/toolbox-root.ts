@@ -3,6 +3,7 @@ import { Diff } from '@arcanejs/diff';
 
 import {
   Base,
+  CallDownloadResponse,
   EventEmitter,
   Listenable,
 } from '@arcanejs/toolkit/components/base';
@@ -15,9 +16,12 @@ import {
   DEFAULT_CONFIG,
   isTimecodeToolboxComponentCall,
   ToolboxRootCallHandler,
+  TimecodeToolboxComponentCallDownload,
+  isTimecodeToolboxComponentCallDownload,
 } from '../proto';
 import {
   AnyClientComponentCall,
+  AnyClientComponentCallDownload,
   AnyClientComponentMessage,
 } from '@arcanejs/protocol';
 import { getNetworkInterfaces } from '@arcanewizards/net-utils';
@@ -25,6 +29,9 @@ import { getNetworkInterfaces } from '@arcanewizards/net-utils';
 export type Events = {
   updateConfig: (diff: Diff<ToolboxConfig>) => void;
   callHandler: (call: ToolboxRootCallHandler) => Promise<void>;
+  downloadAudioFile: (
+    call: TimecodeToolboxComponentCallDownload,
+  ) => Promise<ReturnType<CallDownloadResponse>>;
 };
 
 export type AppRootProps = Pick<
@@ -33,6 +40,7 @@ export type AppRootProps = Pick<
 > & {
   onUpdateConfig?: Events['updateConfig'];
   onCallHandler?: Events['callHandler'];
+  onDownloadAudioFile?: Events['downloadAudioFile'];
 };
 
 const DEFAULT_PROPS: AppRootProps = {
@@ -70,6 +78,7 @@ export class ToolboxRoot
           {
             onUpdateConfig: 'updateConfig',
             onCallHandler: 'callHandler',
+            onDownloadAudioFile: 'downloadAudioFile',
           },
           oldProps,
           this.props,
@@ -124,4 +133,19 @@ export class ToolboxRoot
     }
     throw new Error(`Unhandled call action: ${call.action}`);
   };
+
+  /** @hidden */
+  public async handleCallDownload(
+    call: AnyClientComponentCallDownload,
+  ): Promise<CallDownloadResponse> {
+    if (
+      isTimecodeToolboxComponentCallDownload(
+        call,
+        'toolbox-root-download-audio-file',
+      )
+    ) {
+      return async () => await this.events.call('downloadAudioFile', call);
+    }
+    throw new Error(`Unhandled call action: ${call.action}`);
+  }
 }

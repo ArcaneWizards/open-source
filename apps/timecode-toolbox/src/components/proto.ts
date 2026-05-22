@@ -2,6 +2,7 @@ import z from 'zod';
 import {
   AnyComponentProto,
   BaseClientComponentCall,
+  BaseClientComponentCallDownload,
   BaseClientComponentMessage,
   BaseComponentProto,
 } from '@arcanejs/protocol';
@@ -230,6 +231,10 @@ export type TimecodePlayStateNone = {
   state: 'none';
 };
 
+export type TimecodePlayStateUnloaded = {
+  state: 'unloaded';
+};
+
 export type TimecodePlayStateStopped = {
   state: 'stopped';
   positionMillis: number;
@@ -246,6 +251,7 @@ export type TimecodePlayStatePlayingOrLagging = {
 
 export type TimecodePlayState =
   | TimecodePlayStateNone
+  | TimecodePlayStateUnloaded
   | TimecodePlayStateStopped
   | TimecodePlayStatePlayingOrLagging;
 
@@ -475,6 +481,16 @@ export type TimecodeToolboxComponentMessage =
   | ToolboxRootConfigUpdate
   | ToolboxLicenseGateAcceptLicense;
 
+export type TimecodeToolboxDownloadAudioFile = BaseClientComponentCallDownload<
+  Namespace,
+  'toolbox-root-download-audio-file'
+> & {
+  generatorUuid: string;
+};
+
+export type TimecodeToolboxComponentCallDownload =
+  TimecodeToolboxDownloadAudioFile;
+
 export const isTimecodeToolboxComponentMessage = <
   C extends TimecodeToolboxComponentMessage['component'],
 >(
@@ -490,4 +506,12 @@ export const isTimecodeToolboxComponentCall = <
   call: BaseClientComponentCall<string, string>,
   action: A,
 ): call is TimecodeToolboxComponentCalls[A]['call'] =>
+  call.namespace === NAMESPACE && call.action === action;
+
+export const isTimecodeToolboxComponentCallDownload = <
+  A extends TimecodeToolboxComponentCallDownload['action'],
+>(
+  call: BaseClientComponentCallDownload<string, string>,
+  action: A,
+): call is TimecodeToolboxComponentCallDownload =>
   call.namespace === NAMESPACE && call.action === action;

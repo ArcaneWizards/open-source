@@ -74,7 +74,7 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
   const seekRelative = useCallback(
     (deltaMillis: number) => {
       setLocalState((current) => {
-        if (current.state === 'none') {
+        if (current.state === 'none' || current.state === 'unloaded') {
           return current;
         }
         const now = Date.now();
@@ -121,7 +121,11 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
 
   useEffect(() => {
     setLocalState((current) => {
-      if (current.state === 'none' || current.state === 'stopped') {
+      if (
+        current.state === 'none' ||
+        current.state === 'unloaded' ||
+        current.state === 'stopped'
+      ) {
         return current;
       }
       const now = Date.now();
