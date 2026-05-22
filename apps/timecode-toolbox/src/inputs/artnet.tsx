@@ -94,6 +94,7 @@ const ArtnetInputConnection: FC<ArtnetInputConnectionProps> = ({
           accuracyMillis: null,
           smpteMode: null,
           onAir: null,
+          appliedDelayMillis: delayRef.current,
         },
         metadata: null,
       },
@@ -181,6 +182,7 @@ const ArtnetInputConnection: FC<ArtnetInputConnectionProps> = ({
           accuracyMillis: driftApproximation,
           smpteMode: lastTimecode.mode,
           onAir: null,
+          appliedDelayMillis: delayRef.current,
         };
         setConnection({
           status: 'active',
@@ -202,6 +204,7 @@ const ArtnetInputConnection: FC<ArtnetInputConnectionProps> = ({
         smpteMode: lastTimecode.mode,
         speed: 1,
         onAir: null,
+        appliedDelayMillis: delayRef.current,
       };
       setConnection({
         status: 'active',

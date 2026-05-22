@@ -18,7 +18,11 @@ import {
   ChangeCommitContext,
   useChangeCommitBoundary,
 } from '@arcanewizards/sigil/frontend/context';
-import { TimecodeTreeDisplay } from './core/timecode-display';
+import {
+  TimecodeDisplayProps,
+  TimecodeTreeDisplay,
+} from './core/timecode-display';
+import { WithAudioPlayer } from './core/audio-player';
 
 const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
   data,
@@ -70,10 +74,15 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
   const { config, updateConfig } = useContext(ConfigContext);
   const [newData, setNewData] = useState<GeneratorConfig>({
     name: '',
-    definition: {
-      type: generator,
-      speed: 1,
-    },
+    definition:
+      generator === 'clock'
+        ? { type: 'clock', speed: 1 }
+        : {
+            type: generator,
+            filePath: null,
+            speed: 1,
+            volume: 1,
+          },
   });
 
   const close = useCallback(() => setDialogMode(null), [setDialogMode]);
@@ -192,6 +201,27 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
             updateSettings={updateDefinition}
           />
         ) : null}
+
+        <ControlLabel>Delay (ms)</ControlLabel>
+        <ControlInput
+          position="both"
+          type="string"
+          value={data.delayMs?.toString() ?? ''}
+          placeholder={`Default (0ms)`}
+          onChange={(value, enterPressed) => {
+            const delayMs = value ? parseInt(value, 10) : undefined;
+            if (delayMs !== undefined && isNaN(delayMs)) {
+              return;
+            }
+            updateSettings((current) => ({
+              ...current,
+              delayMs,
+            }));
+            if (enterPressed) {
+              commitChanges();
+            }
+          }}
+        />
         {target.type === 'add' ? (
           <ControlDialogButtons>
             <ControlButton onClick={close} variant="large">
@@ -231,6 +261,9 @@ type GeneratorDisplayProps = {
   config: GeneratorConfig;
   setDialogMode: (mode: DialogMode | null) => void;
   assignToOutput: AssignToOutputCallback;
+  loadFile: TimecodeDisplayProps['loadFile'] | null;
+  startPlayer: TimecodeDisplayProps['startPlayer'] | null;
+  additionalErrors: string[];
 };
 
 const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
@@ -238,11 +271,20 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
   config,
   setDialogMode,
   assignToOutput,
+  loadFile,
+  startPlayer,
+  additionalErrors,
 }) => {
   const { generators } = useApplicationState();
   const state = generators[uuid];
 
-  const rootState = useMemo(() => ({ errors: [], warnings: [] }), []);
+  const rootState = useMemo(
+    () => ({
+      errors: [...(state?.errors ?? []), ...additionalErrors],
+      warnings: state?.warnings ?? [],
+    }),
+    [state?.errors, state?.warnings, additionalErrors],
+  );
 
   return (
     <TimecodeTreeDisplay
@@ -254,6 +296,8 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
       timecode={state?.timecode ?? null}
       rootState={rootState}
       namePlaceholder={STRINGS.generators.unnamed}
+      loadFile={loadFile}
+      startPlayer={startPlayer}
       buttons={
         <>
           <ControlButton
@@ -292,7 +336,7 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
       title={STRINGS.generators.title}
       buttons={
         <>
-          {(['clock'] as const).map((generator) => (
+          {(['clock', 'player'] as const).map((generator) => (
             <ControlButton
               key={generator}
               onClick={() =>
@@ -320,15 +364,38 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
             min-[900px]:grid-cols-3
           "
         >
-          {Object.entries(config.generators).map(([uuid, generator]) => (
-            <GeneratorDisplay
-              key={uuid}
-              uuid={uuid}
-              config={generator}
-              setDialogMode={setDialogMode}
-              assignToOutput={assignToOutput}
-            />
-          ))}
+          {Object.entries(config.generators).map(([uuid, generator]) =>
+            generator.definition.type === 'player' ? (
+              <WithAudioPlayer
+                key={uuid}
+                uuid={uuid}
+                config={generator}
+                timecodeDisplay={({ loadFile, startPlayer, errors }) => (
+                  <GeneratorDisplay
+                    key={uuid}
+                    uuid={uuid}
+                    config={generator}
+                    setDialogMode={setDialogMode}
+                    assignToOutput={assignToOutput}
+                    loadFile={loadFile}
+                    startPlayer={startPlayer}
+                    additionalErrors={errors}
+                  />
+                )}
+              />
+            ) : (
+              <GeneratorDisplay
+                key={uuid}
+                uuid={uuid}
+                config={generator}
+                setDialogMode={setDialogMode}
+                assignToOutput={assignToOutput}
+                loadFile={null}
+                startPlayer={null}
+                additionalErrors={[]}
+              />
+            ),
+          )}
         </div>
       )}
     </PrimaryToolboxSection>

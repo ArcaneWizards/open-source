@@ -2,8 +2,10 @@ import z from 'zod';
 import {
   AnyComponentProto,
   BaseClientComponentCall,
+  BaseClientComponentCallDownload,
   BaseClientComponentMessage,
   BaseComponentProto,
+  BaseNotificationMessage,
 } from '@arcanejs/protocol';
 import { SIGIL_COLOR, SigilColor } from '@arcanewizards/sigil/frontend/styling';
 import { Diff } from '@arcanejs/diff';
@@ -15,6 +17,7 @@ import {
   APP_LISTENER_CONFIG,
   ListenerConfig,
 } from '@arcanewizards/sigil/shared/config';
+import { ToolkitConnection } from '@arcanejs/toolkit';
 
 /* Shared config & proto definitions */
 
@@ -99,7 +102,20 @@ export type GeneratorClockDefinition = z.infer<
   typeof GENERATOR_CLOCK_DEFINITION
 >;
 
-const GENERATOR_DEFINITION = GENERATOR_CLOCK_DEFINITION;
+const GENERATOR_PLAYER_DEFINITION = z.object({
+  type: z.literal('player'),
+  /**
+   * The last file to be loaded into the generator
+   */
+  filePath: z.string().nullable(),
+  speed: z.number(),
+  volume: z.number(),
+});
+
+const GENERATOR_DEFINITION = z.union([
+  GENERATOR_CLOCK_DEFINITION,
+  GENERATOR_PLAYER_DEFINITION,
+]);
 
 export type GeneratorDefinition = z.infer<typeof GENERATOR_DEFINITION>;
 
@@ -115,6 +131,13 @@ export type GeneratorConfig = z.infer<typeof GENERATOR_CONFIG>;
 const OUTPUT_DEFINITION = OUTPUT_ARTNET_DEFINITION; // todo expand to other output types in the future
 
 export type OutputDefinition = z.infer<typeof OUTPUT_DEFINITION>;
+
+/**
+ * Config that's available for all components
+ */
+export type UniversalConfig = {
+  delayMs?: number | null;
+};
 
 export type InputInstanceId = [
   type: 'input',
@@ -217,6 +240,10 @@ export type TimecodePlayStateNone = {
   state: 'none';
 };
 
+export type TimecodePlayStateUnloaded = {
+  state: 'unloaded';
+};
+
 export type TimecodePlayStateStopped = {
   state: 'stopped';
   positionMillis: number;
@@ -233,6 +260,7 @@ export type TimecodePlayStatePlayingOrLagging = {
 
 export type TimecodePlayState =
   | TimecodePlayStateNone
+  | TimecodePlayStateUnloaded
   | TimecodePlayStateStopped
   | TimecodePlayStatePlayingOrLagging;
 
@@ -259,6 +287,13 @@ export type TimecodeState = {
    * (e.g. have a mixer value high enough)
    */
   onAir: boolean | null;
+  /**
+   * How much delay is currently applied to the timecode, in milliseconds.
+   *
+   * This is used to account for differences when needing to display relative
+   * track time (such as in the timeline for a timecode display).
+   */
+  appliedDelayMillis: number;
 } & TimecodePlayState;
 
 export type TimecodeTotalTime = {
@@ -322,7 +357,10 @@ export type InputState = {
 };
 
 export type GeneratorState = {
+  controlledBy: Pick<ToolkitConnection, 'uuid'> | null;
   timecode: TimecodeInstance | null;
+  errors?: string[];
+  warnings?: string[];
 };
 
 export type OutputState = {
@@ -365,7 +403,9 @@ export type TimecodeHandlerMethods = {
   play?: () => void;
   pause?: () => void;
   seekRelative?: (deltaMillis: number) => void;
+  seekAbsolute?: (positionMillis: number) => void;
   beginning?: () => void;
+  clear?: () => void;
 };
 
 export type AvailableHandlers = Partial<
@@ -456,9 +496,61 @@ export type ToolboxLicenseGateAcceptLicense =
     hash: string;
   };
 
+export type ToolboxRootUpdatePlayerState =
+  BaseClientComponentMessage<Namespace> & {
+    component: 'toolbox-root';
+    action: 'update-player-state';
+    generatorUuid: string;
+    /**
+     * True if this connection should claim control of the player if it
+     * is not already controlled by this connection.
+     */
+    claim: boolean;
+    state: Omit<GeneratorState, 'controlledBy'>;
+  };
+export type ToolboxRootReleasePlayerControl =
+  BaseClientComponentMessage<Namespace> & {
+    component: 'toolbox-root';
+    action: 'release-player-control';
+    generatorUuid: string;
+  };
+
 export type TimecodeToolboxComponentMessage =
   | ToolboxRootConfigUpdate
-  | ToolboxLicenseGateAcceptLicense;
+  | ToolboxLicenseGateAcceptLicense
+  | ToolboxRootUpdatePlayerState
+  | ToolboxRootReleasePlayerControl;
+
+export type TimecodeToolboxDownloadAudioFile = BaseClientComponentCallDownload<
+  Namespace,
+  'toolbox-root-download-audio-file'
+> & {
+  generatorUuid: string;
+};
+
+export type TimecodeToolboxComponentCallDownload =
+  TimecodeToolboxDownloadAudioFile;
+
+export type TimecodeToolboxControlPlaybackRequest = BaseNotificationMessage<
+  Namespace,
+  'control-playback'
+> & {
+  generatorUuid: string;
+  action:
+    | {
+        type: 'play' | 'pause' | 'beginning';
+      }
+    | {
+        type: 'seekRelative';
+        deltaMillis: number;
+      }
+    | {
+        type: 'seekAbsolute';
+        positionMillis: number;
+      };
+};
+
+export type TimecodeToolboxNotification = TimecodeToolboxControlPlaybackRequest;
 
 export const isTimecodeToolboxComponentMessage = <
   C extends TimecodeToolboxComponentMessage['component'],
@@ -476,3 +568,22 @@ export const isTimecodeToolboxComponentCall = <
   action: A,
 ): call is TimecodeToolboxComponentCalls[A]['call'] =>
   call.namespace === NAMESPACE && call.action === action;
+
+export const isTimecodeToolboxComponentCallDownload = <
+  A extends TimecodeToolboxComponentCallDownload['action'],
+>(
+  call: BaseClientComponentCallDownload<string, string>,
+  action: A,
+): call is TimecodeToolboxComponentCallDownload =>
+  call.namespace === NAMESPACE && call.action === action;
+
+export const isTimecodeToolboxNotification = (
+  message: BaseNotificationMessage<string, string>,
+  notification: TimecodeToolboxNotification['notification'],
+): message is TimecodeToolboxNotification =>
+  message.namespace === NAMESPACE &&
+  (message as TimecodeToolboxNotification).notification === notification;
+
+export const isTimecodeToolboxControlPlaybackRequest = (
+  message: BaseNotificationMessage<string, string>,
+) => isTimecodeToolboxNotification(message, 'control-playback');

@@ -17,6 +17,7 @@ export const STRINGS = {
   openInNewWindow: 'Open in new window',
   toggle: (text: string) => `Toggle ${text}`,
   close: (text: string) => `Close ${text}`,
+  clearFile: 'Clear loaded file',
   license: 'License & About',
   acceptLicense: 'Accept License',
   licensePrompt: 'Please review and accept the license to use Timecode Toolbox',
@@ -59,7 +60,7 @@ export const STRINGS = {
   },
   accuracy: (accuracyMillis: number) =>
     `Accuracy: ${MS_FORMAT.format(accuracyMillis)}`,
-  delay: (delayMs: number) => `Delay: ${MS_FORMAT.format(delayMs)}`,
+  delay: (delay: string) => `Delay: ${delay}`,
   generators: {
     title: 'GENERATORS',
     unnamed: 'Unnamed Generator',
@@ -67,6 +68,7 @@ export const STRINGS = {
     noChildren: 'No generators yet. Please add one using the buttons below.',
     type: {
       clock: 'Clock',
+      player: 'Audio Player',
     },
     addDialog: (protocol: string) => `Add ${protocol} Generator`,
     editDialog: (protocol: string, name: string) =>

@@ -8,11 +8,15 @@ import {
   useState,
 } from 'react';
 import {
+  GeneratorState,
   TIMECODE_INSTANCE_ID,
   TimecodeToolboxComponentCalls,
+  TimecodeToolboxDownloadAudioFile,
   ToolboxConfig,
   ToolboxRootComponent,
   ToolboxRootConfigUpdate,
+  ToolboxRootReleasePlayerControl,
+  ToolboxRootUpdatePlayerState,
 } from '../../proto';
 
 import { STRINGS } from '../constants';
@@ -27,6 +31,8 @@ import {
   ApplicationStateContext,
   ConfigContext,
   ConfigContextData,
+  GlobalUserInteractionsContext,
+  GlobalUserInteractionsContextData,
   NetworkContext,
 } from './context';
 import {
@@ -49,6 +55,7 @@ import {
   ControlButton,
   ControlDetails,
 } from '@arcanewizards/sigil/frontend/controls';
+import { RootAudioContext, RootAudioContextData } from './core/audio-player';
 
 type Props = {
   info: ToolboxRootComponent;
@@ -101,8 +108,9 @@ const DeleteConfirmationDialog: FC<{
 
 export const ToolboxRoot: FC<Props> = ({ info }) => {
   const { config } = info;
-  const { sendMessage, call } = useContext(StageContext);
+  const { sendMessage, call, download } = useContext(StageContext);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
+  const [draggingFileIntoWindow, setDraggingFileIntoWindow] = useState(false);
 
   const [assignToOutput, setAssignToOutput] = useState<string | null>(null);
 
@@ -119,6 +127,32 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       };
     }
   }, [assignToOutput]);
+
+  useEffect(() => {
+    // Prevent dragging outside of drag zones from changing page
+    const onDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer?.types.includes('Files')) {
+        setDraggingFileIntoWindow(true);
+      }
+    };
+    const onDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      setDraggingFileIntoWindow(false);
+    };
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      setDraggingFileIntoWindow(false);
+    };
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('dragleave', onDragLeave);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('dragleave', onDragLeave);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, []);
 
   const updateConfig = useCallback(
     (change: (current: ToolboxConfig) => ToolboxConfig) => {
@@ -221,6 +255,76 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       callHandler,
     }),
     [info.handlers, callHandler],
+  );
+
+  const downloadAudioFile: RootAudioContextData['downloadAudioFile'] =
+    useCallback(
+      async (generatorUuid) => {
+        if (!download) {
+          throw new Error('No download function available');
+        }
+        return download<TimecodeToolboxDownloadAudioFile>({
+          namespace: 'timecode-toolbox',
+          type: 'component-call-download',
+          componentKey: info.key,
+          action: 'toolbox-root-download-audio-file',
+          generatorUuid,
+        });
+      },
+      [download, info.key],
+    );
+
+  const updatePlayerState: RootAudioContextData['updatePlayerState'] =
+    useCallback(
+      async (
+        generatorUuid: string,
+        claim: boolean,
+        state: Omit<GeneratorState, 'controlledBy'>,
+      ) => {
+        if (!sendMessage) {
+          throw new Error('No sendMessage function available');
+        }
+
+        sendMessage?.<ToolboxRootUpdatePlayerState>({
+          type: 'component-message',
+          namespace: 'timecode-toolbox',
+          component: 'toolbox-root',
+          componentKey: info.key,
+          action: 'update-player-state',
+          generatorUuid,
+          claim,
+          state,
+        });
+      },
+      [sendMessage, info.key],
+    );
+
+  const releasePlayerControl: RootAudioContextData['releasePlayerControl'] =
+    useCallback(
+      async (generatorUuid: string) => {
+        if (!sendMessage) {
+          throw new Error('No sendMessage function available');
+        }
+
+        sendMessage?.<ToolboxRootReleasePlayerControl>({
+          type: 'component-message',
+          namespace: 'timecode-toolbox',
+          component: 'toolbox-root',
+          componentKey: info.key,
+          action: 'release-player-control',
+          generatorUuid,
+        });
+      },
+      [sendMessage, info.key],
+    );
+
+  const audioContextValue: RootAudioContextData = useMemo(
+    () => ({
+      downloadAudioFile,
+      updatePlayerState,
+      releasePlayerControl,
+    }),
+    [downloadAudioFile, updatePlayerState, releasePlayerControl],
   );
 
   const windowedTimecodeId = useMemo(
@@ -331,15 +435,26 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     ],
   );
 
+  const interactions: GlobalUserInteractionsContextData = useMemo(
+    () => ({
+      draggingFileIntoWindow,
+    }),
+    [draggingFileIntoWindow],
+  );
+
   return (
-    <ConfigContext.Provider value={configContext}>
-      <NetworkContext.Provider value={networkContextValue}>
-        <ApplicationStateContext.Provider value={info.state}>
-          <ApplicationHandlersContext.Provider value={handlers}>
-            {root}
-          </ApplicationHandlersContext.Provider>
-        </ApplicationStateContext.Provider>
-      </NetworkContext.Provider>
-    </ConfigContext.Provider>
+    <GlobalUserInteractionsContext.Provider value={interactions}>
+      <ConfigContext.Provider value={configContext}>
+        <NetworkContext.Provider value={networkContextValue}>
+          <RootAudioContext.Provider value={audioContextValue}>
+            <ApplicationStateContext.Provider value={info.state}>
+              <ApplicationHandlersContext.Provider value={handlers}>
+                {root}
+              </ApplicationHandlersContext.Provider>
+            </ApplicationStateContext.Provider>
+          </RootAudioContext.Provider>
+        </NetworkContext.Provider>
+      </ConfigContext.Provider>
+    </GlobalUserInteractionsContext.Provider>
   );
 };

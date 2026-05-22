@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -19,6 +20,7 @@ import {
   isInputInstanceId,
   isGeneratorInstanceId,
   ToolboxConfig,
+  UniversalConfig,
 } from '../../../proto';
 import { displayMillis } from '../util';
 import { StageContext } from '@arcanejs/toolkit-frontend';
@@ -42,6 +44,7 @@ import {
   ApplicationStateContext,
   ConfigContext,
   useApplicationHandlers,
+  useGlobalUserInteractions,
 } from '../context';
 import { getTreeValue } from '../../../../tree';
 import { useBrowserContext } from '@arcanewizards/sigil/frontend';
@@ -50,6 +53,7 @@ import {
   augmentUpstreamTimecodeWithOutputMetadata,
   getTimecodeInstance,
 } from '../../../../util';
+import { LoadFileCallback, WithAudioPlayer } from './audio-player';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -88,21 +92,22 @@ const ActiveTimecodeText: FC<ActiveTimecodeTextProps> = ({
 type TimelineProps = {
   state: TimecodeState;
   totalTime: TimecodeTotalTime;
+  seekAbsolute: null | ((positionMillis: number) => void);
 };
 
-const Timeline: FC<TimelineProps> = ({ state, totalTime }) => {
+const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
   const [millis, setMillis] = useState(0);
 
   const { timeDifferenceMs } = useContext(StageContext);
 
   useEffect(() => {
-    if (state.state === 'none') {
+    if (state.state === 'none' || state.state === 'unloaded') {
       setMillis(0);
       return;
     }
 
     if (state.state === 'stopped') {
-      setMillis(state.positionMillis);
+      setMillis(state.positionMillis + state.appliedDelayMillis);
       return;
     }
 
@@ -113,8 +118,9 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime }) => {
         (Date.now() -
           (timeDifferenceMs ?? 0) -
           state.effectiveStartTimeMillis) *
-        state.speed;
-      setMillis(newMillis);
+          state.speed +
+        state.appliedDelayMillis;
+      setMillis(Math.max(0, newMillis));
       animationFrame = requestAnimationFrame(updateMillis);
     };
     updateMillis();
@@ -125,11 +131,44 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime }) => {
     };
   }, [state, timeDifferenceMs]);
 
+  const ref = useRef<HTMLDivElement>(null);
+
+  const onClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (seekAbsolute) {
+        const rect = ref.current?.getBoundingClientRect();
+        if (rect) {
+          const clickPosition = e.clientX - rect.left;
+          const positionMillis =
+            (clickPosition / rect.width) * totalTime.timeMillis;
+          seekAbsolute(positionMillis);
+        }
+      }
+    },
+    [seekAbsolute, totalTime],
+  );
+
   return (
-    <div className="w-full border border-timecode-usage-foreground p-px">
+    <div
+      ref={ref}
+      className={cn(
+        'group w-full border border-timecode-usage-foreground p-px',
+        cnd(
+          seekAbsolute,
+          `
+            cursor-crosshair
+            hover:border-timecode-usage-selected-border
+          `,
+        ),
+      )}
+      onClick={onClick}
+    >
       <div className="relative h-1 w-full overflow-hidden">
         <div
-          className="absolute inset-y-0 left-0 bg-timecode-usage-foreground"
+          className={cn(
+            'absolute inset-y-0 left-0 bg-timecode-usage-foreground',
+            cnd(seekAbsolute, 'group-hover:bg-timecode-usage-selected-border'),
+          )}
           style={{
             width: `${Math.min((millis / totalTime.timeMillis) * 100, 100)}%`,
           }}
@@ -139,11 +178,7 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime }) => {
   );
 };
 
-type UniversalConfig = {
-  delayMs: number | null;
-};
-
-type TimecodeDisplayProps = {
+export type TimecodeDisplayProps = {
   id: TimecodeInstanceId;
   timecode: TimecodeInstance;
   config: UniversalConfig;
@@ -153,6 +188,8 @@ type TimecodeDisplayProps = {
     errors: string[];
     warnings: string[];
   };
+  loadFile: null | LoadFileCallback;
+  startPlayer: null | (() => void);
 };
 
 const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
@@ -162,6 +199,8 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   headerComponents,
   disabled,
   rootState,
+  loadFile,
+  startPlayer,
 }) => {
   const { handlers, callHandler } = useApplicationHandlers();
 
@@ -191,24 +230,98 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
     }
   }, [callHandler, id]);
 
+  const seekAbsolute = useCallback(
+    (positionMillis: number) => {
+      if (id) {
+        callHandler({
+          handler: 'seekAbsolute',
+          path: id,
+          args: [positionMillis],
+        });
+      }
+    },
+    [callHandler, id],
+  );
+
   const beginning = useCallback(() => {
     if (id) {
       callHandler({ handler: 'beginning', path: id, args: [] });
     }
   }, [callHandler, id]);
 
-  const toggle = useCallback(() => {
-    if (hooks?.play && hooks?.pause) {
-      if (state.state === 'none' || state.state === 'stopped') {
-        play();
-      } else {
-        pause();
-      }
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const clickAction = useMemo(() => {
+    if (!disabled && hooks?.play && hooks?.pause) {
+      return () => {
+        if (state.state === 'none' || state.state === 'stopped') {
+          play();
+        } else {
+          pause();
+        }
+      };
+    } else if (state.state === 'none' && loadFile) {
+      return () => {
+        fileRef.current?.click();
+      };
+    } else if (state.state === 'unloaded' && startPlayer) {
+      return startPlayer;
     }
-  }, [hooks, play, pause, state.state]);
+  }, [hooks, play, pause, state.state, loadFile, startPlayer, disabled]);
+
+  const [isDroppingFile, setIsDroppingFile] = useState(false);
+
+  type DragEvents = {
+    onDragEnter: React.DragEventHandler;
+    onDragLeave: React.DragEventHandler;
+    onDragOver: React.DragEventHandler;
+    onDrop: React.DragEventHandler;
+  };
+
+  const dropEvents: DragEvents | null = useMemo(() => {
+    if (!loadFile) {
+      return null;
+    }
+
+    return {
+      onDragEnter: (e) => {
+        e.preventDefault();
+        setIsDroppingFile(true);
+      },
+      onDragLeave: (e) => {
+        e.preventDefault();
+        setIsDroppingFile(false);
+      },
+      onDragOver: (e) => {
+        e.preventDefault();
+        setIsDroppingFile(true);
+      },
+      onDrop: (e) => {
+        e.preventDefault();
+        setIsDroppingFile(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          if (e.dataTransfer.files[0]) {
+            loadFile(e.dataTransfer.files[0]);
+          }
+          e.dataTransfer.clearData();
+        }
+      },
+    } satisfies DragEvents;
+  }, [loadFile]);
+
+  const { draggingFileIntoWindow } = useGlobalUserInteractions();
 
   return (
     <div className="flex grow flex-col gap-px">
+      {loadFile && (
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && loadFile(e.target.files[0])}
+          accept="audio/*,audio/aac,audio/wav,audio/ogg,.flac,audio/mpeg,audio/webm"
+        />
+      )}
       <div
         className={cn(
           'flex grow flex-col p-0.5',
@@ -224,45 +337,62 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         )}
         <SizeAwareDiv
           className="relative min-h-timecode-min-height grow"
-          onClick={toggle}
+          onClick={clickAction}
         >
-          {disabled ? (
-            <SizeAwareDiv
-              className="
-                pointer-events-none absolute inset-0 flex items-center
-                justify-center
-              "
-            >
-              <Icon icon="pause" className="text-timecode-adaptive" />
-            </SizeAwareDiv>
-          ) : (
-            <div
-              className={cn(
-                'absolute inset-0 flex items-center justify-center',
-                cnd(state?.state === 'stopped', 'opacity-50'),
-                cnd(
-                  hooks?.play && hooks?.pause,
+          <div
+            className={cn(
+              'group absolute inset-0 flex items-center justify-center',
+              cnd(state?.state === 'stopped', 'opacity-50'),
+              cnd(
+                clickAction,
+                `
+                  cursor-pointer
+                  hover:opacity-100
+                `,
+              ),
+              cnd(
+                state.state === 'none' && dropEvents && !isDroppingFile,
+                'opacity-50',
+              ),
+              cnd(isDroppingFile, 'opacity-100'),
+            )}
+            {...dropEvents}
+          >
+            {dropEvents && draggingFileIntoWindow && (
+              <div
+                className={cn(
                   `
-                    cursor-pointer
-                    hover:opacity-100
+                    absolute inset-1 z-10 border-4 border-dotted
+                    border-timecode-usage-border
                   `,
-                ),
-              )}
-            >
-              <span className={cn('font-mono text-timecode-adaptive')}>
-                {state.state === 'none' ? (
-                  '--:--:--:---'
-                ) : state.state === 'stopped' ? (
-                  displayMillis(state.positionMillis)
-                ) : (
-                  <ActiveTimecodeText
-                    effectiveStartTimeMillis={state.effectiveStartTimeMillis}
-                    speed={state.speed}
-                  />
                 )}
-              </span>
-            </div>
-          )}
+              />
+            )}
+            <span className="font-mono text-timecode-adaptive">
+              {disabled ? (
+                <Icon icon="pause" className="text-timecode-adaptive" />
+              ) : state.state === 'none' ? (
+                loadFile ? (
+                  <Icon icon="file_open" className="text-timecode-adaptive" />
+                ) : (
+                  displayMillis(null)
+                )
+              ) : state.state === 'unloaded' ? (
+                startPlayer ? (
+                  <Icon icon="play_arrow" className="text-timecode-adaptive" />
+                ) : (
+                  displayMillis(null)
+                )
+              ) : state.state === 'stopped' ? (
+                displayMillis(state.positionMillis)
+              ) : (
+                <ActiveTimecodeText
+                  effectiveStartTimeMillis={state.effectiveStartTimeMillis}
+                  speed={state.speed}
+                />
+              )}
+            </span>
+          </div>
         </SizeAwareDiv>
         {hooks?.pause || hooks?.play ? (
           <div className="flex justify-center gap-px">
@@ -318,16 +448,20 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           </div>
         ) : null}
         {metadata?.totalTime && (
-          <Timeline state={state} totalTime={metadata.totalTime} />
+          <Timeline
+            state={state}
+            totalTime={metadata.totalTime}
+            seekAbsolute={hooks?.seekAbsolute ? seekAbsolute : null}
+          />
         )}
       </div>
       {(state.smpteMode !== null ||
         state.accuracyMillis !== null ||
-        config.delayMs !== null) && (
+        (config.delayMs !== null && config.delayMs !== undefined)) && (
         <div className="flex gap-px">
-          {config.delayMs !== null && (
+          {config.delayMs !== null && config.delayMs !== undefined && (
             <div className="grow basis-0 truncate bg-sigil-bg-light p-0.5">
-              {STRINGS.delay(config.delayMs)}
+              {STRINGS.delay(displayMillis(config.delayMs))}
             </div>
           )}
           {state.smpteMode !== null && (
@@ -468,6 +602,12 @@ type TimecodeTreeDisplayProps = {
    * If set, calling this will assign the instance to the given output on
    */
   assignToOutput: AssignToOutputCallback;
+  /**
+   * If it's possible to load a file into this timecode instance,
+   * the callback should be provided here.
+   */
+  loadFile: TimecodeDisplayProps['loadFile'];
+  startPlayer: TimecodeDisplayProps['startPlayer'];
 };
 
 const EMPTY_TIMECODE: TimecodeInstance = {
@@ -477,6 +617,7 @@ const EMPTY_TIMECODE: TimecodeInstance = {
     accuracyMillis: null,
     smpteMode: null,
     onAir: null,
+    appliedDelayMillis: 0,
   },
   metadata: null,
 };
@@ -497,6 +638,8 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   namePlaceholder,
   buttons,
   assignToOutput,
+  loadFile,
+  startPlayer,
 }) => {
   const { openNewWidow } = useBrowserContext();
 
@@ -508,6 +651,27 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
       });
     }
   }, [id, openNewWidow]);
+
+  const { handlers, callHandler } = useApplicationHandlers();
+  const hooks = id && getTreeValue(handlers, id);
+
+  const clearFile = useMemo(() => {
+    if (timecode === 'disabled' || !loadFile || !isTimecodeInstance(timecode)) {
+      return null;
+    }
+    if (timecode.state.state === 'none') {
+      // No file is loaded
+      return null;
+    }
+    if (hooks?.clear) {
+      return () => {
+        callHandler({ handler: 'clear', path: id, args: [] });
+      };
+    }
+    return () => {
+      loadFile(null);
+    };
+  }, [timecode, loadFile, callHandler, id, hooks]);
 
   name =
     timecode !== 'disabled' && timecode?.name ? [...name, timecode.name] : name;
@@ -529,6 +693,8 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         namePlaceholder={namePlaceholder}
         buttons={buttons}
         assignToOutput={assignToOutput}
+        loadFile={loadFile}
+        startPlayer={startPlayer}
       />
     ));
   }
@@ -551,6 +717,8 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         rootState={rootState}
         disabled={timecode === 'disabled'}
         config={config}
+        loadFile={loadFile ?? null}
+        startPlayer={startPlayer ?? null}
         headerComponents={
           <>
             <div className="flex grow basis-0 items-start gap-0.25">
@@ -612,6 +780,14 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               </div>
             </div>
             <ControlButtonGroup className="rounded-md bg-sigil-bg-light">
+              {clearFile && (
+                <ControlButton
+                  variant="toolbar"
+                  icon="close"
+                  title={STRINGS.clearFile}
+                  onClick={clearFile}
+                />
+              )}
               <ControlButton
                 variant="toolbar"
                 icon="open_in_new"
@@ -679,6 +855,16 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     return undefined;
   }, [id, config]);
 
+  const audioConfig = useMemo(() => {
+    if (isGeneratorInstanceId(id)) {
+      const c = config.generators[id[1]];
+      if (c?.definition.type === 'player') {
+        return c;
+      }
+    }
+    return null;
+  }, [id, config.generators]);
+
   const instanceConfig: FullscreenTimecodeConfig | null = useMemo(() => {
     if (isInputInstanceId(id)) {
       const c = config.inputs[id[1]];
@@ -730,8 +916,8 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
       };
     } else if (isGeneratorInstanceId(id)) {
       return {
-        errors: [],
-        warnings: [],
+        errors: applicationState.generators?.[id[1]]?.errors ?? [],
+        warnings: applicationState.generators?.[id[1]]?.warnings ?? [],
       };
     } else {
       return {
@@ -762,15 +948,40 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         scrollbar-sigil
       "
     >
-      <TimecodeTreeDisplay
-        id={id}
-        timecode={instanceConfig.disabled ? 'disabled' : timecode}
-        rootState={rootState}
-        assignToOutput={null}
-        buttons={null}
-        link={linkedSourceInfo}
-        {...instanceConfig}
-      />
+      {audioConfig ? (
+        <WithAudioPlayer
+          uuid={id[1]}
+          config={instanceConfig.config}
+          timecodeDisplay={({ loadFile, startPlayer, errors }) => (
+            <TimecodeTreeDisplay
+              id={id}
+              timecode={instanceConfig.disabled ? 'disabled' : timecode}
+              rootState={{
+                ...rootState,
+                errors: [...rootState.errors, ...errors],
+              }}
+              assignToOutput={null}
+              buttons={null}
+              link={linkedSourceInfo}
+              loadFile={loadFile}
+              startPlayer={startPlayer}
+              {...instanceConfig}
+            />
+          )}
+        />
+      ) : (
+        <TimecodeTreeDisplay
+          id={id}
+          timecode={instanceConfig.disabled ? 'disabled' : timecode}
+          rootState={rootState}
+          assignToOutput={null}
+          buttons={null}
+          link={linkedSourceInfo}
+          loadFile={null}
+          startPlayer={null}
+          {...instanceConfig}
+        />
+      )}
     </div>
   );
 };

@@ -44,11 +44,13 @@ export const adjustTimecodeForDelay = (
     return {
       ...state,
       effectiveStartTimeMillis: state.effectiveStartTimeMillis + delayMillis,
+      appliedDelayMillis: delayMillis + state.appliedDelayMillis,
     };
   } else if (state.state === 'stopped') {
     return {
       ...state,
       positionMillis: state.positionMillis - delayMillis,
+      appliedDelayMillis: delayMillis + state.appliedDelayMillis,
     };
   }
   return state;
@@ -67,6 +69,7 @@ export const augmentUpstreamTimecodeWithOutputMetadata = (
         accuracyMillis: null,
         smpteMode: config.definition.mode,
         onAir: null,
+        appliedDelayMillis: config.delayMs ?? 0,
       },
     };
   }

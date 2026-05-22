@@ -426,6 +426,8 @@ export const InputDisplay: FC<InputDisplayProps> = ({
       timecode={config.enabled ? (state?.timecode ?? null) : 'disabled'}
       rootState={rootState}
       namePlaceholder={STRINGS.inputs.unnamed}
+      loadFile={null}
+      startPlayer={null}
       buttons={
         <>
           <ControlButton

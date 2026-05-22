@@ -78,6 +78,7 @@ export type BaseBrowserContext = {
   openNewWidow: (url: string, options?: NewWindowOptions) => void;
   selectDirectory: (() => Promise<string | null>) | null;
   openDevTools: (() => Promise<null>) | null;
+  getPathForFile: ((file: File) => string) | null;
   addCloseListener: (listener: BrowserCloseListener) => void;
   removeCloseListener: (listener: BrowserCloseListener) => void;
   mediaSession: MediaSessionControl;
@@ -108,7 +109,7 @@ export const createDefaultBrowserContext = <
     }
   });
 
-  const defaults: BaseBrowserContext = {
+  const defaults: Omit<BaseBrowserContext, 'mediaSession'> = {
     appListenerChangesHandledExternally: false,
     openExternalLink: (url: string) => {
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -116,18 +117,21 @@ export const createDefaultBrowserContext = <
     openNewWidow: (url: string) => {
       window.open(url, '_blank', 'noopener,noreferrer');
     },
+    getPathForFile: null,
     selectDirectory: null,
     openDevTools: null,
     addCloseListener: (listener: BrowserCloseListener) =>
       closeListeners.add(listener),
     removeCloseListener: (listener: BrowserCloseListener) =>
       closeListeners.delete(listener),
-    mediaSession: createBrowserMediaSession(),
   };
 
   return {
     ...defaults,
     ...browser,
+    // Media session must be set separately to defaults to make sure we don't run
+    // createBrowserMediaSession() multiple times
+    mediaSession: browser?.mediaSession ?? createBrowserMediaSession(),
   } as TBrowserContext;
 };
 

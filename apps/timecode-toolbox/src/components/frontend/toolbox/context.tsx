@@ -63,3 +63,15 @@ export const NetworkContext = createContext<NetworkContextData>(
     },
   }),
 );
+
+export type GlobalUserInteractionsContextData = {
+  draggingFileIntoWindow: boolean;
+};
+
+export const GlobalUserInteractionsContext =
+  createContext<GlobalUserInteractionsContextData>({
+    draggingFileIntoWindow: false,
+  });
+
+export const useGlobalUserInteractions = () =>
+  useContext(GlobalUserInteractionsContext);

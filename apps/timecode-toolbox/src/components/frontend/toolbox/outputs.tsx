@@ -503,6 +503,8 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         rootState={rootState}
         namePlaceholder={STRINGS.outputs.unnamed}
         link={link}
+        loadFile={null}
+        startPlayer={null}
         buttons={
           <>
             <ControlButton

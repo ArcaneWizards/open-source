@@ -74,7 +74,7 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
   const seekRelative = useCallback(
     (deltaMillis: number) => {
       setLocalState((current) => {
-        if (current.state === 'none') {
+        if (current.state === 'none' || current.state === 'unloaded') {
           return current;
         }
         const now = Date.now();
@@ -121,7 +121,11 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
 
   useEffect(() => {
     setLocalState((current) => {
-      if (current.state === 'none' || current.state === 'stopped') {
+      if (
+        current.state === 'none' ||
+        current.state === 'unloaded' ||
+        current.state === 'stopped'
+      ) {
         return current;
       }
       const now = Date.now();
@@ -149,6 +153,7 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
         generators: {
           ...current.generators,
           [uuid]: {
+            controlledBy: null,
             timecode: {
               metadata: null,
               name: null,
@@ -158,13 +163,26 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
                 accuracyMillis: null,
                 smpteMode: null,
                 onAir: null,
-                ...state,
+                appliedDelayMillis: config.delayMs ?? 0,
+                ...(isPlaying(state)
+                  ? {
+                      ...state,
+                      effectiveStartTimeMillis:
+                        state.effectiveStartTimeMillis + (config.delayMs ?? 0),
+                    }
+                  : isStopped(state)
+                    ? {
+                        ...state,
+                        positionMillis:
+                          state.positionMillis - (config.delayMs ?? 0),
+                      }
+                    : state),
               },
             },
           },
         },
       })),
-    [setState, uuid, state, config.name],
+    [setState, uuid, state, config.name, config.delayMs],
   );
 
   useEffect(

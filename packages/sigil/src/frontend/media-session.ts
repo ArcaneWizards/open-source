@@ -8,7 +8,15 @@ const NOOP_MEDIA_SESSION: MediaSessionControl = {
   setHandler: () => {},
 };
 
+let createBrowserMediaSessionCalled = false;
+
 export const createBrowserMediaSession = (): MediaSessionControl => {
+  if (createBrowserMediaSessionCalled) {
+    throw new Error(
+      'createBrowserMediaSession has already been called once. This function should only be called once to create a single media session control instance.',
+    );
+  }
+  createBrowserMediaSessionCalled = true;
   if (
     typeof navigator === 'undefined' ||
     !('mediaSession' in navigator) ||

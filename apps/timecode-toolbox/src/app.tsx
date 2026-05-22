@@ -14,14 +14,21 @@ import {
 import { C } from './components/backend';
 import { ToolboxConfigData } from './config';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import { useDataFileContext } from '@arcanejs/react-toolkit/data';
 import {
   ApplicationState,
   AvailableHandlers,
   DEFAULT_CONFIG,
+  GeneratorInstanceId,
+  NAMESPACE,
   TimecodeHandlerMethods,
+  TimecodeMetadata,
+  TimecodeState,
+  TimecodeToolboxControlPlaybackRequest,
   ToolboxConfig,
   ToolboxRootCallHandler,
+  ToolboxRootUpdatePlayerState,
   UpdateCheckResult,
 } from './components/proto';
 import { patchJson, Diff } from '@arcanejs/diff';
@@ -29,11 +36,23 @@ import { InputConnections } from './inputs';
 import { OutputConnections } from './outputs';
 import { Generators } from './generators';
 import { TimecodeHandlers } from './types';
-import { getTreeValue, mapTree, Tree } from './tree';
+import { getTreeValue, mapTree, Tree, updateTreeState } from './tree';
 import { useLicense } from './license';
 import { UpdateChecker } from './updates';
 import { getEnv } from './env';
 import { ListenerConfig } from '@arcanewizards/sigil/shared/config';
+import {
+  INITIAL_PLAYER_STATE,
+  PlayerStateManager,
+  PlayerState,
+} from './generators/player';
+import { AppRootProps } from './components/backend/toolbox-root';
+import { CallDownloadResponse } from '@arcanejs/toolkit/components/base';
+import {
+  ConnectionsContextProvider,
+  useNotificationSender,
+} from '@arcanejs/react-toolkit/connections';
+import { ToolkitConnection } from '@arcanejs/toolkit';
 
 const DEFAULT_PORT: ListenerConfig['port'] = { from: 4100, to: 4200 };
 
@@ -100,7 +119,7 @@ export const App = ({
     [handlers],
   );
 
-  const callHandler = useCallback(
+  const callHandler: AppRootProps['onCallHandler'] = useCallback(
     async <H extends keyof AvailableHandlers>(
       call: ToolboxRootCallHandler<H>,
     ) => {
@@ -133,6 +152,198 @@ export const App = ({
     return baseConfig;
   }, [env.PORT, data.appListener]);
 
+  const [playerState, setPlayerState] =
+    useState<PlayerState>(INITIAL_PLAYER_STATE);
+
+  const augmentedState = useMemo(() => {
+    // Augment generator timecode with player metadata if available
+    // and no client is controlling the connection
+
+    const playerStates: ApplicationState['generators'] = {};
+
+    for (const [uuid, config] of Object.entries(data.generators ?? {})) {
+      if (
+        config.definition.type !== 'player' ||
+        state.generators?.[uuid]?.controlledBy
+      ) {
+        // Only modify players without a controller
+        continue;
+      }
+
+      let metadata: TimecodeMetadata | null = null;
+      let tcState: TimecodeState = {
+        state: 'none',
+        accuracyMillis: null,
+        smpteMode: null,
+        onAir: null,
+        appliedDelayMillis: 0,
+      };
+      const errors: string[] = [];
+
+      const ps = playerState.metadata[uuid];
+      if (ps?.path === config.definition.filePath) {
+        tcState = {
+          ...tcState,
+          state: 'unloaded',
+        };
+        if (ps?.state.state === 'loaded') {
+          metadata = ps.state.metadata;
+        } else if (ps?.state.state === 'error') {
+          errors.push(ps.state.error);
+        }
+      }
+
+      playerStates[uuid] = {
+        controlledBy: null,
+        timecode: {
+          metadata,
+          name: null,
+          state: tcState,
+        },
+        errors,
+      };
+    }
+
+    return {
+      ...state,
+      generators: {
+        ...state.generators,
+        ...playerStates,
+      },
+    };
+  }, [data.generators, state, playerState]);
+
+  const downloadAudioFile: AppRootProps['onDownloadAudioFile'] = useCallback(
+    ({ generatorUuid }: { generatorUuid: string }) => {
+      const config = data.generators?.[generatorUuid]?.definition;
+      if (!config) {
+        throw new Error(`Invalid generator id ${generatorUuid}`);
+      }
+      if (config?.type !== 'player' || !config.filePath) {
+        throw new Error(
+          `Generator ${generatorUuid} is not a player with a file configured`,
+        );
+      }
+      return fs
+        .open(config.filePath, 'r')
+        .then<ReturnType<CallDownloadResponse>>(async (fileHandle) => {
+          const stream = fileHandle.createReadStream();
+          return {
+            stream,
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+          };
+        })
+        .catch((error) => {
+          throw new Error(
+            `Failed to create file stream for generator ${generatorUuid}: ${error}`,
+          );
+        });
+    },
+    [data.generators],
+  );
+
+  const sendNotification =
+    useNotificationSender<TimecodeToolboxControlPlaybackRequest>(
+      NAMESPACE,
+      'control-playback',
+    );
+
+  const releasePlayerControl: AppRootProps['onReleasePlayerControl'] =
+    useCallback((generatorUuid: string, connection: ToolkitConnection) => {
+      setState((current) => {
+        const existing = current.generators?.[generatorUuid];
+        if (existing?.controlledBy?.uuid !== connection.uuid) {
+          // Connection does not have control, ignore release
+          return current;
+        }
+
+        const { [generatorUuid]: _, ...remainingGenerators } =
+          current.generators ?? {};
+
+        return {
+          ...current,
+          generators: remainingGenerators,
+        };
+      });
+    }, []);
+
+  const updatePlayerState: AppRootProps['onUpdatePlayerState'] = useCallback(
+    (
+      { generatorUuid, claim, state }: ToolboxRootUpdatePlayerState,
+      connection: ToolkitConnection,
+    ) => {
+      setState((current) => {
+        const existing = current.generators?.[generatorUuid];
+        if (!claim && existing?.controlledBy?.uuid !== connection.uuid) {
+          // Connection does not have control, ignore update
+          return current;
+        }
+
+        if (claim) {
+          // Set up handlers to point to this connection
+          const id: GeneratorInstanceId = ['generator', generatorUuid];
+
+          const sendControlNotification = (
+            action: TimecodeToolboxControlPlaybackRequest['action'],
+          ) => {
+            sendNotification(
+              { action, generatorUuid },
+              ({ uuid }) => uuid === connection.uuid,
+            );
+          };
+
+          setHandlers((current) =>
+            updateTreeState(current, id, {
+              play: () =>
+                sendControlNotification({
+                  type: 'play',
+                }),
+              pause: () =>
+                sendControlNotification({
+                  type: 'pause',
+                }),
+              beginning: () =>
+                sendControlNotification({
+                  type: 'beginning',
+                }),
+              seekRelative: (deltaMillis) =>
+                sendControlNotification({
+                  type: 'seekRelative',
+                  deltaMillis,
+                }),
+              seekAbsolute: (positionMillis) =>
+                sendControlNotification({
+                  type: 'seekAbsolute',
+                  positionMillis,
+                }),
+              clear: () => {
+                sendControlNotification({
+                  type: 'pause',
+                });
+                // And release control immediately
+                releasePlayerControl(generatorUuid, connection);
+              },
+            }),
+          );
+        }
+
+        return {
+          ...current,
+          generators: {
+            ...current.generators,
+            [generatorUuid]: {
+              ...state,
+              controlledBy: { uuid: connection.uuid },
+            },
+          },
+        };
+      });
+    },
+    [sendNotification, releasePlayerControl],
+  );
+
   if (!license) {
     // Wait for license to load before starting the app.
     return;
@@ -143,10 +354,13 @@ export const App = ({
       <>
         <C.ToolboxRoot
           config={data}
-          state={state}
+          state={augmentedState}
           handlers={availableHandlers}
           onUpdateConfig={onUpdateConfig}
           onCallHandler={callHandler}
+          onDownloadAudioFile={downloadAudioFile}
+          onUpdatePlayerState={updatePlayerState}
+          onReleasePlayerControl={releasePlayerControl}
           license={license.text}
           network={{
             envPort: env.PORT,
@@ -154,6 +368,12 @@ export const App = ({
           }}
         />
         <InputConnections state={state} setState={setState} />
+        <PlayerStateManager
+          state={state}
+          setState={setState}
+          setPlayerState={setPlayerState}
+          setHandlers={setHandlers}
+        />
         <Generators
           state={state}
           setState={setState}
@@ -204,10 +424,12 @@ export const App = ({
 
 export const createApp = (props: AppProps): JSX.Element => {
   return (
-    <ToolboxConfigData.Provider
-      path={path.join(props.dataDirectory, 'config.json')}
-    >
-      <App {...props} />
-    </ToolboxConfigData.Provider>
+    <ConnectionsContextProvider toolkit={props.toolkit}>
+      <ToolboxConfigData.Provider
+        path={path.join(props.dataDirectory, 'config.json')}
+      >
+        <App {...props} />
+      </ToolboxConfigData.Provider>
+    </ConnectionsContextProvider>
   );
 };

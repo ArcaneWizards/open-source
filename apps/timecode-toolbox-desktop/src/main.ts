@@ -34,6 +34,12 @@ type ActiveMediaWindow = {
   media: MediaMetadata;
 };
 
+type ActiveWindow = {
+  shouldPreventClose: boolean;
+};
+
+const activeWindows = new Map<BrowserWindow, ActiveWindow>();
+
 const activeMediaSessions: ActiveMediaWindow[] = [];
 
 const startMediaService = () => {
@@ -105,7 +111,7 @@ const registerMediaSession = (window: BrowserWindow, media: MediaMetadata) => {
   updateMediaState();
 };
 
-const unregesterMediaSession = (window: BrowserWindow) => {
+const unregisterMediaSession = (window: BrowserWindow) => {
   const existingIndex = activeMediaSessions.findIndex(
     (m) => m.window === window,
   );
@@ -131,8 +137,6 @@ const logger = pino(
 );
 
 const assetsPath = path.join(__dirname, '..', 'assets');
-
-const activeWindows = new Map<BrowserWindow, URL>();
 
 type WindowModes = 'default' | typeof urls.WINDOW_MODE_TIMECODE;
 
@@ -163,6 +167,7 @@ const createWindow = (
     ...windowOptions,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      autoplayPolicy: 'no-user-gesture-required',
     },
     ...(process.platform === 'darwin'
       ? {
@@ -180,10 +185,19 @@ const createWindow = (
   });
 
   win.loadURL(url.toString());
-  activeWindows.set(win, new URL(url));
+  const activeWindow: ActiveWindow = {
+    shouldPreventClose: true,
+  };
+  activeWindows.set(win, activeWindow);
+  win.on('close', (e) => {
+    if (activeWindow.shouldPreventClose) {
+      // Run close handlers in the browser window and prevent immediately closing
+      win.webContents.send('window-close');
+      e.preventDefault();
+    }
+  });
   win.on('closed', () => {
-    activeWindows.delete(win);
-    unregesterMediaSession(win);
+    unregisterMediaSession(win);
   });
   return win;
 };
@@ -209,6 +223,10 @@ const confirmIfUserWantsToQuit = async () => {
   if (response.response === 0) {
     await mediaService?.stopService();
     await server.shutdown();
+    // Prevent intercepting window close events
+    for (const activeWindow of activeWindows.values()) {
+      activeWindow.shouldPreventClose = false;
+    }
     app.quit();
   }
 };
@@ -220,7 +238,7 @@ app.whenReady().then(async () => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return;
     if (!media) {
-      unregesterMediaSession(win);
+      unregisterMediaSession(win);
     } else {
       registerMediaSession(win, media);
     }
@@ -231,8 +249,8 @@ app.whenReady().then(async () => {
   });
   ipcMain.on('open-window', (event, url: string, options: NewWindowOptions) => {
     if (options?.canUseExisting) {
-      for (const [win, winUrl] of activeWindows.entries()) {
-        if (winUrl.toString() === url) {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.webContents.getURL() === url) {
           win.focus();
           return;
         }
@@ -254,6 +272,10 @@ app.whenReady().then(async () => {
       .then((response) => {
         if (response.response === 0) {
           const win = BrowserWindow.fromWebContents(event.sender);
+          const activeWindow = win ? activeWindows.get(win) : null;
+          if (activeWindow) {
+            activeWindow.shouldPreventClose = false;
+          }
           if (win) {
             win.destroy();
           }
@@ -377,14 +399,19 @@ app.whenReady().then(async () => {
       hasOpenedFirstWindow = true;
       createWindow(url());
     }
-    for (const [win, winUrl] of activeWindows.entries()) {
-      if (winUrl.hostname !== u.hostname || winUrl.port !== u.port) {
-        const newUrl = new URL(winUrl);
-        newUrl.port = u.port;
-        newUrl.hostname = u.hostname;
-        logger.info(`Updating URL for window: ${winUrl} -> ${newUrl}`);
-        win.loadURL(newUrl.toString());
-        activeWindows.set(win, newUrl);
+    for (const win of BrowserWindow.getAllWindows()) {
+      try {
+        const winUrl = new URL(win.webContents.getURL());
+        if (winUrl.hostname !== u.hostname || winUrl.port !== u.port) {
+          const newUrl = new URL(winUrl);
+          newUrl.port = u.port;
+          newUrl.hostname = u.hostname;
+          logger.info(`Updating URL for window: ${winUrl} -> ${newUrl}`);
+          win.loadURL(newUrl.toString());
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars,unused-imports/no-unused-vars
+      } catch (_err) {
+        // Ignore windows that don't have a valid URL
       }
     }
   });
@@ -394,8 +421,8 @@ app.on('activate', () => {
   if (windowUrl === null) {
     return;
   }
-  for (const [win, url] of activeWindows.entries()) {
-    if (url === windowUrl) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.webContents.getURL() === windowUrl.toString()) {
       // Window is full window, just focus it
       win.focus();
       return;

@@ -3,6 +3,7 @@ import { Diff } from '@arcanejs/diff';
 
 import {
   Base,
+  CallDownloadResponse,
   EventEmitter,
   Listenable,
 } from '@arcanejs/toolkit/components/base';
@@ -15,16 +16,32 @@ import {
   DEFAULT_CONFIG,
   isTimecodeToolboxComponentCall,
   ToolboxRootCallHandler,
+  TimecodeToolboxComponentCallDownload,
+  isTimecodeToolboxComponentCallDownload,
+  ToolboxRootUpdatePlayerState,
 } from '../proto';
 import {
   AnyClientComponentCall,
+  AnyClientComponentCallDownload,
   AnyClientComponentMessage,
 } from '@arcanejs/protocol';
 import { getNetworkInterfaces } from '@arcanewizards/net-utils';
+import { ToolkitConnection } from '@arcanejs/toolkit';
 
 export type Events = {
   updateConfig: (diff: Diff<ToolboxConfig>) => void;
   callHandler: (call: ToolboxRootCallHandler) => Promise<void>;
+  downloadAudioFile: (
+    call: TimecodeToolboxComponentCallDownload,
+  ) => Promise<ReturnType<CallDownloadResponse>>;
+  updatePlayerState: (
+    call: ToolboxRootUpdatePlayerState,
+    connection: ToolkitConnection,
+  ) => void;
+  releasePlayerControl: (
+    generatorUuid: string,
+    connection: ToolkitConnection,
+  ) => void;
 };
 
 export type AppRootProps = Pick<
@@ -33,6 +50,9 @@ export type AppRootProps = Pick<
 > & {
   onUpdateConfig?: Events['updateConfig'];
   onCallHandler?: Events['callHandler'];
+  onDownloadAudioFile?: Events['downloadAudioFile'];
+  onUpdatePlayerState?: Events['updatePlayerState'];
+  onReleasePlayerControl?: Events['releasePlayerControl'];
 };
 
 const DEFAULT_PROPS: AppRootProps = {
@@ -70,6 +90,9 @@ export class ToolboxRoot
           {
             onUpdateConfig: 'updateConfig',
             onCallHandler: 'callHandler',
+            onDownloadAudioFile: 'downloadAudioFile',
+            onUpdatePlayerState: 'updatePlayerState',
+            onReleasePlayerControl: 'releasePlayerControl',
           },
           oldProps,
           this.props,
@@ -96,10 +119,21 @@ export class ToolboxRoot
   }
 
   /** @hidden */
-  public handleMessage = (message: AnyClientComponentMessage) => {
+  public handleMessage = (
+    message: AnyClientComponentMessage,
+    connection: ToolkitConnection,
+  ) => {
     if (isTimecodeToolboxComponentMessage(message, 'toolbox-root')) {
       if (message.action === 'update-config') {
         this.events.emit('updateConfig', message.diff);
+      } else if (message.action === 'update-player-state') {
+        this.events.emit('updatePlayerState', message, connection);
+      } else if (message.action === 'release-player-control') {
+        this.events.emit(
+          'releasePlayerControl',
+          message.generatorUuid,
+          connection,
+        );
       }
     }
   };
@@ -117,11 +151,26 @@ export class ToolboxRoot
       isTimecodeToolboxComponentCall(call, 'toolbox-root-call-handler')
     ) {
       const result = await this.events.emit('callHandler', call);
-      if (result[0]) {
+      if (result.length === 1) {
         return result[0];
       }
       throw new Error(`No handler for callHandler`);
     }
     throw new Error(`Unhandled call action: ${call.action}`);
   };
+
+  /** @hidden */
+  public async handleCallDownload(
+    call: AnyClientComponentCallDownload,
+  ): Promise<CallDownloadResponse> {
+    if (
+      isTimecodeToolboxComponentCallDownload(
+        call,
+        'toolbox-root-download-audio-file',
+      )
+    ) {
+      return async () => await this.events.call('downloadAudioFile', call);
+    }
+    throw new Error(`Unhandled call action: ${call.action}`);
+  }
 }
