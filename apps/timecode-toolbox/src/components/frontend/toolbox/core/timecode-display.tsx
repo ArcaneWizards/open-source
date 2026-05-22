@@ -20,6 +20,7 @@ import {
   isInputInstanceId,
   isGeneratorInstanceId,
   ToolboxConfig,
+  UniversalConfig,
 } from '../../../proto';
 import { displayMillis } from '../util';
 import { StageContext } from '@arcanejs/toolkit-frontend';
@@ -106,7 +107,7 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
     }
 
     if (state.state === 'stopped') {
-      setMillis(state.positionMillis);
+      setMillis(state.positionMillis + state.appliedDelayMillis);
       return;
     }
 
@@ -117,8 +118,9 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
         (Date.now() -
           (timeDifferenceMs ?? 0) -
           state.effectiveStartTimeMillis) *
-        state.speed;
-      setMillis(newMillis);
+          state.speed +
+        state.appliedDelayMillis;
+      setMillis(Math.max(0, newMillis));
       animationFrame = requestAnimationFrame(updateMillis);
     };
     updateMillis();
@@ -174,10 +176,6 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
       </div>
     </div>
   );
-};
-
-type UniversalConfig = {
-  delayMs: number | null;
 };
 
 export type TimecodeDisplayProps = {
@@ -459,11 +457,11 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
       </div>
       {(state.smpteMode !== null ||
         state.accuracyMillis !== null ||
-        config.delayMs !== null) && (
+        (config.delayMs !== null && config.delayMs !== undefined)) && (
         <div className="flex gap-px">
-          {config.delayMs !== null && (
+          {config.delayMs !== null && config.delayMs !== undefined && (
             <div className="grow basis-0 truncate bg-sigil-bg-light p-0.5">
-              {STRINGS.delay(config.delayMs)}
+              {STRINGS.delay(displayMillis(config.delayMs))}
             </div>
           )}
           {state.smpteMode !== null && (
@@ -619,6 +617,7 @@ const EMPTY_TIMECODE: TimecodeInstance = {
     accuracyMillis: null,
     smpteMode: null,
     onAir: null,
+    appliedDelayMillis: 0,
   },
   metadata: null,
 };
@@ -944,6 +943,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
       {audioConfig ? (
         <WithAudioPlayer
           uuid={id[1]}
+          config={instanceConfig.config}
           timecodeDisplay={({ loadFile, startPlayer, errors }) => (
             <TimecodeTreeDisplay
               id={id}

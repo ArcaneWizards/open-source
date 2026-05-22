@@ -176,6 +176,7 @@ export const App = ({
         accuracyMillis: null,
         smpteMode: null,
         onAir: null,
+        appliedDelayMillis: 0,
       };
       const errors: string[] = [];
 

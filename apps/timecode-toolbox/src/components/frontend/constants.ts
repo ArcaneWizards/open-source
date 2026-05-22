@@ -60,7 +60,7 @@ export const STRINGS = {
   },
   accuracy: (accuracyMillis: number) =>
     `Accuracy: ${MS_FORMAT.format(accuracyMillis)}`,
-  delay: (delayMs: number) => `Delay: ${MS_FORMAT.format(delayMs)}`,
+  delay: (delay: string) => `Delay: ${delay}`,
   generators: {
     title: 'GENERATORS',
     unnamed: 'Unnamed Generator',

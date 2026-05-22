@@ -15,6 +15,7 @@ import {
   TimecodeMetadata,
   TimecodePlayStatePlayingOrLagging,
   TimecodePlayStateStopped,
+  UniversalConfig,
 } from '../../../proto';
 import { useFileResolver } from '../hooks';
 import { ConfigContext } from '../context';
@@ -49,6 +50,7 @@ export const RootAudioContext = createContext<RootAudioContextData>({
 
 type WithAudioPlayerProps = {
   uuid: string;
+  config: UniversalConfig;
   timecodeDisplay: (props: {
     loadFile: LoadFileCallback;
     /**
@@ -87,6 +89,7 @@ const readFile = (file: File) =>
 
 export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   uuid,
+  config,
   timecodeDisplay,
 }) => {
   const { updateConfig } = useContext(ConfigContext);
@@ -210,9 +213,10 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
         state: {
           state: 'stopped',
           positionMillis: 0,
-          accuracyMillis: 0,
+          accuracyMillis: null,
           onAir: null,
           smpteMode: null,
+          appliedDelayMillis: 0,
         },
       },
     });
@@ -259,7 +263,7 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
         source.connect(context.masterGain);
         source.start(
           context.ctx.currentTime,
-          current.state.positionMillis / 1000,
+          Math.max(0, current.state.positionMillis / 1000),
         );
         return {
           ...current,
@@ -287,7 +291,7 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
           ...current,
           state: {
             state: 'stopped',
-            positionMillis,
+            positionMillis: Math.max(positionMillis, 0),
           },
         } satisfies PlayingAudio;
       }),
@@ -326,7 +330,7 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
             ...current,
             state: {
               ...current.state,
-              positionMillis,
+              positionMillis: Math.max(positionMillis, 0),
             },
           } satisfies PlayingAudio;
         }
@@ -360,7 +364,7 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
             ...current,
             state: {
               ...current.state,
-              positionMillis,
+              positionMillis: Math.max(positionMillis, 0),
             },
           } satisfies PlayingAudio;
         }
@@ -395,6 +399,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     [play, pause, seekRelative, seekAbsolute, uuid],
   );
 
+  const { delayMs } = config;
+
   useEffect(() => {
     if (!playingAudio || !timeDifferenceMs) {
       return;
@@ -404,11 +410,16 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
       | TimecodePlayStatePlayingOrLagging
       | TimecodePlayStateStopped =
       playingAudio.state.state === 'stopped'
-        ? playingAudio.state
+        ? {
+            state: 'stopped',
+            positionMillis: playingAudio.state.positionMillis - (delayMs ?? 0),
+          }
         : {
             ...playingAudio.state,
             effectiveStartTimeMillis:
-              playingAudio.state.effectiveStartTimeMillis - timeDifferenceMs,
+              playingAudio.state.effectiveStartTimeMillis -
+              timeDifferenceMs +
+              (delayMs ?? 0),
           };
 
     // Update the server with the current player state whenever it changes
@@ -417,14 +428,15 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
         name: null,
         metadata: playingAudio.loadedAudio.metadata,
         state: {
-          accuracyMillis: 0,
+          accuracyMillis: null,
           onAir: null,
           smpteMode: null,
+          appliedDelayMillis: delayMs ?? 0,
           ...adjustedState,
         },
       },
     });
-  }, [uuid, updatePlayerState, playingAudio, timeDifferenceMs]);
+  }, [uuid, updatePlayerState, playingAudio, timeDifferenceMs, delayMs]);
 
   return timecodeDisplay({ loadFile, startPlayer, errors });
 };

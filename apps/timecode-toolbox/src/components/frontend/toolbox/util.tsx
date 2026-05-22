@@ -33,8 +33,10 @@ export const PrimaryToolboxSection: FC<PrimaryToolboxSectionProps> = ({
 /**
  * Display the given number of milliseconds in a nice format to the user
  */
-export function displayMillis(totalMilliseconds: number | null): string {
-  if (totalMilliseconds === null) {
+export function displayMillis(
+  totalMilliseconds: number | null | undefined,
+): string {
+  if (totalMilliseconds === null || totalMilliseconds === undefined) {
     return '--:--:--:---';
   }
   if (totalMilliseconds < 0) {

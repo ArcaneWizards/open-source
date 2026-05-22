@@ -132,6 +132,13 @@ const OUTPUT_DEFINITION = OUTPUT_ARTNET_DEFINITION; // todo expand to other outp
 
 export type OutputDefinition = z.infer<typeof OUTPUT_DEFINITION>;
 
+/**
+ * Config that's available for all components
+ */
+export type UniversalConfig = {
+  delayMs?: number | null;
+};
+
 export type InputInstanceId = [
   type: 'input',
   rootId: string,
@@ -280,6 +287,13 @@ export type TimecodeState = {
    * (e.g. have a mixer value high enough)
    */
   onAir: boolean | null;
+  /**
+   * How much delay is currently applied to the timecode, in milliseconds.
+   *
+   * This is used to account for differences when needing to display relative
+   * track time (such as in the timeline for a timecode display).
+   */
+  appliedDelayMillis: number;
 } & TimecodePlayState;
 
 export type TimecodeTotalTime = {

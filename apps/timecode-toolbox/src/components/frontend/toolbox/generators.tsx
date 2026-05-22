@@ -201,6 +201,27 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
             updateSettings={updateDefinition}
           />
         ) : null}
+
+        <ControlLabel>Delay (ms)</ControlLabel>
+        <ControlInput
+          position="both"
+          type="string"
+          value={data.delayMs?.toString() ?? ''}
+          placeholder={`Default (0ms)`}
+          onChange={(value, enterPressed) => {
+            const delayMs = value ? parseInt(value, 10) : undefined;
+            if (delayMs !== undefined && isNaN(delayMs)) {
+              return;
+            }
+            updateSettings((current) => ({
+              ...current,
+              delayMs,
+            }));
+            if (enterPressed) {
+              commitChanges();
+            }
+          }}
+        />
         {target.type === 'add' ? (
           <ControlDialogButtons>
             <ControlButton onClick={close} variant="large">
@@ -348,6 +369,7 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
               <WithAudioPlayer
                 key={uuid}
                 uuid={uuid}
+                config={generator}
                 timecodeDisplay={({ loadFile, startPlayer, errors }) => (
                   <GeneratorDisplay
                     key={uuid}

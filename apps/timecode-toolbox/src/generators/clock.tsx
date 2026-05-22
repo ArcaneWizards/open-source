@@ -163,13 +163,26 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
                 accuracyMillis: null,
                 smpteMode: null,
                 onAir: null,
-                ...state,
+                appliedDelayMillis: config.delayMs ?? 0,
+                ...(isPlaying(state)
+                  ? {
+                      ...state,
+                      effectiveStartTimeMillis:
+                        state.effectiveStartTimeMillis + (config.delayMs ?? 0),
+                    }
+                  : isStopped(state)
+                    ? {
+                        ...state,
+                        positionMillis:
+                          state.positionMillis - (config.delayMs ?? 0),
+                      }
+                    : state),
               },
             },
           },
         },
       })),
-    [setState, uuid, state, config.name],
+    [setState, uuid, state, config.name, config.delayMs],
   );
 
   useEffect(

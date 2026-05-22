@@ -186,6 +186,7 @@ const TcnetInputConnection: FC<TcnetInputConnectionProps> = ({
                       onAir: playState.onAir,
                       accuracyMillis: null,
                       smpteMode: null,
+                      appliedDelayMillis: delayRef.current,
                     }
                   : {
                       state: 'stopped',
@@ -194,6 +195,7 @@ const TcnetInputConnection: FC<TcnetInputConnectionProps> = ({
                       onAir: playState.onAir,
                       accuracyMillis: null,
                       smpteMode: null,
+                      appliedDelayMillis: delayRef.current,
                     },
             },
           },
