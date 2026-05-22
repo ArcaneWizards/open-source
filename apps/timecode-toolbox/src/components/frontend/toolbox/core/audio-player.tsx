@@ -259,6 +259,14 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
           state: 'playing',
         },
       });
+    } else {
+      setPlayingAudio({
+        loadedAudio,
+        state: {
+          state: 'stopped',
+          positionMillis: 0,
+        },
+      });
     }
   }, [context, updatePlayerState, uuid, loadedAudio]);
 
