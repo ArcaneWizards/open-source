@@ -2,7 +2,7 @@ import { FC, useCallback, useContext } from 'react';
 
 import { ControlButton } from '@arcanewizards/sigil/frontend/controls';
 
-import { STRINGS } from '../constants';
+import { HELP_AND_SUPPORT_URL, STRINGS } from '../constants';
 import { TimecodeToolboxLogo } from './logo';
 import {
   ToolboxLicenseGateAcceptLicense,
@@ -11,7 +11,7 @@ import {
 
 import { StageContext } from '@arcanejs/toolkit-frontend';
 import { Layout } from './core/layout';
-import { Debugger } from '@arcanewizards/sigil/frontend';
+import { Debugger, useBrowserContext } from '@arcanewizards/sigil/frontend';
 
 type LicenseProps = {
   license: string;
@@ -31,6 +31,7 @@ export const LicenseContent: FC<{ license: string }> = ({ license }) => {
 };
 
 export const License: FC<LicenseProps> = ({ license, setWindowMode }) => {
+  const { openExternalLink } = useBrowserContext();
   return (
     <div className="flex grow flex-col">
       <div
@@ -47,6 +48,16 @@ export const License: FC<LicenseProps> = ({ license, setWindowMode }) => {
             icon="close"
           >
             {STRINGS.close(STRINGS.license)}
+          </ControlButton>
+          <ControlButton
+            onClick={(e) => {
+              e.preventDefault();
+              openExternalLink(HELP_AND_SUPPORT_URL);
+            }}
+            variant="large"
+            icon="help"
+          >
+            {STRINGS.helpAndSupport}
           </ControlButton>
         </div>
       </div>

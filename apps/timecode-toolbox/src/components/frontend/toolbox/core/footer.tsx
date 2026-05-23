@@ -1,7 +1,11 @@
 import { ToolbarDivider } from '@arcanewizards/sigil/frontend/toolbars';
 import { ExternalLink, TextButton } from '../content';
 import { FC } from 'react';
-import { SOURCE_CODE_URL, STRINGS } from '../../constants';
+import {
+  HELP_AND_SUPPORT_URL,
+  SOURCE_CODE_URL,
+  STRINGS,
+} from '../../constants';
 
 type FooterProps = {
   openLicenseDetails?: () => void;
@@ -31,6 +35,10 @@ export const Footer: FC<FooterProps> = ({ openLicenseDetails }) => {
           </TextButton>
         </>
       )}
+      <ToolbarDivider />
+      <ExternalLink href={HELP_AND_SUPPORT_URL}>
+        {STRINGS.helpAndSupport}
+      </ExternalLink>
     </div>
   );
 };
