@@ -9,6 +9,8 @@ const MS_FORMAT = new Intl.NumberFormat(undefined, {
 export const SOURCE_CODE_URL =
   'https://github.com/ArcaneWizards/open-source/tree/main/apps/timecode-toolbox';
 
+export const HELP_AND_SUPPORT_URL = 'https://arcanewizards.com/discord';
+
 export const STRINGS = {
   title: 'Timecode Toolbox',
   debugger: 'Debug Tools & Log',
@@ -22,6 +24,7 @@ export const STRINGS = {
   acceptLicense: 'Accept License',
   licensePrompt: 'Please review and accept the license to use Timecode Toolbox',
   sourceCode: 'Source Code',
+  helpAndSupport: 'Get Help & Support',
   protocols: {
     artnet: {
       short: 'ArtNet',

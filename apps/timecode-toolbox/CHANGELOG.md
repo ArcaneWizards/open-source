@@ -1,5 +1,11 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.2.1
+
+### Patch Changes
+
+- 4d71081: Add links to help and support pages
+
 ## 0.2.0
 
 ### Minor Changes
