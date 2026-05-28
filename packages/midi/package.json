@@ -1,0 +1,44 @@
+{
+  "name": "@arcanewizards/midi",
+  "version": "0.0.1",
+  "private": false,
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArcaneWizards/open-source.git",
+    "directory": "packages/midi"
+  },
+  "exports": {
+    ".": {
+      "@arcanewizards/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm clean && tsup && check-export-map",
+    "clean": "rm -rf dist",
+    "check:types": "tsc --noEmit",
+    "format:fix": "cd .. && pnpm format:fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint --fix ."
+  },
+  "devDependencies": {
+    "@arcanewizards/eslint-config": "workspace:^",
+    "@arcanewizards/typescript-config": "workspace:^",
+    "@types/node": "^25.5.0",
+    "check-export-map": "^1.3.1",
+    "eslint": "^9.39.4",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0 || >=23.1.0"
+  }
+}
