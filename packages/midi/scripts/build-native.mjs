@@ -25,41 +25,34 @@ const execFilePromise = (file, args, options) => {
   });
 };
 
-const findNodeIncludeDir = async () => {
-  const nodeIncludeCandidates = [
-    process.env.npm_config_nodedir
-      ? join(process.env.npm_config_nodedir, 'include', 'node')
-      : null,
-    join(dirname(process.execPath), '..', 'include', 'node'),
-    join(
-      homedir(),
-      'Library',
-      'Caches',
-      'node-gyp',
-      process.versions.node,
-      'include',
-      'node',
-    ),
-    join(
-      process.env.LOCALAPPDATA ?? '',
-      'node-gyp',
-      'Cache',
-      process.versions.node,
-      'include',
-      'node',
-    ),
-    join(
-      process.env.USERPROFILE ?? '',
-      '.node-gyp',
-      process.versions.node,
-      'include',
-      'node',
-    ),
-  ].filter(Boolean);
+const compactPaths = (paths) => {
+  return [...new Set(paths.filter(Boolean))];
+};
 
-  for (const candidate of nodeIncludeCandidates) {
+const nodeGypCacheRootCandidates = () => {
+  if (process.platform === 'darwin') {
+    return [join(homedir(), 'Library', 'Caches', 'node-gyp')];
+  }
+
+  if (process.platform === 'win32') {
+    return [
+      process.env.LOCALAPPDATA
+        ? join(process.env.LOCALAPPDATA, 'node-gyp', 'Cache')
+        : null,
+      join(homedir(), 'AppData', 'Local', 'node-gyp', 'Cache'),
+      process.env.USERPROFILE ? join(process.env.USERPROFILE, '.node-gyp') : null,
+    ];
+  }
+
+  return [];
+};
+
+const findFirstPathContaining = async (description, candidates, filename) => {
+  const paths = compactPaths(candidates);
+
+  for (const candidate of paths) {
     try {
-      await stat(join(candidate, 'node_api.h'));
+      await stat(join(candidate, filename));
       return candidate;
     } catch {
       // Ignore and try the next candidate
@@ -67,7 +60,59 @@ const findNodeIncludeDir = async () => {
   }
 
   throw new Error(
-    `Unable to find Node headers. Tried: ${nodeIncludeCandidates.join(', ')}`,
+    `Unable to find ${description}. Tried: ${paths.join(', ')}`,
+  );
+};
+
+const nodeHeaderCandidates = () => {
+  return compactPaths([
+    process.env.npm_config_nodedir
+      ? join(process.env.npm_config_nodedir, 'include', 'node')
+      : null,
+    join(dirname(process.execPath), 'include', 'node'),
+    join(dirname(process.execPath), '..', 'include', 'node'),
+    ...nodeGypCacheRootCandidates().map((cacheRoot) =>
+      cacheRoot
+        ? join(cacheRoot, process.versions.node, 'include', 'node')
+        : null,
+    ),
+  ]);
+};
+
+const findNodeIncludeDir = async () => {
+  return findFirstPathContaining(
+    'Node headers',
+    nodeHeaderCandidates(),
+    'node_api.h',
+  );
+};
+
+const nodeLibCandidates = (nodeIncludeDir, targetArch) => {
+  const nodeRootFromIncludeDir = dirname(dirname(nodeIncludeDir));
+  return compactPaths([
+    process.env.npm_config_nodedir
+      ? join(process.env.npm_config_nodedir, targetArch)
+      : null,
+    process.env.npm_config_nodedir
+      ? join(process.env.npm_config_nodedir, 'lib')
+      : null,
+    process.env.npm_config_nodedir ?? null,
+    dirname(process.execPath),
+    join(dirname(process.execPath), '..', targetArch),
+    nodeRootFromIncludeDir,
+    join(nodeRootFromIncludeDir, targetArch),
+    join(nodeRootFromIncludeDir, 'lib'),
+    ...nodeGypCacheRootCandidates().map((cacheRoot) =>
+      cacheRoot ? join(cacheRoot, process.versions.node, targetArch) : null,
+    ),
+  ]);
+};
+
+const findNodeLibDir = async (nodeIncludeDir, targetArch) => {
+  return findFirstPathContaining(
+    'node.lib',
+    nodeLibCandidates(nodeIncludeDir, targetArch),
+    'node.lib',
   );
 };
 
@@ -185,9 +230,8 @@ const build = async () => {
 
   if (process.platform === 'win32') {
     const vcvarsBat = await findVcvarsBat();
-    const nodeVersionDir = dirname(dirname(nodeIncludeDir));
     const targetArch = arch() === 'arm64' ? 'arm64' : 'x64';
-    const nodeLibDir = join(nodeVersionDir, targetArch);
+    const nodeLibDir = await findNodeLibDir(nodeIncludeDir, targetArch);
     const intermediatePaths = [
       join(outputDir, 'midi-windows.exp'),
       join(outputDir, 'midi-windows.lib'),
