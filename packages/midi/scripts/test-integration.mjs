@@ -1,10 +1,13 @@
 /* eslint-disable no-console */
 
 import { spawn } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(import.meta.url);
+const jestBin = join(dirname(require.resolve('jest/package.json')), 'bin', 'jest.js');
 
 const loadMidi = async () => {
   const { midi } = await import('../dist/index.js');
@@ -23,9 +26,59 @@ const listEndpoints = (label, endpoints) => {
   });
 };
 
-const findEndpoint = (selector, endpoints, label) => {
+const getWindowsPhysicalPortNumber = (endpoint, label) => {
+  if (process.platform !== 'win32') {
+    return null;
+  }
+
+  const prefix = label === 'input' ? 'MIDIIN' : 'MIDIOUT';
+  const explicitMatch = endpoint.name.match(new RegExp(`^${prefix}(\\d+)\\b`, 'i'));
+  if (explicitMatch) {
+    return Number.parseInt(explicitMatch[1], 10);
+  }
+
+  if (endpoint.name.toLowerCase().includes('midi')) {
+    return 1;
+  }
+
+  return null;
+};
+
+const findEndpointByPhysicalPort = (selector, endpoints, label) => {
+  const portNumber = Number.parseInt(selector, 10);
+  if (!Number.isInteger(portNumber) || String(portNumber) !== selector) {
+    return null;
+  }
+
+  const matches = endpoints.filter((endpoint) => {
+    return getWindowsPhysicalPortNumber(endpoint, label) === portNumber;
+  });
+
+  if (matches.length === 1) {
+    return matches[0];
+  }
+
+  if (matches.length > 1) {
+    throw new Error(
+      `${label} selector "${selector}" matched multiple physical ports: ${matches
+        .map((endpoint) => endpoint.name)
+        .join(', ')}`,
+    );
+  }
+
+  return null;
+};
+
+const findEndpoint = (selector, endpoints, label, options = {}) => {
   if (!selector) {
     throw new Error(`Missing ${label} selector.`);
+  }
+
+  if (options.preferPhysicalPort) {
+    const physicalPort = findEndpointByPhysicalPort(selector, endpoints, label);
+    if (physicalPort) {
+      return physicalPort;
+    }
   }
 
   const byIndex = Number.parseInt(selector, 10);
@@ -83,8 +136,13 @@ const list = async () => {
 
 const runJest = (input, output) => {
   const child = spawn(
-    'jest',
-    ['--runInBand', '--testNamePattern', 'real device loopback'],
+    process.execPath,
+    [
+      jestBin,
+      '--runInBand',
+      '--testNamePattern',
+      'real device loopback',
+    ],
     {
       cwd: packageRoot,
       env: {
@@ -93,7 +151,6 @@ const runJest = (input, output) => {
         MIDI_INTEGRATION_INPUT: JSON.stringify(input),
         MIDI_INTEGRATION_OUTPUT: JSON.stringify(output),
       },
-      shell: process.platform === 'win32',
       stdio: 'inherit',
     },
   );
@@ -107,12 +164,16 @@ const runJest = (input, output) => {
   });
 };
 
-const run = async ([inputSelector, outputSelector]) => {
+const run = async ([outputSelector, inputSelector]) => {
   const midi = await loadMidi();
   assertSupported(midi);
 
-  const input = findEndpoint(inputSelector, midi.getInputs(), 'input');
-  const output = findEndpoint(outputSelector, midi.getOutputs(), 'output');
+  const output = findEndpoint(outputSelector, midi.getOutputs(), 'output', {
+    preferPhysicalPort: true,
+  });
+  const input = findEndpoint(inputSelector, midi.getInputs(), 'input', {
+    preferPhysicalPort: true,
+  });
 
   console.log(`Input: ${input.name} (portId: ${input.portId})`);
   console.log(`Output: ${output.name} (portId: ${output.portId})`);
@@ -130,7 +191,7 @@ try {
     await run(args);
   } else {
     throw new Error(
-      'Usage: test-integration.mjs list | test-integration.mjs run <input> <output>',
+      'Usage: test-integration.mjs list | test-integration.mjs run <output> <input>',
     );
   }
 } catch (error) {

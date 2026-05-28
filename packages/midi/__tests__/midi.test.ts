@@ -1,8 +1,12 @@
 import type { MidiEndpointInfo, MIDIInterface } from '../dist/index.cjs';
 import { midi as midiInit } from '@arcanewizards/midi';
 
-const suite = process.platform === 'darwin' ? describe : xdescribe;
 const integrationMode = process.env.MIDI_TEST_MODE === 'integration';
+const suite =
+  process.platform === 'darwin' ||
+  (integrationMode && process.platform === 'win32')
+    ? describe
+    : xdescribe;
 
 const wait = (durationMs: number) =>
   new Promise<void>((resolve) => {
@@ -63,7 +67,7 @@ suite('macOS MIDI communication', () => {
     if (!support.supported) {
       return;
     }
-    expect(support.virtual.supported).toBe(true);
+    expect(support.virtual.supported).toBe(process.platform === 'darwin');
   });
 
   const virtualTest = integrationMode ? test.skip : test;
