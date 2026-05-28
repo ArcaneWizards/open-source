@@ -19,7 +19,10 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "native/dist",
+    "native/midi-macos.mm",
+    "scripts/build-native.mjs"
   ],
   "scripts": {
     "build": "pnpm clean && tsup && node scripts/build-native.mjs && check-export-map",
