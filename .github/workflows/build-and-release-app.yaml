@@ -152,9 +152,9 @@ jobs:
           OUTPUT: ${{ steps.build_vars.outputs.x64File }}
         run: |
           pnpm make --arch=x64
+          ls -la out
           ls -la out/make
           mv out/make/*.dmg "${OUTPUT}"
-          ls -la out
       - name: Build ${{ steps.build_vars.outputs.arm64File }}
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
@@ -162,9 +162,9 @@ jobs:
           OUTPUT: ${{ steps.build_vars.outputs.arm64File }}
         run: |
           pnpm make --arch=arm64
+          ls -la out
           ls -la out/make
           mv out/make/*.dmg "${OUTPUT}"
-          ls -la out
       - name: Clean up keychain
         if: ${{ always() && inputs.notarize }}
         run: |
@@ -209,6 +209,11 @@ jobs:
         run: |
           npm install -g pnpm@$env:PNPM_VERSION
         shell: pwsh
+      - name: Install Node native headers
+        run: |
+          $nodeVersion = node -p "process.versions.node"
+          npm exec --yes --package=node-gyp node-gyp install --target=$nodeVersion
+        shell: pwsh
       - run: pnpm install --frozen-lockfile
       - run: pnpm build --filter=@arcanewizards/${{ inputs.app }}-desktop
       - name: Determine build variables
@@ -236,6 +241,10 @@ jobs:
           OUTPUT: ${{ steps.build_vars.outputs.x64File }}
         run: |
           pnpm make --arch=x64
+          ls
+          ls "out/"
+          ls "out/make/"
+          ls "out/make/squirrel.windows/"
           ls "out/make/squirrel.windows/x64/"
           mv "out/make/squirrel.windows/x64/*.exe" "$env:OUTPUT"
           mv "out/make/squirrel.windows/x64/*.nupkg" "out/"
