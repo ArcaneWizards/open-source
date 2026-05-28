@@ -22,12 +22,13 @@
     "dist"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup && check-export-map",
+    "build": "pnpm clean && tsup && node scripts/build-native.mjs && check-export-map",
     "clean": "rm -rf dist",
     "check:types": "tsc --noEmit",
     "format:fix": "cd .. && pnpm format:fix",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint --fix ."
+    "lint:fix": "eslint --fix .",
+    "postinstall": "node scripts/build-native.mjs"
   },
   "devDependencies": {
     "@arcanewizards/eslint-config": "workspace:^",

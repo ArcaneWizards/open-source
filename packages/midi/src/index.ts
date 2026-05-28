@@ -1,3 +1,4 @@
+import { loadNativeModuleMacOS } from './midi-macos.js';
 import { MIDIInterface } from './types.js';
 
 export type {
@@ -36,6 +37,9 @@ const DEFAULT_MIDI_INTERFACE: MIDIInterface = {
 };
 
 export const midi = () => {
+  if (process.platform === 'darwin') {
+    return loadNativeModuleMacOS();
+  }
   return DEFAULT_MIDI_INTERFACE;
 };
 
