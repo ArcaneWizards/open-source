@@ -231,19 +231,22 @@ const getNativeModule = () => {
   packageRootCandidates.push(process.cwd());
   packageRootCandidates.push(join(process.cwd(), 'packages', 'midi'));
 
-  for (const packageRoot of packageRootCandidates) {
-    const nativePath = join(packageRoot, 'native', 'dist', 'midi-macos.node');
+  const resolvedPaths = new Set(
+    packageRootCandidates.map((packageRoot) =>
+      join(packageRoot, 'native', 'out', 'midi-macos.node'),
+    ),
+  );
+
+  for (const nativePath of resolvedPaths) {
     if (existsSync(nativePath)) {
-      return requireNative(nativePath) as unknown;
+      return requireNative(nativePath);
     }
   }
 
   throw new Error(
-    `MacOS MIDI native module was not found. Tried: ${packageRootCandidates
-      .map((packageRoot) =>
-        join(packageRoot, 'native', 'dist', 'midi-macos.node'),
-      )
-      .join(', ')}`,
+    `MacOS MIDI native module was not found. Tried: ${[...resolvedPaths].join(
+      ', ',
+    )}`,
   );
 };
 

@@ -180,7 +180,7 @@ const findVcvarsBat = async () => {
 
 const build = async () => {
   const nodeIncludeDir = await findNodeIncludeDir();
-  const outputDir = join(root, 'native', 'dist');
+  const outputDir = join(root, 'native', 'out');
   await mkdir(outputDir, { recursive: true });
 
   if (process.platform === 'win32') {
@@ -220,12 +220,16 @@ const build = async () => {
         ],
         { stdio: 'inherit', windowsVerbatimArguments: true },
       );
-      await Promise.all(intermediatePaths.map((path) => rm(path, { force: true })));
+      await Promise.all(
+        intermediatePaths.map((path) => rm(path, { force: true })),
+      );
       return;
     }
 
     await execFilePromise('cl.exe', clArgs, { stdio: 'inherit' });
-    await Promise.all(intermediatePaths.map((path) => rm(path, { force: true })));
+    await Promise.all(
+      intermediatePaths.map((path) => rm(path, { force: true })),
+    );
     return;
   }
 

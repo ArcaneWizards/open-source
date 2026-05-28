@@ -1,4 +1,5 @@
 import type { MidiEndpointInfo, MIDIInterface } from '../dist/index.cjs';
+import { midi as midiInit } from '@arcanewizards/midi';
 
 const suite = process.platform === 'darwin' ? describe : xdescribe;
 const integrationMode = process.env.MIDI_TEST_MODE === 'integration';
@@ -33,7 +34,9 @@ const readIntegrationEndpoint = (
 ): MidiEndpointInfo => {
   const value = process.env[environmentVariable];
   if (!value) {
-    throw new Error(`${environmentVariable} is required for integration tests.`);
+    throw new Error(
+      `${environmentVariable} is required for integration tests.`,
+    );
   }
 
   const endpoint = JSON.parse(value) as MidiEndpointInfo;
@@ -53,10 +56,7 @@ suite('macOS MIDI communication', () => {
   let midi: MIDIInterface;
 
   beforeAll(async () => {
-    const module = (await import('../dist/index.cjs')) as {
-      midi(): MIDIInterface;
-    };
-    midi = module.midi();
+    midi = midiInit();
 
     const support = midi.getSupportInfo();
     expect(support.supported).toBe(true);
@@ -119,27 +119,30 @@ suite('macOS MIDI communication', () => {
     }
   });
 
-  integrationTest('real device loopback receives output messages on input', async () => {
-    const inputInfo = readIntegrationEndpoint('MIDI_INTEGRATION_INPUT');
-    const outputInfo = readIntegrationEndpoint('MIDI_INTEGRATION_OUTPUT');
-    const expected = [144, 60, 1];
-    const received: number[][] = [];
-    const input = midi.openInput(inputInfo);
-    const output = midi.openOutput(outputInfo);
+  integrationTest(
+    'real device loopback receives output messages on input',
+    async () => {
+      const inputInfo = readIntegrationEndpoint('MIDI_INTEGRATION_INPUT');
+      const outputInfo = readIntegrationEndpoint('MIDI_INTEGRATION_OUTPUT');
+      const expected = [144, 60, 1];
+      const received: number[][] = [];
+      const input = midi.openInput(inputInfo);
+      const output = midi.openOutput(outputInfo);
 
-    try {
-      input.addMessageListener((message) => {
-        received.push(message);
-      });
+      try {
+        input.addMessageListener((message) => {
+          received.push(message);
+        });
 
-      await wait(100);
-      output.sendMessage(expected);
+        await wait(100);
+        output.sendMessage(expected);
 
-      await waitForMessage(received, expected);
-      expect(hasMessage(received, expected)).toBe(true);
-    } finally {
-      output.close();
-      input.close();
-    }
-  });
+        await waitForMessage(received, expected);
+        expect(hasMessage(received, expected)).toBe(true);
+      } finally {
+        output.close();
+        input.close();
+      }
+    },
+  );
 });

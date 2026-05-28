@@ -20,13 +20,12 @@
   },
   "files": [
     "dist",
-    "native/dist",
     "native/midi-macos.mm",
     "scripts/build-native.mjs"
   ],
   "scripts": {
     "build": "pnpm clean && tsup && node scripts/build-native.mjs && check-export-map",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist && rm -rf native/out",
     "check:types": "tsc --noEmit",
     "format:fix": "cd .. && pnpm format:fix",
     "lint": "eslint . --max-warnings 0",
