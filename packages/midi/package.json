@@ -21,6 +21,7 @@
   "files": [
     "dist",
     "native/midi-macos.mm",
+    "native/midi-windows.cpp",
     "scripts/build-native.mjs"
   ],
   "scripts": {
