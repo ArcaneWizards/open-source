@@ -1,6 +1,7 @@
-import { MIDIInterface } from '../dist/index.cjs';
+import type { MidiEndpointInfo, MIDIInterface } from '../dist/index.cjs';
 
 const suite = process.platform === 'darwin' ? describe : xdescribe;
+const integrationMode = process.env.MIDI_TEST_MODE === 'integration';
 
 const wait = (durationMs: number) =>
   new Promise<void>((resolve) => {
@@ -27,7 +28,26 @@ const waitForMessage = async (received: number[][], expected: number[]) => {
   );
 };
 
-suite('macOS MIDI virtual communication', () => {
+const readIntegrationEndpoint = (
+  environmentVariable: string,
+): MidiEndpointInfo => {
+  const value = process.env[environmentVariable];
+  if (!value) {
+    throw new Error(`${environmentVariable} is required for integration tests.`);
+  }
+
+  const endpoint = JSON.parse(value) as MidiEndpointInfo;
+  if (
+    typeof endpoint.name !== 'string' ||
+    typeof endpoint.portId !== 'number'
+  ) {
+    throw new Error(`${environmentVariable} is not a valid MIDI endpoint.`);
+  }
+
+  return endpoint;
+};
+
+suite('macOS MIDI communication', () => {
   jest.setTimeout(10_000);
 
   let midi: MIDIInterface;
@@ -46,7 +66,10 @@ suite('macOS MIDI virtual communication', () => {
     expect(support.virtual.supported).toBe(true);
   });
 
-  test('receives messages sent to a virtual input', async () => {
+  const virtualTest = integrationMode ? test.skip : test;
+  const integrationTest = integrationMode ? test : test.skip;
+
+  virtualTest('receives messages sent to a virtual input', async () => {
     const expected = [144, 60, 1];
     const received: number[][] = [];
     const input = midi.createVirtualInput(
@@ -71,7 +94,7 @@ suite('macOS MIDI virtual communication', () => {
     }
   });
 
-  test('receives messages emitted by a virtual output', async () => {
+  virtualTest('receives messages emitted by a virtual output', async () => {
     const expected = [144, 62, 3];
     const received: number[][] = [];
     const output = midi.createVirtualOutput(
@@ -93,6 +116,30 @@ suite('macOS MIDI virtual communication', () => {
     } finally {
       input?.close();
       output.close();
+    }
+  });
+
+  integrationTest('real device loopback receives output messages on input', async () => {
+    const inputInfo = readIntegrationEndpoint('MIDI_INTEGRATION_INPUT');
+    const outputInfo = readIntegrationEndpoint('MIDI_INTEGRATION_OUTPUT');
+    const expected = [144, 60, 1];
+    const received: number[][] = [];
+    const input = midi.openInput(inputInfo);
+    const output = midi.openOutput(outputInfo);
+
+    try {
+      input.addMessageListener((message) => {
+        received.push(message);
+      });
+
+      await wait(100);
+      output.sendMessage(expected);
+
+      await waitForMessage(received, expected);
+      expect(hasMessage(received, expected)).toBe(true);
+    } finally {
+      output.close();
+      input.close();
     }
   });
 });

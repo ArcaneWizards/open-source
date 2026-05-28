@@ -32,7 +32,9 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint --fix .",
     "postinstall": "node scripts/build-native.mjs",
-    "test": "pnpm build && jest --runInBand"
+    "test": "pnpm build && jest --runInBand",
+    "test:integration": "pnpm build && node scripts/test-integration.mjs run",
+    "test:integration:list": "pnpm build && node scripts/test-integration.mjs list"
   },
   "devDependencies": {
     "@arcanewizards/eslint-config": "workspace:^",
