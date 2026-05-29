@@ -34,6 +34,7 @@
     "postinstall": "node scripts/build-native.mjs",
     "test": "pnpm build && jest --runInBand",
     "test:integration": "pnpm build && node scripts/test-integration.mjs run",
+    "test:integration:virtual": "pnpm build && node scripts/test-integration.mjs virtual",
     "test:integration:list": "pnpm build && node scripts/test-integration.mjs list"
   },
   "devDependencies": {
