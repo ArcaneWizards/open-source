@@ -3,6 +3,10 @@
 #include <windows.h>
 #include <mmsystem.h>
 #include <node_api.h>
+#include <winrt/Windows.Devices.Enumeration.h>
+#include <winrt/Windows.Devices.Midi.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/base.h>
 
 #include <algorithm>
 #include <atomic>
@@ -14,8 +18,15 @@
 #include <vector>
 
 #pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "windowsapp.lib")
 
 namespace {
+
+using winrt::Windows::Devices::Enumeration::DeviceInformation;
+using winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
+using winrt::Windows::Devices::Enumeration::DeviceWatcher;
+using winrt::Windows::Devices::Midi::MidiInPort;
+using winrt::Windows::Devices::Midi::MidiOutPort;
 
 struct Listener {
   napi_ref callbackRef = nullptr;
@@ -39,6 +50,21 @@ struct OutputPort {
   std::wstring name;
   std::atomic_bool closed = false;
 };
+
+std::once_flag gWinrtInitOnce;
+HRESULT gWinrtInitStatus = S_OK;
+std::once_flag gDeviceWatcherOnce;
+HRESULT gDeviceWatcherStatus = S_OK;
+DeviceWatcher gInputDeviceWatcher = nullptr;
+DeviceWatcher gOutputDeviceWatcher = nullptr;
+winrt::event_token gInputAddedToken = {};
+winrt::event_token gInputRemovedToken = {};
+winrt::event_token gInputUpdatedToken = {};
+winrt::event_token gOutputAddedToken = {};
+winrt::event_token gOutputRemovedToken = {};
+winrt::event_token gOutputUpdatedToken = {};
+std::mutex gDeviceNotificationMutex;
+napi_threadsafe_function gDeviceNotificationCallback = nullptr;
 
 napi_value Undefined(napi_env env) {
   napi_value value;
@@ -96,6 +122,32 @@ std::string MidiOutErrorText(MMRESULT result) {
   return "WinMM MIDI output error " + std::to_string(result);
 }
 
+std::string HResultText(HRESULT result) {
+  LPWSTR rawMessage = nullptr;
+  const DWORD length = FormatMessageW(
+    FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+      FORMAT_MESSAGE_IGNORE_INSERTS,
+    nullptr,
+    result,
+    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+    reinterpret_cast<LPWSTR>(&rawMessage),
+    0,
+    nullptr
+  );
+
+  if (length == 0 || rawMessage == nullptr) {
+    return "HRESULT " + std::to_string(static_cast<long>(result));
+  }
+
+  std::wstring message(rawMessage, length);
+  LocalFree(rawMessage);
+  while (!message.empty() &&
+         (message.back() == L'\r' || message.back() == L'\n')) {
+    message.pop_back();
+  }
+  return WideToUtf8(message);
+}
+
 void ThrowMidiInError(napi_env env, const char* operation, MMRESULT result) {
   const std::string message =
     std::string(operation) + " failed: " + MidiInErrorText(result);
@@ -105,6 +157,12 @@ void ThrowMidiInError(napi_env env, const char* operation, MMRESULT result) {
 void ThrowMidiOutError(napi_env env, const char* operation, MMRESULT result) {
   const std::string message =
     std::string(operation) + " failed: " + MidiOutErrorText(result);
+  napi_throw_error(env, nullptr, message.c_str());
+}
+
+void ThrowHResultError(napi_env env, const char* operation, HRESULT result) {
+  const std::string message =
+    std::string(operation) + " failed: " + HResultText(result);
   napi_throw_error(env, nullptr, message.c_str());
 }
 
@@ -229,6 +287,114 @@ std::vector<uint8_t> ShortMessageFromWinMM(DWORD_PTR payload) {
   }
 
   return { status, first, second };
+}
+
+void DeviceNotificationCallback(
+  napi_env env,
+  napi_value jsCallback,
+  void*,
+  void* data
+) {
+  std::unique_ptr<int32_t> messageId(static_cast<int32_t*>(data));
+
+  if (env == nullptr || jsCallback == nullptr) {
+    return;
+  }
+
+  napi_value jsMessageId;
+  napi_create_int32(env, *messageId, &jsMessageId);
+
+  napi_value global;
+  napi_get_global(env, &global);
+  napi_value argv[] = { jsMessageId };
+  napi_call_function(env, global, jsCallback, 1, argv, nullptr);
+}
+
+void NotifyDeviceChange(int32_t messageId) {
+  std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+  if (gDeviceNotificationCallback == nullptr) {
+    return;
+  }
+
+  auto* payload = new int32_t(messageId);
+  const napi_status status = napi_call_threadsafe_function(
+    gDeviceNotificationCallback,
+    payload,
+    napi_tsfn_nonblocking
+  );
+  if (status != napi_ok) {
+    delete payload;
+  }
+}
+
+HRESULT EnsureWinRTInitialized() {
+  std::call_once(gWinrtInitOnce, []() {
+    try {
+      winrt::init_apartment(winrt::apartment_type::multi_threaded);
+    } catch (const winrt::hresult_error& error) {
+      const HRESULT code = static_cast<HRESULT>(error.code());
+      gWinrtInitStatus = code == RPC_E_CHANGED_MODE ? S_OK : code;
+    }
+  });
+
+  return gWinrtInitStatus;
+}
+
+HRESULT StartDeviceWatchers() {
+  HRESULT initStatus = EnsureWinRTInitialized();
+  if (FAILED(initStatus)) {
+    return initStatus;
+  }
+
+  std::call_once(gDeviceWatcherOnce, []() {
+    try {
+      gInputDeviceWatcher =
+        DeviceInformation::CreateWatcher(MidiInPort::GetDeviceSelector());
+      gOutputDeviceWatcher =
+        DeviceInformation::CreateWatcher(MidiOutPort::GetDeviceSelector());
+
+      gInputAddedToken = gInputDeviceWatcher.Added(
+        [](const DeviceWatcher&, const DeviceInformation&) {
+          NotifyDeviceChange(1);
+        }
+      );
+      gInputRemovedToken = gInputDeviceWatcher.Removed(
+        [](const DeviceWatcher&, const DeviceInformationUpdate&) {
+          NotifyDeviceChange(2);
+        }
+      );
+      gInputUpdatedToken = gInputDeviceWatcher.Updated(
+        [](const DeviceWatcher&, const DeviceInformationUpdate&) {
+          NotifyDeviceChange(3);
+        }
+      );
+      gOutputAddedToken = gOutputDeviceWatcher.Added(
+        [](const DeviceWatcher&, const DeviceInformation&) {
+          NotifyDeviceChange(4);
+        }
+      );
+      gOutputRemovedToken = gOutputDeviceWatcher.Removed(
+        [](const DeviceWatcher&, const DeviceInformationUpdate&) {
+          NotifyDeviceChange(5);
+        }
+      );
+      gOutputUpdatedToken = gOutputDeviceWatcher.Updated(
+        [](const DeviceWatcher&, const DeviceInformationUpdate&) {
+          NotifyDeviceChange(6);
+        }
+      );
+
+      gInputDeviceWatcher.Start();
+      gOutputDeviceWatcher.Start();
+      gDeviceWatcherStatus = S_OK;
+    } catch (const winrt::hresult_error& error) {
+      gDeviceWatcherStatus = static_cast<HRESULT>(error.code());
+    } catch (...) {
+      gDeviceWatcherStatus = E_FAIL;
+    }
+  });
+
+  return gDeviceWatcherStatus;
 }
 
 void CALLBACK MidiInCallback(
@@ -601,6 +767,11 @@ napi_value GetSupportInfo(napi_env env, napi_callback_info) {
   napi_create_object(env, &result);
   SetNamedProperty(env, result, "supported", CreateBoolean(env, true));
 
+  napi_value notificationsInfo;
+  napi_create_object(env, &notificationsInfo);
+  SetNamedProperty(env, notificationsInfo, "supported", CreateBoolean(env, true));
+  SetNamedProperty(env, result, "notifications", notificationsInfo);
+
   napi_value virtualInfo;
   napi_create_object(env, &virtualInfo);
   SetNamedProperty(env, virtualInfo, "supported", CreateBoolean(env, false));
@@ -616,6 +787,81 @@ napi_value GetSupportInfo(napi_env env, napi_callback_info) {
   SetNamedProperty(env, result, "virtual", virtualInfo);
 
   return result;
+}
+
+napi_value SetNotificationCallback(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+
+  napi_value callback = argc > 0 ? args[0] : Undefined(env);
+  napi_valuetype type;
+  if (napi_typeof(env, callback, &type) != napi_ok) {
+    ThrowError(env, "Unable to inspect device change callback.");
+    return nullptr;
+  }
+
+  napi_threadsafe_function oldCallback = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+    oldCallback = gDeviceNotificationCallback;
+    gDeviceNotificationCallback = nullptr;
+  }
+
+  if (oldCallback != nullptr) {
+    napi_release_threadsafe_function(oldCallback, napi_tsfn_abort);
+  }
+
+  if (type == napi_undefined || type == napi_null) {
+    return Undefined(env);
+  }
+
+  if (type != napi_function) {
+    ThrowError(env, "Expected device change callback to be a function or null.");
+    return nullptr;
+  }
+
+  const HRESULT watcherStatus = StartDeviceWatchers();
+  if (FAILED(watcherStatus)) {
+    ThrowHResultError(env, "DeviceInformation::CreateWatcher", watcherStatus);
+    return nullptr;
+  }
+
+  napi_value resourceName;
+  napi_create_string_utf8(
+    env,
+    "WinRT MIDI device notification callback",
+    NAPI_AUTO_LENGTH,
+    &resourceName
+  );
+
+  napi_threadsafe_function newCallback = nullptr;
+  const napi_status status = napi_create_threadsafe_function(
+    env,
+    callback,
+    nullptr,
+    resourceName,
+    0,
+    1,
+    nullptr,
+    nullptr,
+    nullptr,
+    DeviceNotificationCallback,
+    &newCallback
+  );
+
+  if (status != napi_ok) {
+    ThrowError(env, "Unable to create MIDI device change callback.");
+    return nullptr;
+  }
+  napi_unref_threadsafe_function(env, newCallback);
+
+  {
+    std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+    gDeviceNotificationCallback = newCallback;
+  }
+
+  return Undefined(env);
 }
 
 napi_value GetInputs(napi_env env, napi_callback_info) {
@@ -765,6 +1011,7 @@ NAPI_MODULE_INIT() {
     { "getSupportInfo", nullptr, GetSupportInfo, nullptr, nullptr, nullptr, napi_default, nullptr },
     { "getInputs", nullptr, GetInputs, nullptr, nullptr, nullptr, napi_default, nullptr },
     { "getOutputs", nullptr, GetOutputs, nullptr, nullptr, nullptr, napi_default, nullptr },
+    { "setNotificationCallback", nullptr, SetNotificationCallback, nullptr, nullptr, nullptr, napi_default, nullptr },
     { "openInput", nullptr, OpenInput, nullptr, nullptr, nullptr, napi_default, nullptr },
     { "openOutput", nullptr, OpenOutput, nullptr, nullptr, nullptr, napi_default, nullptr },
     { "createVirtualInput", nullptr, CreateVirtualPort, nullptr, nullptr, nullptr, napi_default, nullptr },

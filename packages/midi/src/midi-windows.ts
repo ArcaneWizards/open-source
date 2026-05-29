@@ -2,9 +2,11 @@ import type {
   MidiEndpointInfo,
   MidiEndpoints,
   MIDIEndpointClosedEvent,
+  MIDIEndpointsChangedEvent,
   MIDIInput,
   MIDIInputEventMap,
   MIDIInterface,
+  MIDIInterfaceEventMap,
   MIDIMessageEvent,
   MIDIOutput,
   MIDIOutputEventMap,
@@ -41,9 +43,23 @@ type NativeMIDIOutput = {
 type NativeMIDIInterface = {
   getInputs(): MidiEndpointInfo[];
   getOutputs(): MidiEndpointInfo[];
+  setNotificationCallback(listener: ((messageId: number) => void) | null): void;
   openInput(endpoint: MidiEndpointInfo): NativeMIDIInput;
   openOutput(endpoint: MidiEndpointInfo): NativeMIDIOutput;
 };
+
+type MIDIState = MidiEndpoints;
+
+let midiDeviceState: MIDIState | null = null;
+let midiDeviceStateListenerConfigured = false;
+const midiDeviceStateListeners = new Set<
+  (event: MIDIInterfaceEventMap['endpointschanged']) => void
+>();
+const openEndpointHandles = new Set<{
+  closeWhenRemovedFrom: keyof MidiEndpoints;
+  endpoint: MidiEndpointInfo;
+  closeFromEndpointRemoval(): void;
+}>();
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
@@ -150,6 +166,7 @@ const assertNativeModule = (value: unknown): NativeMIDIInterface => {
 
   assertFunction(value.getInputs, 'getInputs');
   assertFunction(value.getOutputs, 'getOutputs');
+  assertFunction(value.setNotificationCallback, 'setNotificationCallback');
   assertFunction(value.openInput, 'openInput');
   assertFunction(value.openOutput, 'openOutput');
 
@@ -216,8 +233,7 @@ const freezeEndpoints = (endpoints: MidiEndpoints): MidiEndpoints => {
 const WINDOWS_SUPPORT_INFO = freeze({
   supported: true,
   notifications: freeze({
-    supported: false,
-    reason: 'Windows MIDI notifications require a native module update.',
+    supported: true,
   }),
   virtual: freeze({
     supported: false,
@@ -231,7 +247,7 @@ const EMPTY_ENDPOINTS = freezeEndpoints({
 });
 
 const endpointKey = (endpoint: MidiEndpointInfo) => {
-  return `${endpoint.portId}`;
+  return `${endpoint.portId}:${endpoint.name}`;
 };
 
 const endpointsEqual = (first: MidiEndpointInfo, second: MidiEndpointInfo) => {
@@ -268,10 +284,7 @@ const reconcileEndpointList = (
   return freezeEndpointList(reconciled);
 };
 
-const reconcileMidiDeviceState = (
-  previous: MidiEndpoints,
-  next: MidiEndpoints,
-) => {
+const reconcileMidiDeviceState = (previous: MIDIState, next: MIDIState) => {
   const inputs = reconcileEndpointList(previous.inputs, next.inputs);
   const outputs = reconcileEndpointList(previous.outputs, next.outputs);
 
@@ -283,6 +296,88 @@ const reconcileMidiDeviceState = (
     inputs,
     outputs,
   });
+};
+
+const readMidiDeviceState = (
+  nativeModule: NativeMIDIInterface,
+  previous: MIDIState,
+): MIDIState => {
+  return reconcileMidiDeviceState(
+    previous,
+    readRawMidiDeviceState(nativeModule),
+  );
+};
+
+const diffEndpoints = (
+  previous: MidiEndpointInfo[],
+  next: MidiEndpointInfo[],
+) => {
+  const nextKeys = new Set(next.map((endpoint) => endpointKey(endpoint)));
+  const previousKeys = new Set(
+    previous.map((endpoint) => endpointKey(endpoint)),
+  );
+
+  return {
+    added: next.filter((endpoint) => !previousKeys.has(endpointKey(endpoint))),
+    removed: previous.filter(
+      (endpoint) => !nextKeys.has(endpointKey(endpoint)),
+    ),
+  };
+};
+
+const createEndpointsChangedEvent = (
+  previous: MidiEndpoints,
+  next: MidiEndpoints,
+): MIDIInterfaceEventMap['endpointschanged'] => {
+  const inputChanges = diffEndpoints(previous.inputs, next.inputs);
+  const outputChanges = diffEndpoints(previous.outputs, next.outputs);
+
+  return createMIDIEvent<MIDIEndpointsChangedEvent>({
+    type: 'endpointschanged',
+    endpoints: next,
+    added: freezeEndpoints({
+      inputs: freezeEndpointList(inputChanges.added),
+      outputs: freezeEndpointList(outputChanges.added),
+    }),
+    removed: freezeEndpoints({
+      inputs: freezeEndpointList(inputChanges.removed),
+      outputs: freezeEndpointList(outputChanges.removed),
+    }),
+  });
+};
+
+const hasEndpointChanges = (
+  event: MIDIInterfaceEventMap['endpointschanged'],
+) => {
+  return (
+    event.added.inputs.length > 0 ||
+    event.added.outputs.length > 0 ||
+    event.removed.inputs.length > 0 ||
+    event.removed.outputs.length > 0
+  );
+};
+
+const closeRemovedEndpointHandles = (
+  event: MIDIInterfaceEventMap['endpointschanged'],
+) => {
+  const removedEndpointKeys = {
+    inputs: new Set(
+      event.removed.inputs.map((endpoint) => endpointKey(endpoint)),
+    ),
+    outputs: new Set(
+      event.removed.outputs.map((endpoint) => endpointKey(endpoint)),
+    ),
+  };
+
+  for (const handle of [...openEndpointHandles]) {
+    if (
+      removedEndpointKeys[handle.closeWhenRemovedFrom].has(
+        endpointKey(handle.endpoint),
+      )
+    ) {
+      handle.closeFromEndpointRemoval();
+    }
+  }
 };
 
 const callNative = <Value>(operation: string, callback: () => Value): Value => {
@@ -357,7 +452,10 @@ const getNativeModule = (): NativeMIDIInterface => {
   );
 };
 
-const createWindowsMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
+const createWindowsMIDIInput = (
+  nativeInput: NativeMIDIInput,
+  closeWhenRemovedFrom: keyof MidiEndpoints,
+): MIDIInput => {
   let closed = false;
   const events = new EventEmitter();
   const info = assertEndpointInfo(
@@ -377,6 +475,35 @@ const createWindowsMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
     nativeInput.addMessageListener(messageListener);
   });
 
+  const close = () => {
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+    openEndpointHandles.delete(endpointHandle);
+    callNative('input.removeMessageListener', () => {
+      nativeInput.removeMessageListener(messageListener);
+    });
+    callNative('input.close', () => {
+      nativeInput.close();
+    });
+    events.emit(
+      'closed',
+      createMIDIEvent<MIDIEndpointClosedEvent>({
+        type: 'closed',
+        endpoint: info,
+      }),
+    );
+    events.removeAllListeners();
+  };
+  const endpointHandle = {
+    closeWhenRemovedFrom,
+    endpoint: info,
+    closeFromEndpointRemoval: close,
+  };
+  openEndpointHandles.add(endpointHandle);
+
   return {
     getInfo() {
       return info;
@@ -394,37 +521,46 @@ const createWindowsMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
       events.off(type, listener);
     },
     async close() {
-      if (closed) {
-        return;
-      }
-
-      closed = true;
-      callNative('input.removeMessageListener', () => {
-        nativeInput.removeMessageListener(messageListener);
-      });
-      callNative('input.close', () => {
-        nativeInput.close();
-      });
-      events.emit(
-        'closed',
-        createMIDIEvent<MIDIEndpointClosedEvent>({
-          type: 'closed',
-          endpoint: info,
-        }),
-      );
-      events.removeAllListeners();
+      close();
     },
   };
 };
 
 const createWindowsMIDIOutput = (
   nativeOutput: NativeMIDIOutput,
+  closeWhenRemovedFrom: keyof MidiEndpoints,
 ): MIDIOutput => {
   let closed = false;
   const events = new EventEmitter();
   const info = assertEndpointInfo(
     callNative('output.getInfo', () => nativeOutput.getInfo()),
   );
+
+  const close = () => {
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+    openEndpointHandles.delete(endpointHandle);
+    callNative('output.close', () => {
+      nativeOutput.close();
+    });
+    events.emit(
+      'closed',
+      createMIDIEvent<MIDIEndpointClosedEvent>({
+        type: 'closed',
+        endpoint: info,
+      }),
+    );
+    events.removeAllListeners();
+  };
+  const endpointHandle = {
+    closeWhenRemovedFrom,
+    endpoint: info,
+    closeFromEndpointRemoval: close,
+  };
+  openEndpointHandles.add(endpointHandle);
 
   return {
     getInfo() {
@@ -455,50 +591,69 @@ const createWindowsMIDIOutput = (
       events.off(type, listener);
     },
     async close() {
-      if (closed) {
-        return;
-      }
-
-      closed = true;
-      callNative('output.close', () => {
-        nativeOutput.close();
-      });
-      events.emit(
-        'closed',
-        createMIDIEvent<MIDIEndpointClosedEvent>({
-          type: 'closed',
-          endpoint: info,
-        }),
-      );
-      events.removeAllListeners();
+      close();
     },
   };
+};
+
+const getMidiDeviceState = (nativeModule: NativeMIDIInterface): MIDIState => {
+  if (!midiDeviceStateListenerConfigured) {
+    callNative('setNotificationCallback', () => {
+      nativeModule.setNotificationCallback(() => {
+        const previous = midiDeviceState ?? EMPTY_ENDPOINTS;
+        const next = readMidiDeviceState(nativeModule, previous);
+        midiDeviceState = next;
+
+        if (next === previous) {
+          return;
+        }
+
+        const event = createEndpointsChangedEvent(previous, next);
+        if (!hasEndpointChanges(event)) {
+          return;
+        }
+
+        closeRemovedEndpointHandles(event);
+
+        for (const listener of [...midiDeviceStateListeners]) {
+          listener(event);
+        }
+      });
+    });
+    midiDeviceStateListenerConfigured = true;
+  }
+
+  if (midiDeviceState === null) {
+    midiDeviceState = readMidiDeviceState(nativeModule, EMPTY_ENDPOINTS);
+  }
+
+  return midiDeviceState;
 };
 
 const createWindowsMIDIInterface = (
   nativeModule: NativeMIDIInterface,
 ): MIDIInterface => {
-  let midiDeviceState: MidiEndpoints | null = null;
-  const getMidiDeviceState = () => {
-    midiDeviceState = reconcileMidiDeviceState(
-      midiDeviceState ?? EMPTY_ENDPOINTS,
-      readRawMidiDeviceState(nativeModule),
-    );
-    return midiDeviceState;
+  const events = new EventEmitter();
+  const deviceStateListener = (
+    event: MIDIInterfaceEventMap['endpointschanged'],
+  ) => {
+    events.emit('endpointschanged', event);
   };
+
+  midiDeviceStateListeners.add(deviceStateListener);
 
   return {
     async getSupportInfo() {
       return WINDOWS_SUPPORT_INFO;
     },
     async getEndpoints() {
-      return getMidiDeviceState();
+      return getMidiDeviceState(nativeModule);
     },
     async getInputs() {
-      return getMidiDeviceState().inputs;
+      return getMidiDeviceState(nativeModule).inputs;
     },
     async getOutputs() {
-      return getMidiDeviceState().outputs;
+      return getMidiDeviceState(nativeModule).outputs;
     },
     async openInput(endpoint: MidiEndpointInfo) {
       const inputEndpoint = assertPublicEndpointInfo(endpoint, 'endpoint');
@@ -506,6 +661,7 @@ const createWindowsMIDIInterface = (
         assertNativeInput(
           callNative('openInput', () => nativeModule.openInput(inputEndpoint)),
         ),
+        'inputs',
       );
     },
     async openOutput(endpoint: MidiEndpointInfo) {
@@ -516,6 +672,7 @@ const createWindowsMIDIInterface = (
             nativeModule.openOutput(outputEndpoint),
           ),
         ),
+        'outputs',
       );
     },
     async createVirtualInput() {
@@ -528,15 +685,18 @@ const createWindowsMIDIInterface = (
         'Windows virtual MIDI output support requires a native module update.',
       );
     },
-    addEventListener() {
-      throw new MIDINotImplementedError(
-        'Windows MIDI endpoint notifications require a native module update.',
-      );
+    addEventListener<Type extends keyof MIDIInterfaceEventMap>(
+      type: Type,
+      listener: (event: MIDIInterfaceEventMap[Type]) => void,
+    ) {
+      getMidiDeviceState(nativeModule);
+      events.on(type, listener);
     },
-    removeEventListener() {
-      throw new MIDINotImplementedError(
-        'Windows MIDI endpoint notifications require a native module update.',
-      );
+    removeEventListener<Type extends keyof MIDIInterfaceEventMap>(
+      type: Type,
+      listener: (event: MIDIInterfaceEventMap[Type]) => void,
+    ) {
+      events.off(type, listener);
     },
   };
 };
