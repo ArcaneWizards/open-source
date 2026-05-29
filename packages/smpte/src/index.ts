@@ -13,6 +13,9 @@ export type SMPTETimecodeFrame = {
   seconds: number;
   frame: number;
   mode: SMPTETimecodeMode;
+};
+
+export type SMPTETimecodeFrameWithMillis = SMPTETimecodeFrame & {
   timeMillis: number;
 };
 
@@ -29,7 +32,7 @@ const DROP_FRAME_FRAMES_PER_24_HOURS = DROP_FRAME_FRAMES_PER_HOUR * 24;
 
 export const getDropFrameTimecode = (
   timeMillis: number,
-): SMPTETimecodeFrame => {
+): SMPTETimecodeFrameWithMillis => {
   const totalFrames = Math.floor(
     (timeMillis * DROP_FRAME_NUMERATOR) / (1000 * DROP_FRAME_DENOMINATOR),
   );
@@ -67,7 +70,7 @@ export const getDropFrameTimecode = (
 export const getTimecodeFromMillis = (
   mode: SMPTETimecodeMode,
   timeMillis: number,
-): SMPTETimecodeFrame => {
+): SMPTETimecodeFrameWithMillis => {
   if (mode === 'DF') {
     return getDropFrameTimecode(timeMillis);
   }
@@ -82,9 +85,7 @@ export const getTimecodeFromMillis = (
   };
 };
 
-export const getMillisFromTimecode = (
-  timecode: Omit<SMPTETimecodeFrame, 'timeMillis'>,
-): number => {
+export const getMillisFromTimecode = (timecode: SMPTETimecodeFrame): number => {
   const { hours, minutes, seconds, frame, mode } = timecode;
   if (mode === 'DF') {
     const totalMinutes = hours * 60 + minutes;
@@ -102,4 +103,99 @@ export const getMillisFromTimecode = (
     (hours * 60 * 60 + minutes * 60 + seconds) * 1000 +
     (frame * 1000) / SMPTE_TIMECODE_FPS[mode]
   );
+};
+
+export const addFrames = (
+  timecode: SMPTETimecodeFrame,
+  framesToAdd: number,
+): SMPTETimecodeFrame => {
+  let frame = timecode.frame + framesToAdd;
+  let seconds = timecode.seconds;
+  let minutes = timecode.minutes;
+  let hours = timecode.hours;
+
+  const fps = SMPTE_TIMECODE_FPS[timecode.mode];
+
+  while (frame >= fps) {
+    frame -= fps;
+    seconds += 1;
+  }
+
+  while (frame < 0) {
+    frame += fps;
+    seconds -= 1;
+  }
+
+  while (seconds >= 60) {
+    seconds -= 60;
+    minutes += 1;
+  }
+
+  while (seconds < 0) {
+    seconds += 60;
+    minutes -= 1;
+  }
+
+  while (minutes >= 60) {
+    minutes -= 60;
+    hours += 1;
+  }
+
+  while (minutes < 0) {
+    minutes += 60;
+    hours -= 1;
+  }
+
+  return { hours, minutes, seconds, frame, mode: timecode.mode };
+};
+
+/**
+ * Increment or decrement a timecode by a given number of frames,
+ * mutating the original object and avoiding Object creation.
+ */
+export const addFramesMutate = (
+  timecode: SMPTETimecodeFrame,
+  framesToAdd: number,
+): void => {
+  let frame = timecode.frame + framesToAdd;
+  let seconds = timecode.seconds;
+  let minutes = timecode.minutes;
+  let hours = timecode.hours;
+
+  const fps = SMPTE_TIMECODE_FPS[timecode.mode];
+
+  while (frame >= fps) {
+    frame -= fps;
+    seconds += 1;
+  }
+
+  while (frame < 0) {
+    frame += fps;
+    seconds -= 1;
+  }
+
+  while (seconds >= 60) {
+    seconds -= 60;
+    minutes += 1;
+  }
+
+  while (seconds < 0) {
+    seconds += 60;
+    minutes -= 1;
+  }
+
+  while (minutes >= 60) {
+    minutes -= 60;
+    hours += 1;
+  }
+
+  while (minutes < 0) {
+    minutes += 60;
+    hours -= 1;
+  }
+
+  timecode.frame = frame;
+  timecode.seconds = seconds;
+  timecode.minutes = minutes;
+  timecode.hours = hours;
 };

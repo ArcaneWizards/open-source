@@ -36,6 +36,18 @@ const run = async () => {
     sendMessage: output.sendMessage,
     mode: 'SMPTE',
   });
+
+  const sendPlayState = () => {
+    sender.setPlayState({
+      state: 'playing',
+      effectiveStartTime: Date.now() - Math.random() * 1000,
+      speed: 1,
+    });
+  };
+
+  setInterval(sendPlayState, 10_000);
+
+  sendPlayState();
 };
 
 run().catch((err) => {

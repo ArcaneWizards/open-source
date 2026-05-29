@@ -8,9 +8,9 @@ import {
 import {
   getTimecodeFromMillis,
   getMillisFromTimecode,
-  SMPTE_TIMECODE_FPS,
-  type SMPTETimecodeFrame,
   type SMPTETimecodeMode,
+  addFrames,
+  SMPTETimecodeFrameWithMillis,
 } from '@arcanewizards/smpte';
 
 const ARTNET_HEADER = 'Art-Net\0';
@@ -21,7 +21,7 @@ const TIMECODE_MODE_IDS = Object.fromEntries(
   Object.entries(TIMECODE_MODES).map(([mode, id]) => [id, mode]),
 ) as Record<number, SMPTETimecodeMode>;
 
-export type ArtNetTimecode = SMPTETimecodeFrame;
+export type ArtNetTimecode = SMPTETimecodeFrameWithMillis;
 
 export type ArtNetTimecodeEvent = ArtNetTimecode & {
   host: string;
@@ -281,21 +281,7 @@ export const createArtnet = (config: ArtNetConnectionConfig): ArtNet => {
     timeMillis,
   ) => {
     const timecode = getTimecodeFromMillis(mode, timeMillis);
-    // Increment timecode by one frame
-    timecode.frame += 1;
-    if (timecode.frame >= SMPTE_TIMECODE_FPS[mode]) {
-      timecode.frame = 0;
-      timecode.seconds += 1;
-      if (timecode.seconds >= 60) {
-        timecode.seconds = 0;
-        timecode.minutes += 1;
-        if (timecode.minutes >= 60) {
-          timecode.minutes = 0;
-          timecode.hours += 1;
-        }
-      }
-    }
-    const nextFrameTimeMillis = getMillisFromTimecode(timecode);
+    const nextFrameTimeMillis = getMillisFromTimecode(addFrames(timecode, 1));
     return { nextFrameTimeMillis };
   };
 
