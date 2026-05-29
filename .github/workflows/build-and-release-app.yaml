@@ -75,7 +75,7 @@ jobs:
           echo "Release $TAG does not exist or requires desktop assets. Desktop build and release will proceed."
           echo "require_desktop_release=true" >> $GITHUB_OUTPUT
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-14
     environment: ${{ inputs.notarize && 'package' || 'ci' }}
     env:
       APPLE_API_KEY_ID: ${{ vars.APPLE_API_KEY_ID }}
@@ -92,7 +92,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: 24.x
+          node-version: 24.14.1
       - name: Enable pnpm
         run: corepack enable pnpm
       - run: pnpm install --frozen-lockfile
@@ -151,20 +151,20 @@ jobs:
           FULL_BUILD: ${{ inputs.notarize && 'true' || 'false' }}
           OUTPUT: ${{ steps.build_vars.outputs.x64File }}
         run: |
-          pnpm make --arch=x64
+          rm -rf out/make
+          pnpm exec electron-forge make --arch=x64
           ls -la out/make
           mv out/make/*.dmg "${OUTPUT}"
-          ls -la out
       - name: Build ${{ steps.build_vars.outputs.arm64File }}
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
           FULL_BUILD: ${{ inputs.notarize && 'true' || 'false' }}
           OUTPUT: ${{ steps.build_vars.outputs.arm64File }}
         run: |
-          pnpm make --arch=arm64
+          rm -rf out/make
+          pnpm exec electron-forge make --arch=arm64
           ls -la out/make
           mv out/make/*.dmg "${OUTPUT}"
-          ls -la out
       - name: Clean up keychain
         if: ${{ always() && inputs.notarize }}
         run: |
@@ -193,7 +193,7 @@ jobs:
     needs:
       - pre-release-checks
     if: inputs.windows_build_requested || needs.pre-release-checks.outputs.require_desktop_release == 'true'
-    runs-on: windows-latest
+    runs-on: windows-2025
     timeout-minutes: 15
     outputs:
       x64File: ${{ steps.build_vars.outputs.x64File }}
@@ -202,13 +202,14 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: 24.x
-      - name: Install PNPM
-        env:
-          PNPM_VERSION: ${{ needs.pre-release-checks.outputs.pnpm_version }}
+          node-version: 24.14.1
+      - name: Install Node native headers
         run: |
-          npm install -g pnpm@$env:PNPM_VERSION
+          $nodeVersion = node -p "process.versions.node"
+          npm exec --yes --package=node-gyp node-gyp install --target=$nodeVersion
         shell: pwsh
+      - name: Enable pnpm
+        run: corepack enable pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build --filter=@arcanewizards/${{ inputs.app }}-desktop
       - name: Determine build variables
@@ -235,11 +236,17 @@ jobs:
           FULL_BUILD: ${{ inputs.notarize && 'true' || 'false' }}
           OUTPUT: ${{ steps.build_vars.outputs.x64File }}
         run: |
-          pnpm make --arch=x64
-          ls "out/make/squirrel.windows/x64/"
-          mv "out/make/squirrel.windows/x64/*.exe" "$env:OUTPUT"
-          mv "out/make/squirrel.windows/x64/*.nupkg" "out/"
-          mv "out/make/squirrel.windows/x64/RELEASES" "out/"
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          Remove-Item -Recurse -Force "out/make" -ErrorAction SilentlyContinue
+          pnpm exec electron-forge make --arch=x64
+          Get-ChildItem "out"
+          Get-ChildItem "out/make"
+          Get-ChildItem "out/make/squirrel.windows/"
+          Get-ChildItem "out/make/squirrel.windows/x64/"
+          Move-Item -Path "out/make/squirrel.windows/x64/*.exe" -Destination "$env:OUTPUT"
+          Move-Item -Path "out/make/squirrel.windows/x64/*.nupkg" -Destination "out/"
+          Move-Item -Path "out/make/squirrel.windows/x64/RELEASES" -Destination "out/"
       - name: store the windows builds
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
