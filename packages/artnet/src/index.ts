@@ -1,42 +1,27 @@
 import { createSocket, RemoteInfo, Socket } from 'node:dgram';
 import EventEmitter from 'node:events';
+import { ARTNET_PORT, TIMECODE_MODES } from './constants.js';
 import {
-  ARTNET_PORT,
-  TIMECODE_FPS,
-  TIMECODE_MODES,
-  TimecodeMode,
-} from './constants.js';
-import {
-  ConnectionConfig,
+  type ConnectionConfig,
   getNetworkInterfaces,
 } from '@arcanewizards/net-utils';
+import {
+  getTimecodeFromMillis,
+  getMillisFromTimecode,
+  SMPTE_TIMECODE_FPS,
+  type SMPTETimecodeFrame,
+  type SMPTETimecodeMode,
+} from '@arcanewizards/smpte';
 
 const ARTNET_HEADER = 'Art-Net\0';
 const ARTNET_VERSION = 14;
 
 const OP_TIME_CODE = 0x9700;
-const DROP_FRAME_NUMERATOR = 30_000;
-const DROP_FRAME_DENOMINATOR = 1_001;
-const DROP_FRAME_COUNT = 2;
-const DROP_FRAME_FRAMES_PER_SECOND = 30;
-const DROP_FRAME_FRAMES_PER_MINUTE =
-  DROP_FRAME_FRAMES_PER_SECOND * 60 - DROP_FRAME_COUNT;
-const DROP_FRAME_FRAMES_PER_10_MINUTES =
-  DROP_FRAME_FRAMES_PER_MINUTE * 9 + DROP_FRAME_FRAMES_PER_SECOND * 60;
-const DROP_FRAME_FRAMES_PER_HOUR = DROP_FRAME_FRAMES_PER_10_MINUTES * 6;
-const DROP_FRAME_FRAMES_PER_24_HOURS = DROP_FRAME_FRAMES_PER_HOUR * 24;
 const TIMECODE_MODE_IDS = Object.fromEntries(
   Object.entries(TIMECODE_MODES).map(([mode, id]) => [id, mode]),
-) as Record<number, TimecodeMode>;
+) as Record<number, SMPTETimecodeMode>;
 
-export type ArtNetTimecode = {
-  hours: number;
-  minutes: number;
-  seconds: number;
-  frame: number;
-  mode: TimecodeMode;
-  timeMillis: number;
-};
+export type ArtNetTimecode = SMPTETimecodeFrame;
 
 export type ArtNetTimecodeEvent = ArtNetTimecode & {
   host: string;
@@ -74,81 +59,6 @@ const bindSocket = (
   });
 };
 
-const getDropFrameTimecode = (timeMillis: number): ArtNetTimecode => {
-  const totalFrames = Math.floor(
-    (timeMillis * DROP_FRAME_NUMERATOR) / (1000 * DROP_FRAME_DENOMINATOR),
-  );
-  const wrappedFrames =
-    ((totalFrames % DROP_FRAME_FRAMES_PER_24_HOURS) +
-      DROP_FRAME_FRAMES_PER_24_HOURS) %
-    DROP_FRAME_FRAMES_PER_24_HOURS;
-  const tenMinuteChunks = Math.floor(
-    wrappedFrames / DROP_FRAME_FRAMES_PER_10_MINUTES,
-  );
-  const remainingFrames = wrappedFrames % DROP_FRAME_FRAMES_PER_10_MINUTES;
-  const skippedFrames =
-    DROP_FRAME_COUNT * 9 * tenMinuteChunks +
-    (remainingFrames > DROP_FRAME_COUNT
-      ? DROP_FRAME_COUNT *
-        Math.floor(
-          (remainingFrames - DROP_FRAME_COUNT) / DROP_FRAME_FRAMES_PER_MINUTE,
-        )
-      : 0);
-  const displayFrameNumber = wrappedFrames + skippedFrames;
-
-  return {
-    hours: Math.floor(
-      displayFrameNumber / (DROP_FRAME_FRAMES_PER_SECOND * 60 * 60),
-    ),
-    minutes:
-      Math.floor(displayFrameNumber / (DROP_FRAME_FRAMES_PER_SECOND * 60)) % 60,
-    seconds: Math.floor(displayFrameNumber / DROP_FRAME_FRAMES_PER_SECOND) % 60,
-    frame: displayFrameNumber % DROP_FRAME_FRAMES_PER_SECOND,
-    mode: 'DF',
-    timeMillis,
-  };
-};
-
-const getTimecodeFromMillis = (
-  mode: TimecodeMode,
-  timeMillis: number,
-): ArtNetTimecode => {
-  if (mode === 'DF') {
-    return getDropFrameTimecode(timeMillis);
-  }
-
-  return {
-    hours: Math.floor(timeMillis / 3600000),
-    minutes: Math.floor((timeMillis % 3600000) / 60000),
-    seconds: Math.floor((timeMillis % 60000) / 1000),
-    frame: Math.floor(((timeMillis % 1000) / 1000) * TIMECODE_FPS[mode]),
-    mode,
-    timeMillis,
-  };
-};
-
-const getTimeMillisFromTimecode = (
-  timecode: Omit<ArtNetTimecode, 'timeMillis'>,
-): number => {
-  const { hours, minutes, seconds, frame, mode } = timecode;
-  if (mode === 'DF') {
-    const totalMinutes = hours * 60 + minutes;
-    const droppedFrames =
-      DROP_FRAME_COUNT * (totalMinutes - Math.floor(totalMinutes / 10));
-    const displayFrameNumber =
-      (hours * 60 * 60 + minutes * 60 + seconds) *
-        DROP_FRAME_FRAMES_PER_SECOND +
-      frame;
-    const totalFrames = displayFrameNumber - droppedFrames;
-    return (totalFrames * 1000 * DROP_FRAME_DENOMINATOR) / DROP_FRAME_NUMERATOR;
-  }
-
-  return (
-    (hours * 60 * 60 + minutes * 60 + seconds) * 1000 +
-    (frame * 1000) / TIMECODE_FPS[mode]
-  );
-};
-
 const parseTimecodePacket = (
   packet: Buffer,
   source: RemoteInfo,
@@ -179,7 +89,7 @@ const parseTimecodePacket = (
     seconds,
     frame,
     mode,
-    timeMillis: getTimeMillisFromTimecode({
+    timeMillis: getMillisFromTimecode({
       hours,
       minutes,
       seconds,
@@ -202,11 +112,11 @@ export type FrameTimingResult = {
 export type ArtNet = {
   connect: () => Promise<void>;
   getNextFrameTiming: (
-    mode: TimecodeMode,
+    mode: SMPTETimecodeMode,
     timeMillis: number,
   ) => FrameTimingResult;
   sendTimecode: (
-    mode: TimecodeMode,
+    mode: SMPTETimecodeMode,
     timeMillis: number,
   ) => Promise<FrameTimingResult>;
   on<K extends keyof ArtNetEventMap>(
@@ -373,7 +283,7 @@ export const createArtnet = (config: ArtNetConnectionConfig): ArtNet => {
     const timecode = getTimecodeFromMillis(mode, timeMillis);
     // Increment timecode by one frame
     timecode.frame += 1;
-    if (timecode.frame >= TIMECODE_FPS[mode]) {
+    if (timecode.frame >= SMPTE_TIMECODE_FPS[mode]) {
       timecode.frame = 0;
       timecode.seconds += 1;
       if (timecode.seconds >= 60) {
@@ -385,7 +295,7 @@ export const createArtnet = (config: ArtNetConnectionConfig): ArtNet => {
         }
       }
     }
-    const nextFrameTimeMillis = getTimeMillisFromTimecode(timecode);
+    const nextFrameTimeMillis = getMillisFromTimecode(timecode);
     return { nextFrameTimeMillis };
   };
 

@@ -45,6 +45,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@arcanewizards/net-utils": "workspace:^"
+    "@arcanewizards/net-utils": "workspace:^",
+    "@arcanewizards/smpte": "workspace:^"
   }
 }

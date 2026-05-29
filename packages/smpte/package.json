@@ -1,5 +1,5 @@
 {
-  "name": "@arcanewizards/midi-timecode",
+  "name": "@arcanewizards/smpte",
   "version": "0.0.1",
   "private": false,
   "license": "MIT",
@@ -7,7 +7,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/ArcaneWizards/open-source.git",
-    "directory": "packages/midi-timecode"
+    "directory": "packages/smpte"
   },
   "exports": {
     ".": {
@@ -27,21 +27,15 @@
     "check:types": "tsc --noEmit",
     "format:fix": "cd .. && pnpm format:fix",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint --fix .",
-    "run:list": "tsx scripts/list.ts",
-    "run:receive": "tsx scripts/receive.ts",
-    "run:send": "tsx scripts/send.ts"
+    "lint:fix": "eslint --fix ."
   },
   "devDependencies": {
     "@arcanewizards/eslint-config": "workspace:^",
-    "@arcanewizards/midi": "workspace:^",
-    "@arcanewizards/smpte": "workspace:^",
     "@arcanewizards/typescript-config": "workspace:^",
     "@types/node": "^25.5.0",
     "check-export-map": "^1.3.1",
     "eslint": "^9.39.4",
     "tsup": "^8.5.1",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "engines": {
