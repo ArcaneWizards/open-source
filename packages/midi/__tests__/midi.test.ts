@@ -190,9 +190,7 @@ suite('macOS MIDI communication', () => {
       }
 
       const name = `Arcane Wizards Jest Virtual Output Cache ${Date.now()}`;
-      let output:
-        | ReturnType<MIDIInterface['createVirtualOutput']>
-        | undefined;
+      let output: ReturnType<MIDIInterface['createVirtualOutput']> | undefined;
 
       expect(hasEndpoint(midi.getInputs(), name)).toBe(false);
 

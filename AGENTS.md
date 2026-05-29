@@ -27,6 +27,14 @@ public-facing library behavior in TypeScript.
 - TypeScript should convert native failures into public error classes.
 - TypeScript should guard object lifecycle state, including rejecting or
   throwing when callers use closed, disposed, or otherwise invalid objects.
+- Prefer Node's `EventEmitter` for Node library event-listener APIs unless the
+  package has a clear reason to use a different event primitive.
+- Prefer functions, factory functions, and object composition over classes
+  unless a class materially improves the API or implementation.
+- Public state objects should be immutable. Use `Object.freeze()` when creating
+  returned state and preserve object identity for unchanged values.
+- State updates should be functional: reuse unchanged nested objects and arrays,
+  and allocate a new parent object only when a child value has changed.
 
 ## Threading And Blocking
 

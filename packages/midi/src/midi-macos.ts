@@ -1,11 +1,20 @@
 import type {
   MidiEndpointInfo,
+  MidiEndpoints,
+  MIDIInputEventMap,
   MIDIInput,
+  MIDIInterfaceEventMap,
   MIDIInterface,
+  MIDIOutputEventMap,
   MIDIOutput,
-  SupportResponse,
+  MIDISupportResponse,
   VirtualPortOptions,
+  MIDIMessageEvent,
+  MIDIEndpointClosedEvent,
+  MIDIEndpointsChangedEvent,
 } from './types.js';
+import { createMIDIEvent } from './types.js';
+import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -23,7 +32,6 @@ type NativeMIDIOutput = {
 };
 
 type NativeMIDIInterface = {
-  getSupportInfo(): SupportResponse;
   getInputs(): MidiEndpointInfo[];
   getOutputs(): MidiEndpointInfo[];
   setDeviceChangeCallback(listener: ((messageId: number) => void) | null): void;
@@ -41,13 +49,13 @@ type NativeMIDIInterface = {
 
 const requireNative = createRequire(join(process.cwd(), 'package.json'));
 
-type MIDIState = {
-  inputs: MidiEndpointInfo[];
-  outputs: MidiEndpointInfo[];
-};
+type MIDIState = MidiEndpoints;
 
 let midiDeviceState: MIDIState | null = null;
 let midiDeviceStateListenerConfigured = false;
+const midiDeviceStateListeners = new Set<
+  (event: MIDIInterfaceEventMap['endpointschanged']) => void
+>();
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
@@ -111,116 +119,141 @@ const assertNativeOutput = (value: unknown): NativeMIDIOutput => {
   return value as NativeMIDIOutput;
 };
 
-const assertSupportResponse = (value: unknown): SupportResponse => {
-  if (!isRecord(value) || typeof value.supported !== 'boolean') {
-    throw new Error('MacOS MIDI native module returned invalid support info.');
-  }
+const freeze = <Value extends object>(value: Value): Value => {
+  return Object.freeze(value) as Value;
+};
 
-  if (!value.supported) {
-    if (typeof value.reason !== 'string') {
-      throw new Error(
-        'MacOS MIDI native module returned invalid support info.',
-      );
-    }
-    return {
-      supported: false,
-      reason: value.reason,
-    };
-  }
+const freezeEndpointInfo = (endpoint: MidiEndpointInfo): MidiEndpointInfo => {
+  return freeze({
+    name: endpoint.name,
+    portId: endpoint.portId,
+  });
+};
 
-  if (
-    !isRecord(value.virtual) ||
-    typeof value.virtual.supported !== 'boolean'
-  ) {
-    throw new Error('MacOS MIDI native module returned invalid support info.');
-  }
+const freezeEndpointList = (
+  endpoints: MidiEndpointInfo[],
+): MidiEndpointInfo[] => {
+  return freeze(endpoints);
+};
 
-  if (value.virtual.supported) {
-    return {
-      supported: true,
-      virtual: {
-        supported: true,
-      },
-    };
-  }
+const freezeEndpoints = (endpoints: MidiEndpoints): MidiEndpoints => {
+  return freeze({
+    inputs: endpoints.inputs,
+    outputs: endpoints.outputs,
+  });
+};
 
-  if (typeof value.virtual.reason !== 'string') {
-    throw new Error('MacOS MIDI native module returned invalid support info.');
-  }
+const MACOS_SUPPORT_INFO = freeze({
+  supported: true,
+  notifications: freeze({
+    supported: true,
+  }),
+  virtual: freeze({
+    supported: true,
+  }),
+}) satisfies MIDISupportResponse;
+
+const EMPTY_ENDPOINTS = freezeEndpoints({
+  inputs: freezeEndpointList([]),
+  outputs: freezeEndpointList([]),
+});
+
+const createMacOSMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
+  let closed = false;
+  const events = new EventEmitter();
+  const info = freezeEndpointInfo(assertEndpointInfo(nativeInput.getInfo()));
+
+  nativeInput.setMessageCallback((message) => {
+    events.emit(
+      'message',
+      createMIDIEvent<MIDIMessageEvent>({
+        type: 'message',
+        message: [...message],
+      }),
+    );
+  });
 
   return {
-    supported: true,
-    virtual: {
-      supported: false,
-      reason: value.virtual.reason,
+    getInfo() {
+      return info;
+    },
+    addEventListener<Type extends keyof MIDIInputEventMap>(
+      type: Type,
+      listener: (event: MIDIInputEventMap[Type]) => void,
+    ) {
+      events.on(type, listener);
+    },
+    removeEventListener<Type extends keyof MIDIInputEventMap>(
+      type: Type,
+      listener: (event: MIDIInputEventMap[Type]) => void,
+    ) {
+      events.off(type, listener);
+    },
+    async close() {
+      if (closed) {
+        return;
+      }
+
+      closed = true;
+      nativeInput.setMessageCallback(null);
+      nativeInput.close();
+      events.emit(
+        'closed',
+        createMIDIEvent<MIDIEndpointClosedEvent>({
+          type: 'closed',
+          endpoint: info,
+        }),
+      );
+      events.removeAllListeners();
     },
   };
 };
 
-class MacOSMIDIInput implements MIDIInput {
-  #closed = false;
-  #listeners = new Set<(message: number[]) => void>();
+const createMacOSMIDIOutput = (nativeOutput: NativeMIDIOutput): MIDIOutput => {
+  let closed = false;
+  const events = new EventEmitter();
+  const info = freezeEndpointInfo(assertEndpointInfo(nativeOutput.getInfo()));
 
-  constructor(private readonly nativeInput: NativeMIDIInput) {
-    this.nativeInput.setMessageCallback((message) => {
-      for (const listener of this.#listeners) {
-        listener(message);
+  return {
+    getInfo() {
+      return info;
+    },
+    async sendMessage(message: number[]) {
+      if (closed) {
+        throw new Error('MIDI output is closed.');
       }
-    });
-  }
+      nativeOutput.sendMessage(message);
+    },
+    addEventListener<Type extends keyof MIDIOutputEventMap>(
+      type: Type,
+      listener: (event: MIDIOutputEventMap[Type]) => void,
+    ) {
+      events.on(type, listener);
+    },
+    removeEventListener<Type extends keyof MIDIOutputEventMap>(
+      type: Type,
+      listener: (event: MIDIOutputEventMap[Type]) => void,
+    ) {
+      events.off(type, listener);
+    },
+    async close() {
+      if (closed) {
+        return;
+      }
 
-  getInfo() {
-    return assertEndpointInfo(this.nativeInput.getInfo());
-  }
-
-  addMessageListener(listener: (message: number[]) => void) {
-    if (this.#closed) {
-      throw new Error('MIDI input is closed.');
-    }
-    this.#listeners.add(listener);
-  }
-
-  removeMessageListener(listener: (message: number[]) => void) {
-    this.#listeners.delete(listener);
-  }
-
-  close() {
-    if (this.#closed) {
-      return;
-    }
-
-    this.#closed = true;
-    this.#listeners.clear();
-    this.nativeInput.setMessageCallback(null);
-    this.nativeInput.close();
-  }
-}
-
-class MacOSMIDIOutput implements MIDIOutput {
-  #closed = false;
-
-  constructor(private readonly nativeOutput: NativeMIDIOutput) {}
-
-  getInfo() {
-    return assertEndpointInfo(this.nativeOutput.getInfo());
-  }
-
-  sendMessage(message: number[]) {
-    if (this.#closed) {
-      throw new Error('MIDI output is closed.');
-    }
-    this.nativeOutput.sendMessage(message);
-  }
-
-  close() {
-    if (this.#closed) {
-      return;
-    }
-
-    this.#closed = true;
-    this.nativeOutput.close();
-  }
-}
+      closed = true;
+      nativeOutput.close();
+      events.emit(
+        'closed',
+        createMIDIEvent<MIDIEndpointClosedEvent>({
+          type: 'closed',
+          endpoint: info,
+        }),
+      );
+      events.removeAllListeners();
+    },
+  };
+};
 
 const getNativeModule = () => {
   const packageRootCandidates: string[] = [];
@@ -264,7 +297,6 @@ const assertNativeModule = (value: unknown): NativeMIDIInterface => {
     throw new Error('MacOS MIDI native module did not load correctly.');
   }
 
-  assertFunction(value.getSupportInfo, 'getSupportInfo');
   assertFunction(value.getInputs, 'getInputs');
   assertFunction(value.getOutputs, 'getOutputs');
   assertFunction(value.setDeviceChangeCallback, 'setDeviceChangeCallback');
@@ -276,60 +308,222 @@ const assertNativeModule = (value: unknown): NativeMIDIInterface => {
   return value as NativeMIDIInterface;
 };
 
-const readMidiDeviceState = (nativeModule: NativeMIDIInterface): MIDIState => {
+const readRawMidiDeviceState = (
+  nativeModule: NativeMIDIInterface,
+): MIDIState => {
   return {
     inputs: assertEndpointInfoList(nativeModule.getInputs()),
     outputs: assertEndpointInfoList(nativeModule.getOutputs()),
   };
 };
 
+const endpointKey = (endpoint: MidiEndpointInfo) => {
+  return `${endpoint.portId}`;
+};
+
+const endpointsEqual = (first: MidiEndpointInfo, second: MidiEndpointInfo) => {
+  return first.name === second.name && first.portId === second.portId;
+};
+
+const reconcileEndpointList = (
+  previous: MidiEndpointInfo[],
+  next: MidiEndpointInfo[],
+) => {
+  const previousByKey = new Map(
+    previous.map((endpoint) => [endpointKey(endpoint), endpoint]),
+  );
+  let changed = previous.length !== next.length;
+
+  const reconciled = next.map((endpoint, index) => {
+    const previousEndpoint = previousByKey.get(endpointKey(endpoint));
+    const nextEndpoint =
+      previousEndpoint && endpointsEqual(previousEndpoint, endpoint)
+        ? previousEndpoint
+        : freezeEndpointInfo(endpoint);
+
+    if (nextEndpoint !== previous[index]) {
+      changed = true;
+    }
+
+    return nextEndpoint;
+  });
+
+  if (!changed) {
+    return previous;
+  }
+
+  return freezeEndpointList(reconciled);
+};
+
+const reconcileMidiDeviceState = (
+  previous: MIDIState,
+  next: MIDIState,
+): MIDIState => {
+  const inputs = reconcileEndpointList(previous.inputs, next.inputs);
+  const outputs = reconcileEndpointList(previous.outputs, next.outputs);
+
+  if (inputs === previous.inputs && outputs === previous.outputs) {
+    return previous;
+  }
+
+  return freezeEndpoints({
+    inputs,
+    outputs,
+  });
+};
+
+const readMidiDeviceState = (
+  nativeModule: NativeMIDIInterface,
+  previous: MIDIState,
+): MIDIState => {
+  return reconcileMidiDeviceState(
+    previous,
+    readRawMidiDeviceState(nativeModule),
+  );
+};
+
+const diffEndpoints = (
+  previous: MidiEndpointInfo[],
+  next: MidiEndpointInfo[],
+) => {
+  const nextKeys = new Set(next.map((endpoint) => endpointKey(endpoint)));
+  const previousKeys = new Set(
+    previous.map((endpoint) => endpointKey(endpoint)),
+  );
+
+  return {
+    added: next.filter((endpoint) => !previousKeys.has(endpointKey(endpoint))),
+    removed: previous.filter(
+      (endpoint) => !nextKeys.has(endpointKey(endpoint)),
+    ),
+  };
+};
+
+const createEndpointsChangedEvent = (
+  previous: MidiEndpoints,
+  next: MidiEndpoints,
+): MIDIInterfaceEventMap['endpointschanged'] => {
+  const inputChanges = diffEndpoints(previous.inputs, next.inputs);
+  const outputChanges = diffEndpoints(previous.outputs, next.outputs);
+
+  return createMIDIEvent<MIDIEndpointsChangedEvent>({
+    type: 'endpointschanged',
+    endpoints: next,
+    added: freezeEndpoints({
+      inputs: freezeEndpointList(inputChanges.added),
+      outputs: freezeEndpointList(outputChanges.added),
+    }),
+    removed: freezeEndpoints({
+      inputs: freezeEndpointList(inputChanges.removed),
+      outputs: freezeEndpointList(outputChanges.removed),
+    }),
+  });
+};
+
+const hasEndpointChanges = (
+  event: MIDIInterfaceEventMap['endpointschanged'],
+) => {
+  return (
+    event.added.inputs.length > 0 ||
+    event.added.outputs.length > 0 ||
+    event.removed.inputs.length > 0 ||
+    event.removed.outputs.length > 0
+  );
+};
+
 const getMidiDeviceState = (nativeModule: NativeMIDIInterface): MIDIState => {
   if (!midiDeviceStateListenerConfigured) {
     nativeModule.setDeviceChangeCallback(() => {
-      midiDeviceState = readMidiDeviceState(nativeModule);
+      const previous = midiDeviceState ?? EMPTY_ENDPOINTS;
+      const next = readMidiDeviceState(nativeModule, previous);
+      midiDeviceState = next;
+
+      if (next === previous) {
+        return;
+      }
+
+      const event = createEndpointsChangedEvent(previous, next);
+      if (!hasEndpointChanges(event)) {
+        return;
+      }
+
+      for (const listener of [...midiDeviceStateListeners]) {
+        listener(event);
+      }
     });
     midiDeviceStateListenerConfigured = true;
   }
 
   if (midiDeviceState === null) {
-    midiDeviceState = readMidiDeviceState(nativeModule);
+    midiDeviceState = readMidiDeviceState(nativeModule, EMPTY_ENDPOINTS);
   }
 
   return midiDeviceState;
 };
 
-export const loadNativeModuleMacOS = (): MIDIInterface => {
-  const nativeModule = assertNativeModule(getNativeModule());
+const createMacOSMIDIInterface = (
+  nativeModule: NativeMIDIInterface,
+): MIDIInterface => {
+  const events = new EventEmitter();
+  const deviceStateListener = (
+    event: MIDIInterfaceEventMap['endpointschanged'],
+  ) => {
+    events.emit('endpointschanged', event);
+  };
+
+  midiDeviceStateListeners.add(deviceStateListener);
 
   return {
-    getSupportInfo() {
-      return assertSupportResponse(nativeModule.getSupportInfo());
+    async getSupportInfo() {
+      return MACOS_SUPPORT_INFO;
     },
-    getInputs() {
-      return [...getMidiDeviceState(nativeModule).inputs];
+    async getEndpoints() {
+      return getMidiDeviceState(nativeModule);
     },
-    getOutputs() {
-      return [...getMidiDeviceState(nativeModule).outputs];
+    async getInputs() {
+      return getMidiDeviceState(nativeModule).inputs;
     },
-    openInput(endpoint) {
-      return new MacOSMIDIInput(
+    async getOutputs() {
+      return getMidiDeviceState(nativeModule).outputs;
+    },
+    async openInput(endpoint: MidiEndpointInfo) {
+      return createMacOSMIDIInput(
         assertNativeInput(nativeModule.openInput(endpoint)),
       );
     },
-    openOutput(endpoint) {
-      return new MacOSMIDIOutput(
+    async openOutput(endpoint: MidiEndpointInfo) {
+      return createMacOSMIDIOutput(
         assertNativeOutput(nativeModule.openOutput(endpoint)),
       );
     },
-    createVirtualInput(name, options) {
-      return new MacOSMIDIInput(
+    async createVirtualInput(name: string, options?: VirtualPortOptions) {
+      return createMacOSMIDIInput(
         assertNativeInput(nativeModule.createVirtualInput(name, options)),
       );
     },
-    createVirtualOutput(name, options) {
-      return new MacOSMIDIOutput(
+    async createVirtualOutput(name: string, options?: VirtualPortOptions) {
+      return createMacOSMIDIOutput(
         assertNativeOutput(nativeModule.createVirtualOutput(name, options)),
       );
     },
+    addEventListener<Type extends keyof MIDIInterfaceEventMap>(
+      type: Type,
+      listener: (event: MIDIInterfaceEventMap[Type]) => void,
+    ) {
+      getMidiDeviceState(nativeModule);
+      events.on(type, listener);
+    },
+    removeEventListener<Type extends keyof MIDIInterfaceEventMap>(
+      type: Type,
+      listener: (event: MIDIInterfaceEventMap[Type]) => void,
+    ) {
+      events.off(type, listener);
+    },
   };
+};
+
+export const loadNativeModuleMacOS = (): MIDIInterface => {
+  const nativeModule = assertNativeModule(getNativeModule());
+
+  return createMacOSMIDIInterface(nativeModule);
 };

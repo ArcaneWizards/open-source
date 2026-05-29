@@ -1,40 +1,59 @@
 import { loadNativeModuleMacOS } from './midi-macos.js';
 import { loadNativeModuleWindows } from './midi-windows.js';
-import { MIDIInterface } from './types.js';
+import type { MIDIInterface } from './types.js';
 
 export type {
+  MIDIEndpointClosedEvent,
+  MIDIEndpointsChangedEvent,
+  MIDIErrorEvent,
+  MIDIEvent,
+  MIDIEventListener,
+  MIDIInputEventMap,
   MIDIInterface,
+  MIDIInterfaceEventMap,
   MIDIInput,
+  MIDIMessageEvent,
   MIDIOutput,
+  MIDIOutputEventMap,
+  MIDISupportResponse,
   MidiEndpointInfo,
-  SupportResponse,
+  MidiEndpoints,
+  VirtualPortOptions,
 } from './types.js';
 
 const DEFAULT_MIDI_INTERFACE: MIDIInterface = {
-  getSupportInfo() {
+  async getSupportInfo() {
     return {
       supported: false,
       reason: 'MIDI support is not implemented in this environment.',
     };
   },
-  getInputs() {
+  async getEndpoints() {
+    return {
+      inputs: [],
+      outputs: [],
+    };
+  },
+  async getInputs() {
     return [];
   },
-  getOutputs() {
+  async getOutputs() {
     return [];
   },
-  openInput() {
+  async openInput() {
     throw new Error('MIDI support is not implemented in this environment.');
   },
-  openOutput() {
+  async openOutput() {
     throw new Error('MIDI support is not implemented in this environment.');
   },
-  createVirtualInput() {
+  async createVirtualInput() {
     throw new Error('MIDI support is not implemented in this environment.');
   },
-  createVirtualOutput() {
+  async createVirtualOutput() {
     throw new Error('MIDI support is not implemented in this environment.');
   },
+  addEventListener() {},
+  removeEventListener() {},
 };
 
 export const midi = () => {
