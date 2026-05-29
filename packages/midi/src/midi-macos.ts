@@ -38,16 +38,18 @@ type NativeMIDIOutput = {
 };
 
 type NativeMIDIInterface = {
-  getInputs(): MidiEndpointInfo[];
-  getOutputs(): MidiEndpointInfo[];
-  setDeviceChangeCallback(listener: ((messageId: number) => void) | null): void;
-  openInput(endpoint: MidiEndpointInfo): NativeMIDIInput;
-  openOutput(endpoint: MidiEndpointInfo): NativeMIDIOutput;
-  createVirtualInput(
+  getSources(): MidiEndpointInfo[];
+  getDestinations(): MidiEndpointInfo[];
+  setNotificationCallback(
+    listener: ((messageId: number) => void) | null,
+  ): void;
+  connectSource(endpoint: MidiEndpointInfo): NativeMIDIInput;
+  openDestination(endpoint: MidiEndpointInfo): NativeMIDIOutput;
+  createVirtualDestination(
     name: string,
     options?: VirtualPortOptions,
   ): NativeMIDIInput;
-  createVirtualOutput(
+  createVirtualSource(
     name: string,
     options?: VirtualPortOptions,
   ): NativeMIDIOutput;
@@ -422,13 +424,13 @@ const assertNativeModule = (value: unknown): NativeMIDIInterface => {
     );
   }
 
-  assertFunction(value.getInputs, 'getInputs');
-  assertFunction(value.getOutputs, 'getOutputs');
-  assertFunction(value.setDeviceChangeCallback, 'setDeviceChangeCallback');
-  assertFunction(value.openInput, 'openInput');
-  assertFunction(value.openOutput, 'openOutput');
-  assertFunction(value.createVirtualInput, 'createVirtualInput');
-  assertFunction(value.createVirtualOutput, 'createVirtualOutput');
+  assertFunction(value.getSources, 'getSources');
+  assertFunction(value.getDestinations, 'getDestinations');
+  assertFunction(value.setNotificationCallback, 'setNotificationCallback');
+  assertFunction(value.connectSource, 'connectSource');
+  assertFunction(value.openDestination, 'openDestination');
+  assertFunction(value.createVirtualDestination, 'createVirtualDestination');
+  assertFunction(value.createVirtualSource, 'createVirtualSource');
 
   return value as NativeMIDIInterface;
 };
@@ -438,10 +440,10 @@ const readRawMidiDeviceState = (
 ): MIDIState => {
   return {
     inputs: assertEndpointInfoList(
-      callNative('getInputs', () => nativeModule.getInputs()),
+      callNative('getSources', () => nativeModule.getSources()),
     ),
     outputs: assertEndpointInfoList(
-      callNative('getOutputs', () => nativeModule.getOutputs()),
+      callNative('getDestinations', () => nativeModule.getDestinations()),
     ),
   };
 };
@@ -562,8 +564,8 @@ const hasEndpointChanges = (
 
 const getMidiDeviceState = (nativeModule: NativeMIDIInterface): MIDIState => {
   if (!midiDeviceStateListenerConfigured) {
-    callNative('setDeviceChangeCallback', () => {
-      nativeModule.setDeviceChangeCallback(() => {
+    callNative('setNotificationCallback', () => {
+      nativeModule.setNotificationCallback(() => {
         const previous = midiDeviceState ?? EMPTY_ENDPOINTS;
         const next = readMidiDeviceState(nativeModule, previous);
         midiDeviceState = next;
@@ -621,7 +623,9 @@ const createMacOSMIDIInterface = (
       const inputEndpoint = assertPublicEndpointInfo(endpoint, 'endpoint');
       return createMacOSMIDIInput(
         assertNativeInput(
-          callNative('openInput', () => nativeModule.openInput(inputEndpoint)),
+          callNative('connectSource', () =>
+            nativeModule.connectSource(inputEndpoint),
+          ),
         ),
       );
     },
@@ -629,8 +633,8 @@ const createMacOSMIDIInterface = (
       const outputEndpoint = assertPublicEndpointInfo(endpoint, 'endpoint');
       return createMacOSMIDIOutput(
         assertNativeOutput(
-          callNative('openOutput', () =>
-            nativeModule.openOutput(outputEndpoint),
+          callNative('openDestination', () =>
+            nativeModule.openDestination(outputEndpoint),
           ),
         ),
       );
@@ -639,8 +643,8 @@ const createMacOSMIDIInterface = (
       const portName = assertVirtualPortName(name, 'name');
       return createMacOSMIDIInput(
         assertNativeInput(
-          callNative('createVirtualInput', () =>
-            nativeModule.createVirtualInput(portName, options),
+          callNative('createVirtualDestination', () =>
+            nativeModule.createVirtualDestination(portName, options),
           ),
         ),
       );
@@ -649,8 +653,8 @@ const createMacOSMIDIInterface = (
       const portName = assertVirtualPortName(name, 'name');
       return createMacOSMIDIOutput(
         assertNativeOutput(
-          callNative('createVirtualOutput', () =>
-            nativeModule.createVirtualOutput(portName, options),
+          callNative('createVirtualSource', () =>
+            nativeModule.createVirtualSource(portName, options),
           ),
         ),
       );

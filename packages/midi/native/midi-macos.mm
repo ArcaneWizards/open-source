@@ -763,39 +763,7 @@ napi_value CreateOutputObject(napi_env env, NativeOutput *output) {
   return object;
 }
 
-napi_value GetSupportInfo(napi_env env, napi_callback_info) {
-  napi_value object;
-  napi_create_object(env, &object);
-
-  OSStatus status = EnsureClientStatus();
-  if (status != noErr) {
-    napi_value supported;
-    napi_get_boolean(env, false, &supported);
-    napi_set_named_property(env, object, "supported", supported);
-
-    std::string reason = OSStatusMessage("MIDIClientCreate", status);
-    napi_value reasonValue;
-    napi_create_string_utf8(env, reason.c_str(), NAPI_AUTO_LENGTH,
-                            &reasonValue);
-    napi_set_named_property(env, object, "reason", reasonValue);
-    return object;
-  }
-
-  napi_value supported;
-  napi_get_boolean(env, true, &supported);
-  napi_set_named_property(env, object, "supported", supported);
-
-  napi_value virtualInfo;
-  napi_create_object(env, &virtualInfo);
-  napi_value virtualSupported;
-  napi_get_boolean(env, true, &virtualSupported);
-  napi_set_named_property(env, virtualInfo, "supported", virtualSupported);
-  napi_set_named_property(env, object, "virtual", virtualInfo);
-
-  return object;
-}
-
-napi_value SetDeviceChangeCallback(napi_env env,
+napi_value SetNotificationCallback(napi_env env,
                                    napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
@@ -854,7 +822,7 @@ napi_value SetDeviceChangeCallback(napi_env env,
   return CreateUndefined(env);
 }
 
-napi_value GetInputs(napi_env env, napi_callback_info) {
+napi_value GetSources(napi_env env, napi_callback_info) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -873,7 +841,7 @@ napi_value GetInputs(napi_env env, napi_callback_info) {
   return array;
 }
 
-napi_value GetOutputs(napi_env env, napi_callback_info) {
+napi_value GetDestinations(napi_env env, napi_callback_info) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -892,7 +860,7 @@ napi_value GetOutputs(napi_env env, napi_callback_info) {
   return array;
 }
 
-napi_value OpenInput(napi_env env, napi_callback_info callbackInfo) {
+napi_value ConnectSource(napi_env env, napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -901,7 +869,7 @@ napi_value OpenInput(napi_env env, napi_callback_info callbackInfo) {
   napi_value args[1];
   napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
   if (argc < 1) {
-    Throw(env, "openInput requires a MIDI endpoint.");
+    Throw(env, "connectSource requires a MIDI source endpoint.");
     return CreateUndefined(env);
   }
 
@@ -927,7 +895,7 @@ napi_value OpenInput(napi_env env, napi_callback_info callbackInfo) {
   return CreateInputObject(env, input.release());
 }
 
-napi_value OpenOutput(napi_env env, napi_callback_info callbackInfo) {
+napi_value OpenDestination(napi_env env, napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -936,7 +904,7 @@ napi_value OpenOutput(napi_env env, napi_callback_info callbackInfo) {
   napi_value args[1];
   napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
   if (argc < 1) {
-    Throw(env, "openOutput requires a MIDI endpoint.");
+    Throw(env, "openDestination requires a MIDI destination endpoint.");
     return CreateUndefined(env);
   }
 
@@ -955,7 +923,8 @@ napi_value OpenOutput(napi_env env, napi_callback_info callbackInfo) {
   return CreateOutputObject(env, output.release());
 }
 
-napi_value CreateVirtualInput(napi_env env, napi_callback_info callbackInfo) {
+napi_value CreateVirtualDestination(napi_env env,
+                                    napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -964,13 +933,13 @@ napi_value CreateVirtualInput(napi_env env, napi_callback_info callbackInfo) {
   napi_value args[2];
   napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
   if (argc < 1) {
-    Throw(env, "createVirtualInput requires a port name.");
+    Throw(env, "createVirtualDestination requires a port name.");
     return CreateUndefined(env);
   }
 
   std::string name;
   if (!GetStringArgument(env, args[0], &name) || name.empty()) {
-    Throw(env, "Virtual input name must be a non-empty string.");
+    Throw(env, "Virtual destination name must be a non-empty string.");
     return CreateUndefined(env);
   }
 
@@ -982,7 +951,7 @@ napi_value CreateVirtualInput(napi_env env, napi_callback_info callbackInfo) {
 
   CFStringRef portName = CreateCFString(name);
   if (portName == nullptr) {
-    Throw(env, "Unable to create virtual input name.");
+    Throw(env, "Unable to create virtual destination name.");
     return CreateUndefined(env);
   }
 
@@ -1000,7 +969,7 @@ napi_value CreateVirtualInput(napi_env env, napi_callback_info callbackInfo) {
   return CreateInputObject(env, input.release());
 }
 
-napi_value CreateVirtualOutput(napi_env env, napi_callback_info callbackInfo) {
+napi_value CreateVirtualSource(napi_env env, napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -1009,13 +978,13 @@ napi_value CreateVirtualOutput(napi_env env, napi_callback_info callbackInfo) {
   napi_value args[2];
   napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
   if (argc < 1) {
-    Throw(env, "createVirtualOutput requires a port name.");
+    Throw(env, "createVirtualSource requires a port name.");
     return CreateUndefined(env);
   }
 
   std::string name;
   if (!GetStringArgument(env, args[0], &name) || name.empty()) {
-    Throw(env, "Virtual output name must be a non-empty string.");
+    Throw(env, "Virtual source name must be a non-empty string.");
     return CreateUndefined(env);
   }
 
@@ -1027,7 +996,7 @@ napi_value CreateVirtualOutput(napi_env env, napi_callback_info callbackInfo) {
 
   CFStringRef portName = CreateCFString(name);
   if (portName == nullptr) {
-    Throw(env, "Unable to create virtual output name.");
+    Throw(env, "Unable to create virtual source name.");
     return CreateUndefined(env);
   }
 
@@ -1046,25 +1015,23 @@ napi_value CreateVirtualOutput(napi_env env, napi_callback_info callbackInfo) {
 
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor properties[] = {
-      {"getSupportInfo", nullptr, GetSupportInfo, nullptr, nullptr, nullptr,
+      {"getSources", nullptr, GetSources, nullptr, nullptr, nullptr,
        napi_default, nullptr},
-      {"getInputs", nullptr, GetInputs, nullptr, nullptr, nullptr, napi_default,
-       nullptr},
-      {"getOutputs", nullptr, GetOutputs, nullptr, nullptr, nullptr,
+      {"getDestinations", nullptr, GetDestinations, nullptr, nullptr, nullptr,
        napi_default, nullptr},
-      {"setDeviceChangeCallback", nullptr, SetDeviceChangeCallback, nullptr,
+      {"setNotificationCallback", nullptr, SetNotificationCallback, nullptr,
        nullptr, nullptr, napi_default, nullptr},
-      {"openInput", nullptr, OpenInput, nullptr, nullptr, nullptr, napi_default,
-       nullptr},
-      {"openOutput", nullptr, OpenOutput, nullptr, nullptr, nullptr,
+      {"connectSource", nullptr, ConnectSource, nullptr, nullptr, nullptr,
        napi_default, nullptr},
-      {"createVirtualInput", nullptr, CreateVirtualInput, nullptr, nullptr,
-       nullptr, napi_default, nullptr},
-      {"createVirtualOutput", nullptr, CreateVirtualOutput, nullptr, nullptr,
+      {"openDestination", nullptr, OpenDestination, nullptr, nullptr, nullptr,
+       napi_default, nullptr},
+      {"createVirtualDestination", nullptr, CreateVirtualDestination, nullptr,
+       nullptr, nullptr, napi_default, nullptr},
+      {"createVirtualSource", nullptr, CreateVirtualSource, nullptr, nullptr,
        nullptr, napi_default, nullptr},
   };
 
-  napi_define_properties(env, exports, 8, properties);
+  napi_define_properties(env, exports, 7, properties);
   return exports;
 }
 
