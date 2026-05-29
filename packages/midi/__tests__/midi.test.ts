@@ -7,10 +7,7 @@ import type {
   MIDIMessageEvent,
   MIDIOutput,
 } from '../dist/index.cjs';
-import {
-  MIDIEndpointClosedError,
-  midi as midiInit,
-} from '@arcanewizards/midi';
+import { MIDIEndpointClosedError, midi as midiInit } from '@arcanewizards/midi';
 
 const virtualMode = process.env.MIDI_TEST_MODE === 'virtual';
 const integrationMode = process.env.MIDI_TEST_MODE === 'integration';
@@ -112,7 +109,10 @@ const waitForClosedEvent = (
 
 const waitForEndpointRemovedEvent = (
   events: MIDIEndpointsChangedEvent[],
-  direction: keyof Pick<MIDIEndpointsChangedEvent['removed'], 'inputs' | 'outputs'>,
+  direction: keyof Pick<
+    MIDIEndpointsChangedEvent['removed'],
+    'inputs' | 'outputs'
+  >,
   name: string,
 ) => {
   return waitForRecordedEvent(events, (event) =>
@@ -125,7 +125,9 @@ const readIntegrationEndpoint = (
 ): MidiEndpointInfo => {
   const value = process.env[environmentVariable];
   if (!value) {
-    throw new Error(`${environmentVariable} is required for integration tests.`);
+    throw new Error(
+      `${environmentVariable} is required for integration tests.`,
+    );
   }
 
   const endpoint = JSON.parse(value) as MidiEndpointInfo;

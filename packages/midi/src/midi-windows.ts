@@ -107,7 +107,9 @@ const assertEndpointInfoList = (value: unknown): MidiEndpointInfo[] => {
     );
   }
 
-  return freezeEndpointList(value.map((endpoint) => assertEndpointInfo(endpoint)));
+  return freezeEndpointList(
+    value.map((endpoint) => assertEndpointInfo(endpoint)),
+  );
 };
 
 const assertNativeInput = (value: unknown): NativeMIDIInput => {
@@ -415,7 +417,9 @@ const createWindowsMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
   };
 };
 
-const createWindowsMIDIOutput = (nativeOutput: NativeMIDIOutput): MIDIOutput => {
+const createWindowsMIDIOutput = (
+  nativeOutput: NativeMIDIOutput,
+): MIDIOutput => {
   let closed = false;
   const events = new EventEmitter();
   const info = assertEndpointInfo(

@@ -40,9 +40,7 @@ type NativeMIDIOutput = {
 type NativeMIDIInterface = {
   getSources(): MidiEndpointInfo[];
   getDestinations(): MidiEndpointInfo[];
-  setNotificationCallback(
-    listener: ((messageId: number) => void) | null,
-  ): void;
+  setNotificationCallback(listener: ((messageId: number) => void) | null): void;
   connectSource(endpoint: MidiEndpointInfo): NativeMIDIInput;
   openDestination(endpoint: MidiEndpointInfo): NativeMIDIOutput;
   createVirtualDestination(
@@ -599,7 +597,9 @@ const closeRemovedEndpointHandles = (
   event: MIDIInterfaceEventMap['endpointschanged'],
 ) => {
   const removedEndpointKeys = {
-    inputs: new Set(event.removed.inputs.map((endpoint) => endpointKey(endpoint))),
+    inputs: new Set(
+      event.removed.inputs.map((endpoint) => endpointKey(endpoint)),
+    ),
     outputs: new Set(
       event.removed.outputs.map((endpoint) => endpointKey(endpoint)),
     ),
