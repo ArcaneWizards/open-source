@@ -34,6 +34,10 @@ export const STRINGS = {
       short: 'TCNet',
       long: 'TCNet (ShowKontrol / Pioneer)',
     },
+    midi: {
+      short: 'MTC',
+      long: 'MIDI Timecode (MTC)',
+    },
   },
   inputs: {
     title: 'INPUTS',

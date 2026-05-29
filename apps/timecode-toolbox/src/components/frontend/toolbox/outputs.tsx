@@ -18,13 +18,17 @@ import {
   ControlDialogButtons,
   ControlInput,
   ControlLabel,
+  ControlParagraph,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
 import { ConfigContext, NetworkContext, useApplicationState } from './context';
 import {
+  OutputArtnetDefinition,
   OutputConfig,
   OutputDefinition,
+  OutputMidiDefinition,
   TimecodeInstance,
+  ToolboxRootGetMidiDevicesReturn,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
 import {
@@ -51,6 +55,7 @@ import {
   getTimecodeInstance,
 } from '../../../util';
 import { NoToolboxChildren } from './content';
+import { MIDISupportResponse } from '@arcanewizards/midi';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   data,
@@ -69,6 +74,15 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   useEffect(() => {
     refreshInterfaces();
   }, [refreshInterfaces]);
+
+  const updateArtnetSettings = useCallback(
+    (change: (current: OutputArtnetDefinition) => OutputArtnetDefinition) => {
+      updateSettings((current) =>
+        current.type === 'artnet' ? change(current) : current,
+      );
+    },
+    [updateSettings],
+  );
 
   if (data.type !== 'artnet') {
     return null;
@@ -92,7 +106,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
         position="both"
         variant="large"
         onChange={(type) => {
-          updateSettings((current) => ({
+          updateArtnetSettings((current) => ({
             ...current,
             target:
               type === 'interface'
@@ -130,7 +144,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
             }
             placeholder="No Interface Selected"
             onChange={(value) => {
-              updateSettings((current) => ({
+              updateArtnetSettings((current) => ({
                 ...current,
                 target: {
                   type: 'interface',
@@ -151,7 +165,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
             type="string"
             value={data.target.host ?? ''}
             onChange={(value) => {
-              updateSettings((current) => ({
+              updateArtnetSettings((current) => ({
                 ...current,
                 target: {
                   type: 'host',
@@ -174,7 +188,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
           if (port !== undefined && isNaN(port)) {
             return;
           }
-          updateSettings((current) => ({
+          updateArtnetSettings((current) => ({
             ...current,
             target: {
               ...current.target,
@@ -186,6 +200,171 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
           }
         }}
       />
+      <ControlLabel>FPS</ControlLabel>
+      <ControlSelect<TimecodeMode>
+        position="both"
+        variant="large"
+        value={data.mode}
+        options={(
+          Object.entries(STRINGS.smtpeModeOptions) as [TimecodeMode, string][]
+        ).map(([mode, label]) => ({
+          label,
+          value: mode,
+        }))}
+        onChange={(mode) => {
+          updateSettings((current) => ({ ...current, mode }));
+        }}
+      />
+    </>
+  );
+};
+
+type MIDIState = MIDISupportResponse &
+  (
+    | {
+        supported: true;
+        devices: ToolboxRootGetMidiDevicesReturn;
+      }
+    | {
+        supported: false;
+      }
+  );
+
+const MidiConnectionSettings: FC<
+  SettingsProps<OutputDefinition> & {
+    name: string | undefined;
+  }
+> = ({ name, data, updateSettings }) => {
+  const { getMidiSupportInfo, getMidiDevices } = useContext(NetworkContext);
+  const [midiDevices, setMidiDevices] = useState<MIDIState | null>(null);
+
+  const refreshDevices = useCallback(() => {
+    setMidiDevices(null);
+    getMidiSupportInfo().then((info) => {
+      if (!info.supported) {
+        setMidiDevices(info);
+        return;
+      }
+      getMidiDevices().then((devices) => {
+        setMidiDevices({
+          ...info,
+          devices,
+        });
+      });
+    });
+  }, [getMidiSupportInfo, getMidiDevices]);
+
+  useEffect(() => {
+    refreshDevices();
+  }, [refreshDevices]);
+
+  const updateMidiSettings = useCallback(
+    (change: (current: OutputMidiDefinition) => OutputMidiDefinition) => {
+      updateSettings((current) =>
+        current.type === 'midi' ? change(current) : current,
+      );
+    },
+    [updateSettings],
+  );
+
+  if (data.type !== 'midi' || midiDevices === null) {
+    return null;
+  }
+
+  if (!midiDevices.supported) {
+    return (
+      <>
+        <ControlParagraph mode="error" position="row">
+          {`MIDI is not supported on this device: ${midiDevices.reason}`}
+        </ControlParagraph>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <ControlLabel>Device Type</ControlLabel>
+      <ControlSelect
+        value={data.target.type}
+        options={[
+          { value: 'port', label: 'Connected Device' },
+          { value: 'virtual', label: 'Arcane Virtual MIDI Device' },
+        ]}
+        variant="large"
+        position="both"
+        onChange={(type) => {
+          updateMidiSettings((current) => ({
+            ...current,
+            target:
+              current.target.type === type
+                ? current.target
+                : type === 'port'
+                  ? {
+                      type: 'port',
+                      deviceName: '',
+                    }
+                  : {
+                      type: 'virtual',
+                      deviceName: '',
+                    },
+          }));
+        }}
+      />
+      {data.target.type === 'port' ? (
+        <>
+          <ControlLabel>Device</ControlLabel>
+          <ControlButton
+            onClick={refreshDevices}
+            title="Refresh Devices"
+            position="first"
+            variant="large"
+          >
+            <Icon icon="refresh" />
+          </ControlButton>
+          {midiDevices.devices.outputs.length === 0 ? (
+            <ControlParagraph mode="warning" position="row">
+              No MIDI output devices found. Please connect a MIDI device and
+              refresh the list.
+            </ControlParagraph>
+          ) : (
+            <ControlSelect
+              value={data.target.deviceName}
+              options={
+                midiDevices.devices.outputs.map((device) => ({
+                  value: device.name,
+                  label: device.name,
+                })) || []
+              }
+              variant="large"
+              position="second"
+              placeholder="Select Device"
+              onChange={(deviceName) => {
+                updateMidiSettings((current) => ({
+                  ...current,
+                  target: {
+                    type: 'port',
+                    deviceName,
+                  },
+                }));
+              }}
+            />
+          )}
+        </>
+      ) : midiDevices.virtual.supported ? (
+        name ? (
+          <ControlParagraph position="row">
+            {`The virtual MIDI device will have the name ${name}`}
+          </ControlParagraph>
+        ) : (
+          <ControlParagraph mode="warning" position="row">
+            {`Please specify a name for your virtual MIDI device`}
+          </ControlParagraph>
+        )
+      ) : (
+        <ControlParagraph mode="error" position="row">
+          {`Virtual MIDI devices are not supported on this machine: ${midiDevices.virtual.reason}`}
+        </ControlParagraph>
+      )}
       <ControlLabel>FPS</ControlLabel>
       <ControlSelect<TimecodeMode>
         position="both"
@@ -220,14 +399,24 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
   const [newData, setNewData] = useState<OutputConfig>({
     name: '',
     enabled: true,
-    definition: {
-      type: 'artnet',
-      target: {
-        type: 'host',
-        host: 'localhost',
-      },
-      mode: 'SMPTE',
-    },
+    definition:
+      output === 'artnet'
+        ? {
+            type: 'artnet',
+            target: {
+              type: 'host',
+              host: 'localhost',
+            },
+            mode: 'SMPTE',
+          }
+        : {
+            type: 'midi',
+            target: {
+              type: 'port',
+              deviceName: '',
+            },
+            mode: 'SMPTE',
+          },
     link: null,
   });
 
@@ -343,6 +532,13 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
         />
         {data.definition.type === 'artnet' ? (
           <DmxConnectionSettings
+            data={data.definition}
+            updateSettings={updateDefinition}
+          />
+        ) : null}
+        {data.definition.type === 'midi' ? (
+          <MidiConnectionSettings
+            name={data.name}
             data={data.definition}
             updateSettings={updateDefinition}
           />
@@ -576,7 +772,7 @@ export const OutputsSection: FC<OutputSectionProps> = ({
       title={STRINGS.outputs.title}
       buttons={
         <>
-          {(['artnet'] as const).map((type) => (
+          {(['artnet', 'midi'] as const).map((type) => (
             <ControlButton
               key={type}
               onClick={() =>

@@ -18,6 +18,10 @@ import {
   ListenerConfig,
 } from '@arcanewizards/sigil/shared/config';
 import { ToolkitConnection } from '@arcanejs/toolkit';
+import type {
+  MidiEndpointInfo,
+  MIDISupportResponse,
+} from '@arcanewizards/midi';
 
 /* Shared config & proto definitions */
 
@@ -80,6 +84,37 @@ export const isInputTcnetDefinition = (
   definition: InputDefinition,
 ): definition is InputTcnetDefinition => definition.type === 'tcnet';
 
+// MIDI Config
+
+const MIDI_TARGET_CONFIG = z.union([
+  z.object({
+    type: z.literal('port'),
+    deviceName: z.string(),
+  }),
+  z.object({
+    type: z.literal('virtual'),
+  }),
+]);
+
+const INPUT_MIDI_DEFINITION = z.object({
+  type: z.literal('midi'),
+  target: MIDI_TARGET_CONFIG,
+});
+
+export type InputMidiDefinition = z.infer<typeof INPUT_MIDI_DEFINITION>;
+
+const OUTPUT_MIDI_DEFINITION = z.object({
+  type: z.literal('midi'),
+  target: MIDI_TARGET_CONFIG,
+  mode: z.enum(['FILM', 'EBU', 'DF', 'SMPTE']),
+});
+
+export type OutputMidiDefinition = z.infer<typeof OUTPUT_MIDI_DEFINITION>;
+
+export const isOutputMidiDefinition = (
+  definition: OutputDefinition,
+): definition is OutputMidiDefinition => definition.type === 'midi';
+
 // Clock
 
 const GENERATOR_CLOCK_DEFINITION = z.object({
@@ -108,6 +143,7 @@ const GENERATOR_PLAYER_DEFINITION = z.object({
 const INPUT_DEFINITION = z.union([
   INPUT_ARTNET_DEFINITION,
   INPUT_OR_OUTPUT_TCNET_DEFINITION,
+  INPUT_MIDI_DEFINITION,
 ]);
 
 export type InputDefinition = z.infer<typeof INPUT_DEFINITION>;
@@ -142,7 +178,10 @@ export type GeneratorConfig = z.infer<typeof GENERATOR_CONFIG>;
 
 // Outputs
 
-const OUTPUT_DEFINITION = OUTPUT_ARTNET_DEFINITION; // todo expand to other output types in the future
+const OUTPUT_DEFINITION = z.union([
+  OUTPUT_ARTNET_DEFINITION,
+  OUTPUT_MIDI_DEFINITION,
+]);
 
 export type OutputDefinition = z.infer<typeof OUTPUT_DEFINITION>;
 
@@ -476,6 +515,23 @@ export type ToolboxRootGetNetworkInterfacesReturn = Record<
   NetworkInterface
 >;
 
+export type ToolboxRootGetMidiDevices = BaseClientComponentCall<
+  Namespace,
+  'toolbox-root-get-midi-devices'
+>;
+
+export type ToolboxRootGetMidiDevicesReturn = {
+  inputs: MidiEndpointInfo[];
+  outputs: MidiEndpointInfo[];
+};
+
+export type ToolboxRootGetMidiSupportInfo = BaseClientComponentCall<
+  Namespace,
+  'toolbox-root-get-midi-support-info'
+>;
+
+export type ToolboxRootGetMidiSupportInfoReturn = MIDISupportResponse;
+
 export type ToolboxRootCallHandler<
   H extends keyof AvailableHandlers = keyof AvailableHandlers,
 > = BaseClientComponentCall<Namespace, 'toolbox-root-call-handler'> & {
@@ -490,6 +546,14 @@ export type TimecodeToolboxComponentCalls = {
   'toolbox-root-get-network-interfaces': {
     call: ToolboxRootGetNetworkInterfaces;
     return: ToolboxRootGetNetworkInterfacesReturn;
+  };
+  'toolbox-root-get-midi-devices': {
+    call: ToolboxRootGetMidiDevices;
+    return: ToolboxRootGetMidiDevicesReturn;
+  };
+  'toolbox-root-get-midi-support-info': {
+    call: ToolboxRootGetMidiSupportInfo;
+    return: ToolboxRootGetMidiSupportInfoReturn;
   };
   'toolbox-root-call-handler': {
     call: ToolboxRootCallHandler;

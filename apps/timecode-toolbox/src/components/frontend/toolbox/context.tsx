@@ -5,6 +5,8 @@ import {
   ToolboxConfig,
   ToolboxRootCallHandler,
   ToolboxRootComponent,
+  ToolboxRootGetMidiDevicesReturn,
+  ToolboxRootGetMidiSupportInfoReturn,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
 import { Tree } from '../../../tree';
@@ -52,8 +54,10 @@ export const ApplicationHandlersContext =
 export const useApplicationHandlers = () =>
   useContext(ApplicationHandlersContext);
 
-type NetworkContextData = {
+export type NetworkContextData = {
   getNetworkInterfaces: () => Promise<ToolboxRootGetNetworkInterfacesReturn>;
+  getMidiDevices: () => Promise<ToolboxRootGetMidiDevicesReturn>;
+  getMidiSupportInfo: () => Promise<ToolboxRootGetMidiSupportInfoReturn>;
 };
 
 export const NetworkContext = createContext<NetworkContextData>(
