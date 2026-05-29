@@ -14,6 +14,12 @@ import type {
   MIDIEndpointsChangedEvent,
 } from './types.js';
 import { createMIDIEvent } from './types.js';
+import {
+  MIDIEndpointClosedError,
+  MIDIInvalidArgumentError,
+  MIDINativeError,
+  toMIDINativeError,
+} from './errors.js';
 import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -61,12 +67,90 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
 };
 
+const assertPublicEndpointInfo = (
+  value: unknown,
+  argument: string,
+): MidiEndpointInfo => {
+  if (
+    !isRecord(value) ||
+    typeof value.name !== 'string' ||
+    typeof value.portId !== 'number'
+  ) {
+    throw new MIDIInvalidArgumentError(
+      `${argument} must be a MIDI endpoint object.`,
+      {
+        argument,
+      },
+    );
+  }
+
+  return {
+    name: value.name,
+    portId: value.portId,
+  };
+};
+
+const assertVirtualPortName = (value: unknown, argument: string) => {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new MIDIInvalidArgumentError(
+      `${argument} must be a non-empty string.`,
+      {
+        argument,
+      },
+    );
+  }
+
+  return value;
+};
+
+const assertMIDIMessage = (value: unknown): number[] => {
+  if (!Array.isArray(value)) {
+    throw new MIDIInvalidArgumentError(
+      'MIDI message must be an array of bytes.',
+      {
+        argument: 'message',
+      },
+    );
+  }
+
+  if (value.length === 0) {
+    throw new MIDIInvalidArgumentError(
+      'MIDI message must contain at least one byte.',
+      {
+        argument: 'message',
+      },
+    );
+  }
+
+  if (value.length > 65535) {
+    throw new MIDIInvalidArgumentError(
+      'MIDI message cannot exceed 65535 bytes.',
+      {
+        argument: 'message',
+      },
+    );
+  }
+
+  for (const byte of value) {
+    if (!Number.isInteger(byte) || byte < 0 || byte > 255) {
+      throw new MIDIInvalidArgumentError(
+        'MIDI message bytes must be integers from 0 to 255.',
+        {
+          argument: 'message',
+        },
+      );
+    }
+  }
+
+  return value;
+};
+
 function assertFunction(
   value: unknown,
   name: string,
 ): asserts value is (...args: unknown[]) => unknown {
   if (typeof value !== 'function') {
-    throw new Error(`MacOS MIDI native module is missing ${name}().`);
+    throw new MIDINativeError(`MacOS MIDI native module is missing ${name}().`);
   }
 }
 
@@ -76,7 +160,9 @@ const assertEndpointInfo = (value: unknown): MidiEndpointInfo => {
     typeof value.name !== 'string' ||
     typeof value.portId !== 'number'
   ) {
-    throw new Error('MacOS MIDI native module returned an invalid endpoint.');
+    throw new MIDINativeError(
+      'MacOS MIDI native module returned an invalid endpoint.',
+    );
   }
 
   return {
@@ -87,7 +173,7 @@ const assertEndpointInfo = (value: unknown): MidiEndpointInfo => {
 
 const assertEndpointInfoList = (value: unknown): MidiEndpointInfo[] => {
   if (!Array.isArray(value)) {
-    throw new Error(
+    throw new MIDINativeError(
       'MacOS MIDI native module returned an invalid endpoint list.',
     );
   }
@@ -97,7 +183,9 @@ const assertEndpointInfoList = (value: unknown): MidiEndpointInfo[] => {
 
 const assertNativeInput = (value: unknown): NativeMIDIInput => {
   if (!isRecord(value)) {
-    throw new Error('MacOS MIDI native module returned an invalid input.');
+    throw new MIDINativeError(
+      'MacOS MIDI native module returned an invalid input.',
+    );
   }
 
   assertFunction(value.getInfo, 'input.getInfo');
@@ -109,7 +197,9 @@ const assertNativeInput = (value: unknown): NativeMIDIInput => {
 
 const assertNativeOutput = (value: unknown): NativeMIDIOutput => {
   if (!isRecord(value)) {
-    throw new Error('MacOS MIDI native module returned an invalid output.');
+    throw new MIDINativeError(
+      'MacOS MIDI native module returned an invalid output.',
+    );
   }
 
   assertFunction(value.getInfo, 'output.getInfo');
@@ -158,19 +248,37 @@ const EMPTY_ENDPOINTS = freezeEndpoints({
   outputs: freezeEndpointList([]),
 });
 
+const callNative = <Value>(operation: string, callback: () => Value): Value => {
+  try {
+    return callback();
+  } catch (error) {
+    throw toMIDINativeError(
+      error,
+      `MacOS MIDI native operation ${operation} failed.`,
+      operation,
+    );
+  }
+};
+
 const createMacOSMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
   let closed = false;
   const events = new EventEmitter();
-  const info = freezeEndpointInfo(assertEndpointInfo(nativeInput.getInfo()));
+  const info = freezeEndpointInfo(
+    assertEndpointInfo(
+      callNative('input.getInfo', () => nativeInput.getInfo()),
+    ),
+  );
 
-  nativeInput.setMessageCallback((message) => {
-    events.emit(
-      'message',
-      createMIDIEvent<MIDIMessageEvent>({
-        type: 'message',
-        message: [...message],
-      }),
-    );
+  callNative('input.setMessageCallback', () => {
+    nativeInput.setMessageCallback((message) => {
+      events.emit(
+        'message',
+        createMIDIEvent<MIDIMessageEvent>({
+          type: 'message',
+          message: [...message],
+        }),
+      );
+    });
   });
 
   return {
@@ -195,8 +303,12 @@ const createMacOSMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
       }
 
       closed = true;
-      nativeInput.setMessageCallback(null);
-      nativeInput.close();
+      callNative('input.setMessageCallback', () => {
+        nativeInput.setMessageCallback(null);
+      });
+      callNative('input.close', () => {
+        nativeInput.close();
+      });
       events.emit(
         'closed',
         createMIDIEvent<MIDIEndpointClosedEvent>({
@@ -212,7 +324,11 @@ const createMacOSMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
 const createMacOSMIDIOutput = (nativeOutput: NativeMIDIOutput): MIDIOutput => {
   let closed = false;
   const events = new EventEmitter();
-  const info = freezeEndpointInfo(assertEndpointInfo(nativeOutput.getInfo()));
+  const info = freezeEndpointInfo(
+    assertEndpointInfo(
+      callNative('output.getInfo', () => nativeOutput.getInfo()),
+    ),
+  );
 
   return {
     getInfo() {
@@ -220,9 +336,14 @@ const createMacOSMIDIOutput = (nativeOutput: NativeMIDIOutput): MIDIOutput => {
     },
     async sendMessage(message: number[]) {
       if (closed) {
-        throw new Error('MIDI output is closed.');
+        throw new MIDIEndpointClosedError('MIDI output is closed.', {
+          endpoint: info,
+        });
       }
-      nativeOutput.sendMessage(message);
+      const midiMessage = assertMIDIMessage(message);
+      callNative('output.sendMessage', () => {
+        nativeOutput.sendMessage(midiMessage);
+      });
     },
     addEventListener<Type extends keyof MIDIOutputEventMap>(
       type: Type,
@@ -242,7 +363,9 @@ const createMacOSMIDIOutput = (nativeOutput: NativeMIDIOutput): MIDIOutput => {
       }
 
       closed = true;
-      nativeOutput.close();
+      callNative('output.close', () => {
+        nativeOutput.close();
+      });
       events.emit(
         'closed',
         createMIDIEvent<MIDIEndpointClosedEvent>({
@@ -281,11 +404,11 @@ const getNativeModule = () => {
 
   for (const nativePath of resolvedPaths) {
     if (existsSync(nativePath)) {
-      return requireNative(nativePath);
+      return callNative('loadNativeModule', () => requireNative(nativePath));
     }
   }
 
-  throw new Error(
+  throw new MIDINativeError(
     `MacOS MIDI native module was not found. Tried: ${[...resolvedPaths].join(
       ', ',
     )}`,
@@ -294,7 +417,9 @@ const getNativeModule = () => {
 
 const assertNativeModule = (value: unknown): NativeMIDIInterface => {
   if (!isRecord(value)) {
-    throw new Error('MacOS MIDI native module did not load correctly.');
+    throw new MIDINativeError(
+      'MacOS MIDI native module did not load correctly.',
+    );
   }
 
   assertFunction(value.getInputs, 'getInputs');
@@ -312,8 +437,12 @@ const readRawMidiDeviceState = (
   nativeModule: NativeMIDIInterface,
 ): MIDIState => {
   return {
-    inputs: assertEndpointInfoList(nativeModule.getInputs()),
-    outputs: assertEndpointInfoList(nativeModule.getOutputs()),
+    inputs: assertEndpointInfoList(
+      callNative('getInputs', () => nativeModule.getInputs()),
+    ),
+    outputs: assertEndpointInfoList(
+      callNative('getOutputs', () => nativeModule.getOutputs()),
+    ),
   };
 };
 
@@ -433,23 +562,25 @@ const hasEndpointChanges = (
 
 const getMidiDeviceState = (nativeModule: NativeMIDIInterface): MIDIState => {
   if (!midiDeviceStateListenerConfigured) {
-    nativeModule.setDeviceChangeCallback(() => {
-      const previous = midiDeviceState ?? EMPTY_ENDPOINTS;
-      const next = readMidiDeviceState(nativeModule, previous);
-      midiDeviceState = next;
+    callNative('setDeviceChangeCallback', () => {
+      nativeModule.setDeviceChangeCallback(() => {
+        const previous = midiDeviceState ?? EMPTY_ENDPOINTS;
+        const next = readMidiDeviceState(nativeModule, previous);
+        midiDeviceState = next;
 
-      if (next === previous) {
-        return;
-      }
+        if (next === previous) {
+          return;
+        }
 
-      const event = createEndpointsChangedEvent(previous, next);
-      if (!hasEndpointChanges(event)) {
-        return;
-      }
+        const event = createEndpointsChangedEvent(previous, next);
+        if (!hasEndpointChanges(event)) {
+          return;
+        }
 
-      for (const listener of [...midiDeviceStateListeners]) {
-        listener(event);
-      }
+        for (const listener of [...midiDeviceStateListeners]) {
+          listener(event);
+        }
+      });
     });
     midiDeviceStateListenerConfigured = true;
   }
@@ -487,23 +618,41 @@ const createMacOSMIDIInterface = (
       return getMidiDeviceState(nativeModule).outputs;
     },
     async openInput(endpoint: MidiEndpointInfo) {
+      const inputEndpoint = assertPublicEndpointInfo(endpoint, 'endpoint');
       return createMacOSMIDIInput(
-        assertNativeInput(nativeModule.openInput(endpoint)),
+        assertNativeInput(
+          callNative('openInput', () => nativeModule.openInput(inputEndpoint)),
+        ),
       );
     },
     async openOutput(endpoint: MidiEndpointInfo) {
+      const outputEndpoint = assertPublicEndpointInfo(endpoint, 'endpoint');
       return createMacOSMIDIOutput(
-        assertNativeOutput(nativeModule.openOutput(endpoint)),
+        assertNativeOutput(
+          callNative('openOutput', () =>
+            nativeModule.openOutput(outputEndpoint),
+          ),
+        ),
       );
     },
     async createVirtualInput(name: string, options?: VirtualPortOptions) {
+      const portName = assertVirtualPortName(name, 'name');
       return createMacOSMIDIInput(
-        assertNativeInput(nativeModule.createVirtualInput(name, options)),
+        assertNativeInput(
+          callNative('createVirtualInput', () =>
+            nativeModule.createVirtualInput(portName, options),
+          ),
+        ),
       );
     },
     async createVirtualOutput(name: string, options?: VirtualPortOptions) {
+      const portName = assertVirtualPortName(name, 'name');
       return createMacOSMIDIOutput(
-        assertNativeOutput(nativeModule.createVirtualOutput(name, options)),
+        assertNativeOutput(
+          callNative('createVirtualOutput', () =>
+            nativeModule.createVirtualOutput(portName, options),
+          ),
+        ),
       );
     },
     addEventListener<Type extends keyof MIDIInterfaceEventMap>(

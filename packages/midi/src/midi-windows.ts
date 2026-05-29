@@ -1,4 +1,5 @@
 import type { MIDIInterface } from './types.js';
+import { MIDINativeError } from './errors.js';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -31,11 +32,21 @@ const getNativeModule = (): MIDIInterface => {
 
   for (const nativePath of resolvedPaths) {
     if (existsSync(nativePath)) {
-      return requireNative(nativePath);
+      try {
+        return requireNative(nativePath);
+      } catch (error) {
+        throw new MIDINativeError(
+          'Windows MIDI native module failed to load.',
+          {
+            cause: error,
+            operation: 'loadNativeModule',
+          },
+        );
+      }
     }
   }
 
-  throw new Error(
+  throw new MIDINativeError(
     `Windows MIDI native module was not found. Tried: ${[...resolvedPaths].join(
       ', ',
     )}`,

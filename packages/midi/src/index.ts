@@ -1,6 +1,19 @@
 import { loadNativeModuleMacOS } from './midi-macos.js';
 import { loadNativeModuleWindows } from './midi-windows.js';
+import { MIDINotSupportedError } from './errors.js';
 import type { MIDIInterface } from './types.js';
+
+export {
+  MIDIEndpointClosedError,
+  MIDIEndpointNotFoundError,
+  MIDIError,
+  MIDIInvalidArgumentError,
+  MIDINativeError,
+  MIDINotImplementedError,
+  MIDINotSupportedError,
+} from './errors.js';
+
+export type { MIDIErrorCode, MIDIErrorOptions } from './errors.js';
 
 export type {
   MIDIEndpointClosedEvent,
@@ -41,16 +54,24 @@ const DEFAULT_MIDI_INTERFACE: MIDIInterface = {
     return [];
   },
   async openInput() {
-    throw new Error('MIDI support is not implemented in this environment.');
+    throw new MIDINotSupportedError(
+      'MIDI support is not implemented in this environment.',
+    );
   },
   async openOutput() {
-    throw new Error('MIDI support is not implemented in this environment.');
+    throw new MIDINotSupportedError(
+      'MIDI support is not implemented in this environment.',
+    );
   },
   async createVirtualInput() {
-    throw new Error('MIDI support is not implemented in this environment.');
+    throw new MIDINotSupportedError(
+      'MIDI support is not implemented in this environment.',
+    );
   },
   async createVirtualOutput() {
-    throw new Error('MIDI support is not implemented in this environment.');
+    throw new MIDINotSupportedError(
+      'MIDI support is not implemented in this environment.',
+    );
   },
   addEventListener() {},
   removeEventListener() {},

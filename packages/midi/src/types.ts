@@ -1,3 +1,5 @@
+import type { MIDIError } from './errors.js';
+
 export type MIDISupportResponse =
   | {
       supported: true;
@@ -58,8 +60,7 @@ export type MIDIEndpointClosedEvent = MIDIEvent<'closed'> & {
 };
 
 export type MIDIErrorEvent = MIDIEvent<'error'> & {
-  // TODO: Use the MIDI error base class here once standard error classes exist.
-  error: Error;
+  error: MIDIError;
 };
 
 export type MIDIEndpointsChangedEvent = MIDIEvent<'endpointschanged'> & {
