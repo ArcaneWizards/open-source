@@ -27,7 +27,10 @@
     "check:types": "tsc --noEmit",
     "format:fix": "cd .. && pnpm format:fix",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint --fix ."
+    "lint:fix": "eslint --fix .",
+    "run:list": "tsx scripts/list.ts",
+    "run:receive": "tsx scripts/receive.ts",
+    "run:send": "tsx scripts/send.ts"
   },
   "devDependencies": {
     "@arcanewizards/eslint-config": "workspace:^",
@@ -37,6 +40,7 @@
     "check-export-map": "^1.3.1",
     "eslint": "^9.39.4",
     "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "engines": {
