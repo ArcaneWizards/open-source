@@ -33,6 +33,30 @@ const waitForMessage = async (received: number[][], expected: number[]) => {
   );
 };
 
+const hasEndpoint = (endpoints: MidiEndpointInfo[], name: string) =>
+  endpoints.some((endpoint) => endpoint.name === name);
+
+const waitForEndpointState = async (
+  readEndpoints: () => MidiEndpointInfo[],
+  name: string,
+  expectedPresent: boolean,
+) => {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < 2_000) {
+    const endpoints = readEndpoints();
+    if (hasEndpoint(endpoints, name) === expectedPresent) {
+      return endpoints;
+    }
+    await wait(25);
+  }
+
+  const endpoints = readEndpoints();
+  throw new Error(
+    `Expected endpoint "${name}" present=${expectedPresent} but received ${JSON.stringify(endpoints)}.`,
+  );
+};
+
 const readIntegrationEndpoint = (
   environmentVariable: string,
 ): MidiEndpointInfo => {
@@ -58,6 +82,7 @@ suite('macOS MIDI communication', () => {
   jest.setTimeout(10_000);
 
   let midi: MIDIInterface;
+  let virtualSupported = false;
 
   beforeAll(async () => {
     midi = midiInit();
@@ -67,6 +92,7 @@ suite('macOS MIDI communication', () => {
     if (!support.supported) {
       return;
     }
+    virtualSupported = support.virtual.supported;
     expect(support.virtual.supported).toBe(process.platform === 'darwin');
   });
 
@@ -122,6 +148,74 @@ suite('macOS MIDI communication', () => {
       output.close();
     }
   });
+
+  virtualTest(
+    'keeps output list up-to-date when a virtual input is created and closed',
+    async () => {
+      if (!virtualSupported) {
+        return;
+      }
+
+      const name = `Arcane Wizards Jest Virtual Input Cache ${Date.now()}`;
+      let input: ReturnType<MIDIInterface['createVirtualInput']> | undefined;
+
+      expect(hasEndpoint(midi.getOutputs(), name)).toBe(false);
+
+      try {
+        input = midi.createVirtualInput(name);
+        expect(
+          hasEndpoint(
+            await waitForEndpointState(() => midi.getOutputs(), name, true),
+            name,
+          ),
+        ).toBe(true);
+      } finally {
+        input?.close();
+      }
+
+      expect(
+        hasEndpoint(
+          await waitForEndpointState(() => midi.getOutputs(), name, false),
+          name,
+        ),
+      ).toBe(false);
+    },
+  );
+
+  virtualTest(
+    'keeps input list up-to-date when a virtual output is created and closed',
+    async () => {
+      if (!virtualSupported) {
+        return;
+      }
+
+      const name = `Arcane Wizards Jest Virtual Output Cache ${Date.now()}`;
+      let output:
+        | ReturnType<MIDIInterface['createVirtualOutput']>
+        | undefined;
+
+      expect(hasEndpoint(midi.getInputs(), name)).toBe(false);
+
+      try {
+        output = midi.createVirtualOutput(name);
+        expect(
+          hasEndpoint(
+            await waitForEndpointState(() => midi.getInputs(), name, true),
+            name,
+          ),
+        ).toBe(true);
+      } finally {
+        output?.close();
+      }
+
+      expect(
+        hasEndpoint(
+          await waitForEndpointState(() => midi.getInputs(), name, false),
+          name,
+        ),
+      ).toBe(false);
+    },
+  );
 
   integrationTest(
     'real device loopback receives output messages on input',

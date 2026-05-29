@@ -26,6 +26,7 @@ type NativeMIDIInterface = {
   getSupportInfo(): SupportResponse;
   getInputs(): MidiEndpointInfo[];
   getOutputs(): MidiEndpointInfo[];
+  setDeviceChangeCallback(listener: ((messageId: number) => void) | null): void;
   openInput(endpoint: MidiEndpointInfo): NativeMIDIInput;
   openOutput(endpoint: MidiEndpointInfo): NativeMIDIOutput;
   createVirtualInput(
@@ -39,6 +40,14 @@ type NativeMIDIInterface = {
 };
 
 const requireNative = createRequire(join(process.cwd(), 'package.json'));
+
+type MIDIState = {
+  inputs: MidiEndpointInfo[];
+  outputs: MidiEndpointInfo[];
+};
+
+let midiDeviceState: MIDIState | null = null;
+let midiDeviceStateListenerConfigured = false;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
@@ -258,12 +267,35 @@ const assertNativeModule = (value: unknown): NativeMIDIInterface => {
   assertFunction(value.getSupportInfo, 'getSupportInfo');
   assertFunction(value.getInputs, 'getInputs');
   assertFunction(value.getOutputs, 'getOutputs');
+  assertFunction(value.setDeviceChangeCallback, 'setDeviceChangeCallback');
   assertFunction(value.openInput, 'openInput');
   assertFunction(value.openOutput, 'openOutput');
   assertFunction(value.createVirtualInput, 'createVirtualInput');
   assertFunction(value.createVirtualOutput, 'createVirtualOutput');
 
   return value as NativeMIDIInterface;
+};
+
+const readMidiDeviceState = (nativeModule: NativeMIDIInterface): MIDIState => {
+  return {
+    inputs: assertEndpointInfoList(nativeModule.getInputs()),
+    outputs: assertEndpointInfoList(nativeModule.getOutputs()),
+  };
+};
+
+const getMidiDeviceState = (nativeModule: NativeMIDIInterface): MIDIState => {
+  if (!midiDeviceStateListenerConfigured) {
+    nativeModule.setDeviceChangeCallback(() => {
+      midiDeviceState = readMidiDeviceState(nativeModule);
+    });
+    midiDeviceStateListenerConfigured = true;
+  }
+
+  if (midiDeviceState === null) {
+    midiDeviceState = readMidiDeviceState(nativeModule);
+  }
+
+  return midiDeviceState;
 };
 
 export const loadNativeModuleMacOS = (): MIDIInterface => {
@@ -274,10 +306,10 @@ export const loadNativeModuleMacOS = (): MIDIInterface => {
       return assertSupportResponse(nativeModule.getSupportInfo());
     },
     getInputs() {
-      return assertEndpointInfoList(nativeModule.getInputs());
+      return [...getMidiDeviceState(nativeModule).inputs];
     },
     getOutputs() {
-      return assertEndpointInfoList(nativeModule.getOutputs());
+      return [...getMidiDeviceState(nativeModule).outputs];
     },
     openInput(endpoint) {
       return new MacOSMIDIInput(

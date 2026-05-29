@@ -2,17 +2,27 @@
 #include <CoreMIDI/CoreMIDI.h>
 #include <node_api.h>
 
+#include <condition_variable>
 #include <cstdlib>
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <string>
 #include <vector>
 
 namespace {
 
 MIDIClientRef gClient = 0;
+MIDIClientRef gNotificationClient = 0;
 std::mutex gClientMutex;
+std::once_flag gNotificationThreadOnce;
+std::mutex gNotificationThreadMutex;
+std::condition_variable gNotificationThreadReadyCondition;
+bool gNotificationThreadReady = false;
+OSStatus gNotificationThreadStatus = noErr;
+std::mutex gDeviceNotificationMutex;
+napi_threadsafe_function gDeviceNotificationCallback = nullptr;
 
 struct EndpointInfo {
   std::string name;
@@ -36,14 +46,74 @@ bool ThrowIfFailed(napi_env env, const char *action, OSStatus status) {
   return true;
 }
 
-OSStatus EnsureClientStatus() {
-  std::lock_guard<std::mutex> lock(gClientMutex);
-  if (gClient != 0) {
-    return noErr;
+void OnMIDINotification(const MIDINotification *notification, void *);
+
+void NotificationThreadMain() {
+  CFRunLoopSourceContext sourceContext = {};
+  CFRunLoopSourceRef keepAliveSource =
+      CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &sourceContext);
+  if (keepAliveSource != nullptr) {
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), keepAliveSource,
+                       kCFRunLoopDefaultMode);
   }
 
-  return MIDIClientCreate(CFSTR("Arcane Wizards MIDI"), nullptr, nullptr,
-                          &gClient);
+  MIDIClientRef notificationClient = 0;
+  OSStatus status =
+      MIDIClientCreate(CFSTR("Arcane Wizards MIDI Notifications"),
+                       OnMIDINotification, nullptr, &notificationClient);
+
+  {
+    std::lock_guard<std::mutex> lock(gNotificationThreadMutex);
+    if (status == noErr) {
+      gNotificationClient = notificationClient;
+    }
+    gNotificationThreadStatus = status;
+    gNotificationThreadReady = true;
+  }
+  gNotificationThreadReadyCondition.notify_all();
+
+  if (status == noErr) {
+    CFRunLoopRun();
+  }
+
+  if (keepAliveSource != nullptr) {
+    CFRunLoopRemoveSource(CFRunLoopGetCurrent(), keepAliveSource,
+                          kCFRunLoopDefaultMode);
+    CFRelease(keepAliveSource);
+  }
+  if (notificationClient != 0) {
+    MIDIClientDispose(notificationClient);
+  }
+}
+
+OSStatus EnsureNotificationClientStatus() {
+  std::call_once(gNotificationThreadOnce, []() {
+    std::thread(NotificationThreadMain).detach();
+  });
+
+  std::unique_lock<std::mutex> lock(gNotificationThreadMutex);
+  gNotificationThreadReadyCondition.wait(lock, []() {
+    return gNotificationThreadReady;
+  });
+  return gNotificationThreadStatus;
+}
+
+OSStatus EnsureClientStatus() {
+  OSStatus status = EnsureNotificationClientStatus();
+  if (status != noErr) {
+    return status;
+  }
+
+  std::lock_guard<std::mutex> lock(gClientMutex);
+  if (gClient == 0) {
+    status = MIDIClientCreate(CFSTR("Arcane Wizards MIDI"), nullptr, nullptr,
+                              &gClient);
+    if (status != noErr) {
+      return status;
+    }
+  }
+
+  return noErr;
 }
 
 bool EnsureClient(napi_env env) {
@@ -324,6 +394,44 @@ void MessageCallback(napi_env env, napi_value jsCallback, void *,
   napi_value global;
   napi_get_global(env, &global);
   napi_call_function(env, global, jsCallback, 1, &array, nullptr);
+}
+
+void DeviceNotificationCallback(napi_env env, napi_value jsCallback, void *,
+                                void *data) {
+  std::unique_ptr<SInt32> messageId(static_cast<SInt32 *>(data));
+
+  if (env == nullptr || jsCallback == nullptr) {
+    return;
+  }
+
+  napi_value messageIdValue;
+  napi_create_int32(env, *messageId, &messageIdValue);
+
+  napi_value global;
+  napi_get_global(env, &global);
+  napi_call_function(env, global, jsCallback, 1, &messageIdValue, nullptr);
+}
+
+void NotifyDeviceChange(SInt32 messageId) {
+  std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+  if (gDeviceNotificationCallback == nullptr) {
+    return;
+  }
+
+  auto *payload = new SInt32(messageId);
+  napi_status status = napi_call_threadsafe_function(
+      gDeviceNotificationCallback, payload, napi_tsfn_nonblocking);
+  if (status != napi_ok) {
+    delete payload;
+  }
+}
+
+void OnMIDINotification(const MIDINotification *notification, void *) {
+  if (notification == nullptr) {
+    return;
+  }
+
+  NotifyDeviceChange(notification->messageID);
 }
 
 class NativeInput {
@@ -687,7 +795,70 @@ napi_value GetSupportInfo(napi_env env, napi_callback_info) {
   return object;
 }
 
+napi_value SetDeviceChangeCallback(napi_env env,
+                                   napi_callback_info callbackInfo) {
+  if (!EnsureClient(env)) {
+    return CreateUndefined(env);
+  }
+
+  size_t argc = 1;
+  napi_value args[1];
+  napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
+
+  napi_value callback = argc > 0 ? args[0] : CreateUndefined(env);
+  napi_valuetype type;
+  if (napi_typeof(env, callback, &type) != napi_ok) {
+    Throw(env, "Unable to inspect device change callback.");
+    return CreateUndefined(env);
+  }
+
+  napi_threadsafe_function oldCallback = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+    oldCallback = gDeviceNotificationCallback;
+    gDeviceNotificationCallback = nullptr;
+  }
+
+  if (oldCallback != nullptr) {
+    napi_release_threadsafe_function(oldCallback, napi_tsfn_abort);
+  }
+
+  if (type == napi_undefined || type == napi_null) {
+    return CreateUndefined(env);
+  }
+
+  if (type != napi_function) {
+    Throw(env, "Expected device change callback to be a function or null.");
+    return CreateUndefined(env);
+  }
+
+  napi_value resourceName;
+  napi_create_string_utf8(env, "Core MIDI device notification callback",
+                          NAPI_AUTO_LENGTH, &resourceName);
+
+  napi_threadsafe_function newCallback = nullptr;
+  napi_status status = napi_create_threadsafe_function(
+      env, callback, nullptr, resourceName, 0, 1, nullptr, nullptr, nullptr,
+      DeviceNotificationCallback, &newCallback);
+  if (status != napi_ok) {
+    Throw(env, "Unable to create MIDI device change callback.");
+    return CreateUndefined(env);
+  }
+  napi_unref_threadsafe_function(env, newCallback);
+
+  {
+    std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+    gDeviceNotificationCallback = newCallback;
+  }
+
+  return CreateUndefined(env);
+}
+
 napi_value GetInputs(napi_env env, napi_callback_info) {
+  if (!EnsureClient(env)) {
+    return CreateUndefined(env);
+  }
+
   napi_value array;
   napi_create_array(env, &array);
 
@@ -703,6 +874,10 @@ napi_value GetInputs(napi_env env, napi_callback_info) {
 }
 
 napi_value GetOutputs(napi_env env, napi_callback_info) {
+  if (!EnsureClient(env)) {
+    return CreateUndefined(env);
+  }
+
   napi_value array;
   napi_create_array(env, &array);
 
@@ -877,6 +1052,8 @@ napi_value Init(napi_env env, napi_value exports) {
        nullptr},
       {"getOutputs", nullptr, GetOutputs, nullptr, nullptr, nullptr,
        napi_default, nullptr},
+      {"setDeviceChangeCallback", nullptr, SetDeviceChangeCallback, nullptr,
+       nullptr, nullptr, napi_default, nullptr},
       {"openInput", nullptr, OpenInput, nullptr, nullptr, nullptr, napi_default,
        nullptr},
       {"openOutput", nullptr, OpenOutput, nullptr, nullptr, nullptr,
@@ -887,7 +1064,7 @@ napi_value Init(napi_env env, napi_value exports) {
        nullptr, napi_default, nullptr},
   };
 
-  napi_define_properties(env, exports, 7, properties);
+  napi_define_properties(env, exports, 8, properties);
   return exports;
 }
 
