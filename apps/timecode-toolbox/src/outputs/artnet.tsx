@@ -1,12 +1,5 @@
 import { useDataFileData } from '@arcanejs/react-toolkit/data';
-import {
-  FC,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { FC, ReactNode, useEffect, useMemo, useState } from 'react';
 import { ToolboxConfigData } from '../config';
 import {
   ApplicationState,
@@ -19,6 +12,7 @@ import { adjustTimecodeForDelay, getTimecodeInstance } from '../util';
 import { useLogger } from '@arcanewizards/sigil';
 import { ArtNet, createArtnet } from '@arcanewizards/artnet';
 import { StateSensitiveComponentProps } from '../types';
+import { getNetworkInterfaces } from '@arcanewizards/net-utils';
 
 type ArtnetOutputConnectionProps = StateSensitiveComponentProps & {
   uuid: string;
@@ -37,22 +31,25 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
   const log = useLogger();
 
   const [artnetInstance, setArtnetInstance] = useState<ArtNet | null>(null);
-
-  const setConnection = useCallback(
-    (state: OutputState) =>
-      setState((current) => ({
-        ...current,
-        outputs: {
-          ...current.outputs,
-          [uuid]: state,
-        },
-      })),
-    [setState, uuid],
-  );
+  const [outputState, setOutputState] = useState<OutputState | null>(null);
 
   useEffect(() => {
     let artnet: ArtNet | null = null;
-    setConnection({ status: 'connecting' });
+    if (target.type === 'interface' && target.interface.trim() === '') {
+      setOutputState({
+        status: 'disabled',
+        warnings: ['No network interface selected'],
+      });
+      return;
+    }
+    if (target.type === 'host' && target.host.trim() === '') {
+      setOutputState({
+        status: 'disabled',
+        warnings: ['No hostname / IP address specified'],
+      });
+      return;
+    }
+    setOutputState({ status: 'connecting' });
     const created = createArtnet({
       mode: 'send',
       ...target,
@@ -61,7 +58,7 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
       const error = new Error('ArtNet output connection error');
       error.cause = err instanceof Error ? err : new Error(String(err));
       log.error(error);
-      setConnection({
+      setOutputState({
         status: 'error',
         errors: [`${err}`],
       });
@@ -72,25 +69,80 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
         artnet = created;
         setArtnetInstance(created);
         log.info(`ArtNet Timecode output initialized`);
-        setConnection({ status: 'active' });
+        setOutputState({ status: 'active' });
       })
       .catch((err) => {
         const error = new Error('Failed to start ArtNet Timecode output');
         error.cause = err instanceof Error ? err : new Error(String(err));
         log.error(error);
-        setConnection({
+        setOutputState({
           status: 'error',
           errors: [`${err}`],
         });
       });
 
     return () => {
-      if (artnet) {
-        artnet.destroy();
-        setArtnetInstance((current) => (artnet === current ? null : current));
+      try {
+        artnet?.destroy();
+      } catch (cause) {
+        const error = new Error('Failed to destroy ArtNet instance', { cause });
+        log.error(error);
       }
+      setArtnetInstance((current) => (artnet === current ? null : current));
     };
-  }, [setConnection, uuid, target, log]);
+  }, [setOutputState, uuid, target, log]);
+
+  useEffect(() => {
+    if (outputState === null) {
+      return;
+    }
+    // Check configuration for potential issues, and augment state with warnings
+    if (target.type === 'interface') {
+      getNetworkInterfaces()
+        .then((interfaces) => {
+          const warnings: string[] = [];
+          const matchingInterface = Object.values(interfaces).find(
+            (intf) => intf.name === target.interface,
+          );
+          if (matchingInterface && matchingInterface.internal) {
+            warnings.push(
+              'Broadcast usually does not work on internal (loopback) interfaces, use IP address / localhost instead',
+            );
+          }
+          setState((current) => ({
+            ...current,
+            outputs: {
+              ...current.outputs,
+              [uuid]: {
+                ...outputState,
+                warnings: [...(outputState.warnings || []), ...warnings],
+              },
+            },
+          }));
+        })
+        .catch((cause) => {
+          const error = new Error(
+            'Failed to get network interfaces for ArtNet output configuration validation',
+            { cause },
+          );
+          log.error(error);
+          setState((current) => ({
+            ...current,
+            outputs: {
+              ...current.outputs,
+              [uuid]: { ...outputState, errors: [error.message] },
+            },
+          }));
+        });
+    }
+    setState((current) => ({
+      ...current,
+      outputs: {
+        ...current.outputs,
+        [uuid]: outputState,
+      },
+    }));
+  }, [log, target, outputState, setState, uuid]);
 
   useEffect(() => {
     return () => {

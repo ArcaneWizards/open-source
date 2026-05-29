@@ -100,6 +100,14 @@ const ArtnetInputConnection: FC<ArtnetInputConnectionProps> = ({
       },
     };
     let artnet: ArtNet | null = null;
+    if (iface.trim() === '') {
+      setConnection({
+        ...connectionConfig,
+        status: 'disabled',
+        warnings: ['No network interface selected'],
+      });
+      return;
+    }
     setConnection({ ...connectionConfig, status: 'connecting' });
     const created = createArtnet({
       type: 'interface',
