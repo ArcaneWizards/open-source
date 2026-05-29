@@ -38,6 +38,8 @@ const NET_UTILS_GENERAL_TARGET_DEFINITION = z
     }),
   );
 
+// Art-Net Config
+
 const INPUT_ARTNET_DEFINITION = z.object({
   type: z.literal('artnet'),
   iface: z.string(),
@@ -62,6 +64,8 @@ export const isOutputArtnetDefinition = (
   definition: OutputDefinition,
 ): definition is OutputArtnetDefinition => definition.type === 'artnet';
 
+// TCNet Config
+
 const INPUT_OR_OUTPUT_TCNET_DEFINITION = z.object({
   type: z.literal('tcnet'),
   iface: z.string(),
@@ -75,6 +79,31 @@ export type InputTcnetDefinition = z.infer<
 export const isInputTcnetDefinition = (
   definition: InputDefinition,
 ): definition is InputTcnetDefinition => definition.type === 'tcnet';
+
+// Clock
+
+const GENERATOR_CLOCK_DEFINITION = z.object({
+  type: z.literal('clock'),
+  speed: z.number(),
+});
+
+export type GeneratorClockDefinition = z.infer<
+  typeof GENERATOR_CLOCK_DEFINITION
+>;
+
+// Player
+
+const GENERATOR_PLAYER_DEFINITION = z.object({
+  type: z.literal('player'),
+  /**
+   * The last file to be loaded into the generator
+   */
+  filePath: z.string().nullable(),
+  speed: z.number(),
+  volume: z.number(),
+});
+
+// Inputs
 
 const INPUT_DEFINITION = z.union([
   INPUT_ARTNET_DEFINITION,
@@ -93,24 +122,7 @@ const INPUT_CONFIG = z.object({
 
 export type InputConfig = z.infer<typeof INPUT_CONFIG>;
 
-const GENERATOR_CLOCK_DEFINITION = z.object({
-  type: z.literal('clock'),
-  speed: z.number(),
-});
-
-export type GeneratorClockDefinition = z.infer<
-  typeof GENERATOR_CLOCK_DEFINITION
->;
-
-const GENERATOR_PLAYER_DEFINITION = z.object({
-  type: z.literal('player'),
-  /**
-   * The last file to be loaded into the generator
-   */
-  filePath: z.string().nullable(),
-  speed: z.number(),
-  volume: z.number(),
-});
+// Generators
 
 const GENERATOR_DEFINITION = z.union([
   GENERATOR_CLOCK_DEFINITION,
@@ -127,6 +139,8 @@ const GENERATOR_CONFIG = z.object({
 });
 
 export type GeneratorConfig = z.infer<typeof GENERATOR_CONFIG>;
+
+// Outputs
 
 const OUTPUT_DEFINITION = OUTPUT_ARTNET_DEFINITION; // todo expand to other output types in the future
 
