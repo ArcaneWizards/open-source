@@ -2,6 +2,7 @@
 
 const PACKAGED_RUNTIME_DEPENDENCIES = [
   '@arcanewizards/electron-media-service',
+  '@arcanewizards/midi',
   'bindings',
   'file-uri-to-path',
   'material-symbols',

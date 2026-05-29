@@ -1,5 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "MIDI_INTEGRATION_INPUT",
+    "MIDI_INTEGRATION_OUTPUT",
+    "MIDI_TEST_MODE"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
