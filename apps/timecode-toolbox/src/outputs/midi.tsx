@@ -14,6 +14,8 @@ import {
   OutputMidiDefinition,
   OutputState,
   isOutputMidiDefinition,
+  isPlaying,
+  isStopped,
 } from '../components/proto';
 import { adjustTimecodeForDelay, getTimecodeInstance } from '../util';
 import { useLogger } from '@arcanewizards/sigil';
@@ -24,6 +26,7 @@ import midi, {
   MIDIEventListener,
   MIDIOutput,
 } from '@arcanewizards/midi';
+import { createMIDITimecodeSender } from '@arcanewizards/midi-timecode';
 
 type MIDIOutputConnectionProps = StateSensitiveComponentProps & {
   uuid: string;
@@ -193,6 +196,16 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
     };
   }, [setState, uuid]);
 
+  const sender = useMemo(() => {
+    if (!midiInstance) {
+      return null;
+    }
+    return createMIDITimecodeSender({
+      sendMessage: midiInstance.sendMessage,
+      mode: 'SMPTE',
+    });
+  }, [midiInstance]);
+
   const tcInstance = useMemo(
     () => config.link && getTimecodeInstance(state, config.link),
     [state, config.link],
@@ -205,6 +218,26 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
         : null,
     [tcInstance?.state, config.delayMs],
   );
+
+  useEffect(() => {
+    if (!sender || !timecodeState) {
+      return;
+    }
+    sender.setPlayState(
+      isPlaying(timecodeState)
+        ? {
+            state: 'playing',
+            effectiveStartTime: timecodeState.effectiveStartTimeMillis,
+            speed: timecodeState.speed,
+          }
+        : {
+            state: 'stopped',
+            currentTimeMillis: isStopped(timecodeState)
+              ? timecodeState.positionMillis
+              : 0,
+          },
+    );
+  }, [sender, timecodeState]);
 
   return null;
 };
