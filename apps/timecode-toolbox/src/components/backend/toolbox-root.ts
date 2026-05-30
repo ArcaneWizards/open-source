@@ -27,6 +27,7 @@ import {
 } from '@arcanejs/protocol';
 import { getNetworkInterfaces } from '@arcanewizards/net-utils';
 import { ToolkitConnection } from '@arcanejs/toolkit';
+import { midi } from '@arcanewizards/midi';
 
 export type Events = {
   updateConfig: (diff: Diff<ToolboxConfig>) => void;
@@ -147,6 +148,24 @@ export class ToolboxRoot
       )
     ) {
       return getNetworkInterfaces();
+    } else if (
+      isTimecodeToolboxComponentCall(call, 'toolbox-root-get-midi-devices')
+    ) {
+      const m = midi();
+
+      const [outputs, inputs] = await Promise.all([
+        m.getOutputs(),
+        m.getInputs(),
+      ]);
+
+      return {
+        inputs,
+        outputs,
+      };
+    } else if (
+      isTimecodeToolboxComponentCall(call, 'toolbox-root-get-midi-support-info')
+    ) {
+      return midi().getSupportInfo();
     } else if (
       isTimecodeToolboxComponentCall(call, 'toolbox-root-call-handler')
     ) {

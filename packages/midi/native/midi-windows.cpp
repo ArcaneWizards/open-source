@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
+#include <delayimp.h>
 #include <mmsystem.h>
 #include <node_api.h>
 #include <winrt/Windows.Devices.Enumeration.h>
@@ -10,6 +11,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <cstdint>
 #include <iterator>
 #include <memory>
@@ -19,6 +21,17 @@
 
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "windowsapp.lib")
+
+FARPROC WINAPI NodeDelayLoadHook(unsigned dliNotify, PDelayLoadInfo pdli) {
+  if (dliNotify != dliNotePreLoadLibrary || pdli == nullptr ||
+      pdli->szDll == nullptr || _stricmp(pdli->szDll, "node.exe") != 0) {
+    return nullptr;
+  }
+
+  return reinterpret_cast<FARPROC>(GetModuleHandle(nullptr));
+}
+
+ExternC const PfnDliHook __pfnDliNotifyHook2 = NodeDelayLoadHook;
 
 namespace {
 

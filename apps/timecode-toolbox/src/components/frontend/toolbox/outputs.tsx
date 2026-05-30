@@ -22,8 +22,10 @@ import {
 } from '@arcanewizards/sigil/frontend/controls';
 import { ConfigContext, NetworkContext, useApplicationState } from './context';
 import {
+  OutputArtnetDefinition,
   OutputConfig,
   OutputDefinition,
+  OutputMidiDefinition,
   TimecodeInstance,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
@@ -51,6 +53,7 @@ import {
   getTimecodeInstance,
 } from '../../../util';
 import { NoToolboxChildren } from './content';
+import { MidiTargetSettings } from './core/midi';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   data,
@@ -69,6 +72,15 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   useEffect(() => {
     refreshInterfaces();
   }, [refreshInterfaces]);
+
+  const updateArtnetSettings = useCallback(
+    (change: (current: OutputArtnetDefinition) => OutputArtnetDefinition) => {
+      updateSettings((current) =>
+        current.type === 'artnet' ? change(current) : current,
+      );
+    },
+    [updateSettings],
+  );
 
   if (data.type !== 'artnet') {
     return null;
@@ -92,7 +104,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
         position="both"
         variant="large"
         onChange={(type) => {
-          updateSettings((current) => ({
+          updateArtnetSettings((current) => ({
             ...current,
             target:
               type === 'interface'
@@ -130,7 +142,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
             }
             placeholder="No Interface Selected"
             onChange={(value) => {
-              updateSettings((current) => ({
+              updateArtnetSettings((current) => ({
                 ...current,
                 target: {
                   type: 'interface',
@@ -151,7 +163,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
             type="string"
             value={data.target.host ?? ''}
             onChange={(value) => {
-              updateSettings((current) => ({
+              updateArtnetSettings((current) => ({
                 ...current,
                 target: {
                   type: 'host',
@@ -174,7 +186,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
           if (port !== undefined && isNaN(port)) {
             return;
           }
-          updateSettings((current) => ({
+          updateArtnetSettings((current) => ({
             ...current,
             target: {
               ...current.target,
@@ -185,6 +197,56 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
             commitChanges();
           }
         }}
+      />
+      <ControlLabel>FPS</ControlLabel>
+      <ControlSelect<TimecodeMode>
+        position="both"
+        variant="large"
+        value={data.mode}
+        options={(
+          Object.entries(STRINGS.smtpeModeOptions) as [TimecodeMode, string][]
+        ).map(([mode, label]) => ({
+          label,
+          value: mode,
+        }))}
+        onChange={(mode) => {
+          updateSettings((current) => ({ ...current, mode }));
+        }}
+      />
+    </>
+  );
+};
+
+const MidiConnectionSettings: FC<
+  SettingsProps<OutputDefinition> & {
+    name: string | undefined;
+  }
+> = ({ name, data, updateSettings }) => {
+  const updateMidiSettings = useCallback(
+    (change: (current: OutputMidiDefinition) => OutputMidiDefinition) => {
+      updateSettings((current) =>
+        current.type === 'midi' ? change(current) : current,
+      );
+    },
+    [updateSettings],
+  );
+
+  if (data.type !== 'midi') {
+    return null;
+  }
+
+  return (
+    <>
+      <MidiTargetSettings
+        type="output"
+        name={name}
+        target={data.target}
+        updateTarget={(update) =>
+          updateMidiSettings((current) => ({
+            ...current,
+            target: update(current.target),
+          }))
+        }
       />
       <ControlLabel>FPS</ControlLabel>
       <ControlSelect<TimecodeMode>
@@ -220,14 +282,24 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
   const [newData, setNewData] = useState<OutputConfig>({
     name: '',
     enabled: true,
-    definition: {
-      type: 'artnet',
-      target: {
-        type: 'host',
-        host: 'localhost',
-      },
-      mode: 'SMPTE',
-    },
+    definition:
+      output === 'artnet'
+        ? {
+            type: 'artnet',
+            target: {
+              type: 'host',
+              host: 'localhost',
+            },
+            mode: 'SMPTE',
+          }
+        : {
+            type: 'midi',
+            target: {
+              type: 'port',
+              deviceName: '',
+            },
+            mode: 'SMPTE',
+          },
     link: null,
   });
 
@@ -343,6 +415,13 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
         />
         {data.definition.type === 'artnet' ? (
           <DmxConnectionSettings
+            data={data.definition}
+            updateSettings={updateDefinition}
+          />
+        ) : null}
+        {data.definition.type === 'midi' ? (
+          <MidiConnectionSettings
+            name={data.name}
             data={data.definition}
             updateSettings={updateDefinition}
           />
@@ -576,7 +655,7 @@ export const OutputsSection: FC<OutputSectionProps> = ({
       title={STRINGS.outputs.title}
       buttons={
         <>
-          {(['artnet'] as const).map((type) => (
+          {(['artnet', 'midi'] as const).map((type) => (
             <ControlButton
               key={type}
               onClick={() =>

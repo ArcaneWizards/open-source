@@ -10,6 +10,10 @@ const PACKAGED_RUNTIME_DEPENDENCIES = [
   'semver',
 ];
 
+const STRICT_FILTERS = {
+  '/node_modules/@arcanewizards/midi': ['dist', 'native', 'package.json'],
+};
+
 const PACKAGED_RUNTIME_DEPENDENCY_PATHS = PACKAGED_RUNTIME_DEPENDENCIES.map(
   (dependency) => `/node_modules/${dependency}`,
 );
@@ -31,10 +35,37 @@ const shouldIgnorePackagedPath = (filePath) => {
     return false;
   }
 
-  return !PACKAGED_RUNTIME_DEPENDENCY_PATHS.some(
+  const matchesSubpath = PACKAGED_RUNTIME_DEPENDENCY_PATHS.some(
     (dependencyPath) =>
       filePath === dependencyPath || filePath.startsWith(`${dependencyPath}/`),
   );
+
+  if (matchesSubpath) {
+    for (const [strictPath, allowedSubpaths] of Object.entries(
+      STRICT_FILTERS,
+    )) {
+      if (filePath.startsWith(strictPath)) {
+        const relativePath = filePath.substring(strictPath.length);
+        let isIgnored = true;
+        if (relativePath === '' || relativePath === '/') {
+          isIgnored = false;
+        } else {
+          for (const allowedSubpath of allowedSubpaths) {
+            if (
+              relativePath === `/${allowedSubpath}` ||
+              relativePath.startsWith(`/${allowedSubpath}/`)
+            ) {
+              isIgnored = false;
+              break;
+            }
+          }
+        }
+        return isIgnored;
+      }
+      return false;
+    }
+  }
+  return true;
 };
 
 module.exports = {
@@ -77,7 +108,7 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: 'ArcaneDesktop',
+        name: 'TimecodeToolboxDesktop',
         setupIcon: 'assets/icon.ico',
       },
     },

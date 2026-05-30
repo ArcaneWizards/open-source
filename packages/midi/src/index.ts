@@ -86,5 +86,3 @@ export const midi = () => {
   }
   return DEFAULT_MIDI_INTERFACE;
 };
-
-export default midi;

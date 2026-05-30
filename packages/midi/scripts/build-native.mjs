@@ -250,9 +250,11 @@ const build = async () => {
       `/OUT:${join(outputDir, 'midi-windows.node')}`,
       `/IMPLIB:${join(outputDir, 'midi-windows.lib')}`,
       `/LIBPATH:${nodeLibDir}`,
+      '/DELAYLOAD:node.exe',
       'node.lib',
       'winmm.lib',
       'windowsapp.lib',
+      'delayimp.lib',
     ];
 
     if (vcvarsBat) {

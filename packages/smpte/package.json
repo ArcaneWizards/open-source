@@ -1,13 +1,13 @@
 {
-  "name": "@arcanewizards/artnet",
-  "version": "0.1.5",
+  "name": "@arcanewizards/smpte",
+  "version": "0.0.1",
   "private": false,
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/ArcaneWizards/open-source.git",
-    "directory": "packages/artnet"
+    "directory": "packages/smpte"
   },
   "exports": {
     ".": {
@@ -15,12 +15,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./constants": {
-      "@arcanewizards/source": "./src/constants.ts",
-      "types": "./dist/constants.d.ts",
-      "import": "./dist/constants.js",
-      "require": "./dist/constants.cjs"
     },
     "./package.json": "./package.json"
   },
@@ -44,8 +38,7 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   },
-  "dependencies": {
-    "@arcanewizards/net-utils": "workspace:^",
-    "@arcanewizards/smpte": "workspace:^"
+  "engines": {
+    "node": ">=22.12.0 || >=23.1.0"
   }
 }

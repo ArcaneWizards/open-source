@@ -34,6 +34,7 @@ import {
   GlobalUserInteractionsContext,
   GlobalUserInteractionsContextData,
   NetworkContext,
+  NetworkContextData,
 } from './context';
 import {
   AssignToOutputCallback,
@@ -194,11 +195,45 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     });
   }, [call, info.key]);
 
-  const networkContextValue = useMemo(() => {
+  const getMidiDevices = useCallback(async () => {
+    if (!call) {
+      throw new Error('No call function available');
+    }
+    return call<
+      'timecode-toolbox',
+      TimecodeToolboxComponentCalls,
+      'toolbox-root-get-midi-devices'
+    >({
+      namespace: 'timecode-toolbox',
+      type: 'component-call',
+      componentKey: info.key,
+      action: 'toolbox-root-get-midi-devices',
+    });
+  }, [call, info.key]);
+
+  const getMidiSupportInfo = useCallback(async () => {
+    if (!call) {
+      throw new Error('No call function available');
+    }
+    return call<
+      'timecode-toolbox',
+      TimecodeToolboxComponentCalls,
+      'toolbox-root-get-midi-support-info'
+    >({
+      namespace: 'timecode-toolbox',
+      type: 'component-call',
+      componentKey: info.key,
+      action: 'toolbox-root-get-midi-support-info',
+    });
+  }, [call, info.key]);
+
+  const networkContextValue: NetworkContextData = useMemo(() => {
     return {
       getNetworkInterfaces,
+      getMidiDevices,
+      getMidiSupportInfo,
     };
-  }, [getNetworkInterfaces]);
+  }, [getNetworkInterfaces, getMidiDevices, getMidiSupportInfo]);
 
   const assignToOutputCallback: AssignToOutputCallback = useMemo(() => {
     if (!assignToOutput) {
