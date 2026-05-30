@@ -34,7 +34,7 @@ type MIDIOutputConnectionProps = StateSensitiveComponentProps & {
 const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
   uuid,
   config,
-  connection: { target },
+  connection: { target, mode },
   setState,
   state,
 }) => {
@@ -145,9 +145,9 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
         }
         midiInstance.sendMessage(message);
       },
-      mode: 'SMPTE',
+      mode,
     });
-  }, [midiInstance]);
+  }, [midiInstance, mode]);
 
   const tcInstance = useMemo(
     () => config.link && getTimecodeInstance(state, config.link),
@@ -172,6 +172,7 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
             state: 'playing',
             effectiveStartTime: timecodeState.effectiveStartTimeMillis,
             speed: timecodeState.speed,
+            smpteMode: mode,
           }
         : {
             state: 'stopped',
@@ -180,7 +181,11 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
               : 0,
           },
     );
-  }, [sender, timecodeState]);
+
+    return () => {
+      sender.setPlayState(null);
+    };
+  }, [sender, timecodeState, mode]);
 
   return null;
 };

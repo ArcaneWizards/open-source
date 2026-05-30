@@ -73,8 +73,7 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
                           // TODO
                           accuracyMillis: null,
                           appliedDelayMillis: delayMs ?? 0,
-                          // TODO
-                          smpteMode: null,
+                          smpteMode: midiPlayState.smpteMode,
                           onAir: null,
                           speed: midiPlayState.speed,
                           effectiveStartTimeMillis:
@@ -84,7 +83,6 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
                           state: 'stopped',
                           accuracyMillis: null,
                           appliedDelayMillis: delayMs ?? 0,
-                          // TODO
                           smpteMode: null,
                           onAir: null,
                           positionMillis:

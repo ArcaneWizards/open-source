@@ -4,6 +4,7 @@ import {
   getTimecodeFromMillis,
   SMPTE_TIMECODE_FPS,
   SMPTETimecodeFrame,
+  SMPTETimecodeMode,
 } from '@arcanewizards/smpte';
 
 /**
@@ -42,6 +43,7 @@ export type MIDITimecodePlayState =
        * in which case effectiveStartTime represents the time when the track will reach 0:00.
        */
       speed: number;
+      smpteMode: SMPTETimecodeMode;
     }
   | {
       state: 'stopped';
@@ -56,7 +58,7 @@ export type MIDITimecodeSenderOptions = {
 };
 
 export type MIDITimecodeSender = {
-  setPlayState: (state: MIDITimecodePlayState) => void;
+  setPlayState: (state: MIDITimecodePlayState | null) => void;
 };
 
 const MODE_VALUES: Record<MIDISMPTEMode, number> = {
@@ -223,6 +225,11 @@ export const createMIDITimecodeSender = ({
     }
 
     currentPlayState = state;
+
+    if (!state) {
+      // No play state means we should stop the timecode and clear any timers
+      return;
+    }
 
     if (state.state === 'stopped') {
       // Send a message with the current time to indicate stopping
@@ -472,12 +479,14 @@ export const createMIDITimecodeReceiver = ({
       lastPlayingState.state !== 'playing' ||
       Math.abs(effectiveStartTime - lastPlayingState.effectiveStartTime) >
         MIN_TC_DIFF_TOLERANCE_MS ||
-      Math.abs(speed - lastPlayingState.speed) > MIN_SPEED_CHANGE_TOLERANCE
+      Math.abs(speed - lastPlayingState.speed) > MIN_SPEED_CHANGE_TOLERANCE ||
+      lastPlayingState.smpteMode !== timecode.mode
     ) {
       lastPlayingState = {
         state: 'playing',
         effectiveStartTime,
         speed,
+        smpteMode: timecode.mode,
       };
       handlePlayStateChange(lastPlayingState);
       return true;
