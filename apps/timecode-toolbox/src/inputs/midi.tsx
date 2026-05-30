@@ -10,7 +10,8 @@ import {
 } from '../components/proto';
 import { useLogger } from '@arcanewizards/sigil';
 import { StateSensitiveComponentProps } from '../types';
-import midi, {
+import {
+  midi,
   MIDIEventListener,
   MIDIInput,
   MIDIMessageEvent,

@@ -27,7 +27,7 @@ import {
 } from '@arcanejs/protocol';
 import { getNetworkInterfaces } from '@arcanewizards/net-utils';
 import { ToolkitConnection } from '@arcanejs/toolkit';
-import midi from '@arcanewizards/midi';
+import { midi } from '@arcanewizards/midi';
 
 export type Events = {
   updateConfig: (diff: Diff<ToolboxConfig>) => void;

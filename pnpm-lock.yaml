@@ -148,6 +148,9 @@ importers:
       '@arcanewizards/electron-media-service':
         specifier: ^0.3.2
         version: 0.3.2
+      '@arcanewizards/midi':
+        specifier: workspace:^
+        version: link:../../packages/midi
       bindings:
         specifier: ^1.5.0
         version: 1.5.0

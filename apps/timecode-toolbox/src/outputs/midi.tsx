@@ -20,7 +20,7 @@ import {
 import { adjustTimecodeForDelay, getTimecodeInstance } from '../util';
 import { useLogger } from '@arcanewizards/sigil';
 import { StateSensitiveComponentProps } from '../types';
-import midi, { MIDIOutput } from '@arcanewizards/midi';
+import { midi, MIDIOutput } from '@arcanewizards/midi';
 import { createMIDITimecodeSender } from '@arcanewizards/midi-timecode';
 import { useMidiDeviceWatcher } from '../lib/midi';
 
