@@ -120,8 +120,8 @@ const findEndpoint = (selector, endpoints, label, options = {}) => {
   throw new Error(`Could not find ${label} endpoint matching "${selector}".`);
 };
 
-const assertSupported = (midi) => {
-  const support = midi.getSupportInfo();
+const assertSupported = async (midi) => {
+  const support = await midi.getSupportInfo();
   if (!support.supported) {
     throw new Error(`MIDI is not supported: ${support.reason}`);
   }
@@ -129,27 +129,25 @@ const assertSupported = (midi) => {
 
 const list = async () => {
   const midi = await loadMidi();
-  assertSupported(midi);
-  listEndpoints('Inputs', midi.getInputs());
-  listEndpoints('Outputs', midi.getOutputs());
+  await assertSupported(midi);
+  listEndpoints('Inputs', await midi.getInputs());
+  listEndpoints('Outputs', await midi.getOutputs());
 };
 
-const runJest = (input, output) => {
+const runJest = ({ env = {}, testNamePattern } = {}) => {
+  const args = [jestBin, '--runInBand'];
+  if (testNamePattern) {
+    args.push('--testNamePattern', testNamePattern);
+  }
+
   const child = spawn(
     process.execPath,
-    [
-      jestBin,
-      '--runInBand',
-      '--testNamePattern',
-      'real device loopback',
-    ],
+    args,
     {
       cwd: packageRoot,
       env: {
         ...process.env,
-        MIDI_TEST_MODE: 'integration',
-        MIDI_INTEGRATION_INPUT: JSON.stringify(input),
-        MIDI_INTEGRATION_OUTPUT: JSON.stringify(output),
+        ...env,
       },
       stdio: 'inherit',
     },
@@ -164,21 +162,48 @@ const runJest = (input, output) => {
   });
 };
 
+const runVirtual = async () => {
+  const midi = await loadMidi();
+  await assertSupported(midi);
+
+  const support = await midi.getSupportInfo();
+  if (!support.supported || !support.virtual.supported) {
+    throw new Error(
+      support.supported
+        ? `Virtual MIDI ports are not supported: ${support.virtual.reason}`
+        : `MIDI is not supported: ${support.reason}`,
+    );
+  }
+
+  runJest({
+    env: {
+      MIDI_TEST_MODE: 'virtual',
+    },
+  });
+};
+
 const run = async ([outputSelector, inputSelector]) => {
   const midi = await loadMidi();
-  assertSupported(midi);
+  await assertSupported(midi);
 
-  const output = findEndpoint(outputSelector, midi.getOutputs(), 'output', {
+  const output = findEndpoint(outputSelector, await midi.getOutputs(), 'output', {
     preferPhysicalPort: true,
   });
-  const input = findEndpoint(inputSelector, midi.getInputs(), 'input', {
+  const input = findEndpoint(inputSelector, await midi.getInputs(), 'input', {
     preferPhysicalPort: true,
   });
 
   console.log(`Input: ${input.name} (portId: ${input.portId})`);
   console.log(`Output: ${output.name} (portId: ${output.portId})`);
 
-  runJest(input, output);
+  runJest({
+    env: {
+      MIDI_TEST_MODE: 'integration',
+      MIDI_INTEGRATION_INPUT: JSON.stringify(input),
+      MIDI_INTEGRATION_OUTPUT: JSON.stringify(output),
+    },
+    testNamePattern: 'real device loopback',
+  });
 };
 
 const [command, ...rawArgs] = process.argv.slice(2);
@@ -187,11 +212,13 @@ const args = rawArgs[0] === '--' ? rawArgs.slice(1) : rawArgs;
 try {
   if (command === 'list') {
     await list();
+  } else if (command === 'virtual') {
+    await runVirtual();
   } else if (command === 'run') {
     await run(args);
   } else {
     throw new Error(
-      'Usage: test-integration.mjs list | test-integration.mjs run <output> <input>',
+      'Usage: test-integration.mjs list | test-integration.mjs virtual | test-integration.mjs run <output> <input>',
     );
   }
 } catch (error) {

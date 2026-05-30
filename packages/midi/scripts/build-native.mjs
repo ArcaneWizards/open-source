@@ -252,6 +252,7 @@ const build = async () => {
       `/LIBPATH:${nodeLibDir}`,
       'node.lib',
       'winmm.lib',
+      'windowsapp.lib',
     ];
 
     if (vcvarsBat) {

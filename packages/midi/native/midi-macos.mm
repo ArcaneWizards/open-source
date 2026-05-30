@@ -2,17 +2,27 @@
 #include <CoreMIDI/CoreMIDI.h>
 #include <node_api.h>
 
+#include <condition_variable>
 #include <cstdlib>
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <string>
 #include <vector>
 
 namespace {
 
 MIDIClientRef gClient = 0;
+MIDIClientRef gNotificationClient = 0;
 std::mutex gClientMutex;
+std::once_flag gNotificationThreadOnce;
+std::mutex gNotificationThreadMutex;
+std::condition_variable gNotificationThreadReadyCondition;
+bool gNotificationThreadReady = false;
+OSStatus gNotificationThreadStatus = noErr;
+std::mutex gDeviceNotificationMutex;
+napi_threadsafe_function gDeviceNotificationCallback = nullptr;
 
 struct EndpointInfo {
   std::string name;
@@ -36,14 +46,74 @@ bool ThrowIfFailed(napi_env env, const char *action, OSStatus status) {
   return true;
 }
 
-OSStatus EnsureClientStatus() {
-  std::lock_guard<std::mutex> lock(gClientMutex);
-  if (gClient != 0) {
-    return noErr;
+void OnMIDINotification(const MIDINotification *notification, void *);
+
+void NotificationThreadMain() {
+  CFRunLoopSourceContext sourceContext = {};
+  CFRunLoopSourceRef keepAliveSource =
+      CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &sourceContext);
+  if (keepAliveSource != nullptr) {
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), keepAliveSource,
+                       kCFRunLoopDefaultMode);
   }
 
-  return MIDIClientCreate(CFSTR("Arcane Wizards MIDI"), nullptr, nullptr,
-                          &gClient);
+  MIDIClientRef notificationClient = 0;
+  OSStatus status =
+      MIDIClientCreate(CFSTR("Arcane Wizards MIDI Notifications"),
+                       OnMIDINotification, nullptr, &notificationClient);
+
+  {
+    std::lock_guard<std::mutex> lock(gNotificationThreadMutex);
+    if (status == noErr) {
+      gNotificationClient = notificationClient;
+    }
+    gNotificationThreadStatus = status;
+    gNotificationThreadReady = true;
+  }
+  gNotificationThreadReadyCondition.notify_all();
+
+  if (status == noErr) {
+    CFRunLoopRun();
+  }
+
+  if (keepAliveSource != nullptr) {
+    CFRunLoopRemoveSource(CFRunLoopGetCurrent(), keepAliveSource,
+                          kCFRunLoopDefaultMode);
+    CFRelease(keepAliveSource);
+  }
+  if (notificationClient != 0) {
+    MIDIClientDispose(notificationClient);
+  }
+}
+
+OSStatus EnsureNotificationClientStatus() {
+  std::call_once(gNotificationThreadOnce, []() {
+    std::thread(NotificationThreadMain).detach();
+  });
+
+  std::unique_lock<std::mutex> lock(gNotificationThreadMutex);
+  gNotificationThreadReadyCondition.wait(lock, []() {
+    return gNotificationThreadReady;
+  });
+  return gNotificationThreadStatus;
+}
+
+OSStatus EnsureClientStatus() {
+  OSStatus status = EnsureNotificationClientStatus();
+  if (status != noErr) {
+    return status;
+  }
+
+  std::lock_guard<std::mutex> lock(gClientMutex);
+  if (gClient == 0) {
+    status = MIDIClientCreate(CFSTR("Arcane Wizards MIDI"), nullptr, nullptr,
+                              &gClient);
+    if (status != noErr) {
+      return status;
+    }
+  }
+
+  return noErr;
 }
 
 bool EnsureClient(napi_env env) {
@@ -324,6 +394,44 @@ void MessageCallback(napi_env env, napi_value jsCallback, void *,
   napi_value global;
   napi_get_global(env, &global);
   napi_call_function(env, global, jsCallback, 1, &array, nullptr);
+}
+
+void DeviceNotificationCallback(napi_env env, napi_value jsCallback, void *,
+                                void *data) {
+  std::unique_ptr<SInt32> messageId(static_cast<SInt32 *>(data));
+
+  if (env == nullptr || jsCallback == nullptr) {
+    return;
+  }
+
+  napi_value messageIdValue;
+  napi_create_int32(env, *messageId, &messageIdValue);
+
+  napi_value global;
+  napi_get_global(env, &global);
+  napi_call_function(env, global, jsCallback, 1, &messageIdValue, nullptr);
+}
+
+void NotifyDeviceChange(SInt32 messageId) {
+  std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+  if (gDeviceNotificationCallback == nullptr) {
+    return;
+  }
+
+  auto *payload = new SInt32(messageId);
+  napi_status status = napi_call_threadsafe_function(
+      gDeviceNotificationCallback, payload, napi_tsfn_nonblocking);
+  if (status != napi_ok) {
+    delete payload;
+  }
+}
+
+void OnMIDINotification(const MIDINotification *notification, void *) {
+  if (notification == nullptr) {
+    return;
+  }
+
+  NotifyDeviceChange(notification->messageID);
 }
 
 class NativeInput {
@@ -655,39 +763,70 @@ napi_value CreateOutputObject(napi_env env, NativeOutput *output) {
   return object;
 }
 
-napi_value GetSupportInfo(napi_env env, napi_callback_info) {
-  napi_value object;
-  napi_create_object(env, &object);
-
-  OSStatus status = EnsureClientStatus();
-  if (status != noErr) {
-    napi_value supported;
-    napi_get_boolean(env, false, &supported);
-    napi_set_named_property(env, object, "supported", supported);
-
-    std::string reason = OSStatusMessage("MIDIClientCreate", status);
-    napi_value reasonValue;
-    napi_create_string_utf8(env, reason.c_str(), NAPI_AUTO_LENGTH,
-                            &reasonValue);
-    napi_set_named_property(env, object, "reason", reasonValue);
-    return object;
+napi_value SetNotificationCallback(napi_env env,
+                                   napi_callback_info callbackInfo) {
+  if (!EnsureClient(env)) {
+    return CreateUndefined(env);
   }
 
-  napi_value supported;
-  napi_get_boolean(env, true, &supported);
-  napi_set_named_property(env, object, "supported", supported);
+  size_t argc = 1;
+  napi_value args[1];
+  napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
 
-  napi_value virtualInfo;
-  napi_create_object(env, &virtualInfo);
-  napi_value virtualSupported;
-  napi_get_boolean(env, true, &virtualSupported);
-  napi_set_named_property(env, virtualInfo, "supported", virtualSupported);
-  napi_set_named_property(env, object, "virtual", virtualInfo);
+  napi_value callback = argc > 0 ? args[0] : CreateUndefined(env);
+  napi_valuetype type;
+  if (napi_typeof(env, callback, &type) != napi_ok) {
+    Throw(env, "Unable to inspect device change callback.");
+    return CreateUndefined(env);
+  }
 
-  return object;
+  napi_threadsafe_function oldCallback = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+    oldCallback = gDeviceNotificationCallback;
+    gDeviceNotificationCallback = nullptr;
+  }
+
+  if (oldCallback != nullptr) {
+    napi_release_threadsafe_function(oldCallback, napi_tsfn_abort);
+  }
+
+  if (type == napi_undefined || type == napi_null) {
+    return CreateUndefined(env);
+  }
+
+  if (type != napi_function) {
+    Throw(env, "Expected device change callback to be a function or null.");
+    return CreateUndefined(env);
+  }
+
+  napi_value resourceName;
+  napi_create_string_utf8(env, "Core MIDI device notification callback",
+                          NAPI_AUTO_LENGTH, &resourceName);
+
+  napi_threadsafe_function newCallback = nullptr;
+  napi_status status = napi_create_threadsafe_function(
+      env, callback, nullptr, resourceName, 0, 1, nullptr, nullptr, nullptr,
+      DeviceNotificationCallback, &newCallback);
+  if (status != napi_ok) {
+    Throw(env, "Unable to create MIDI device change callback.");
+    return CreateUndefined(env);
+  }
+  napi_unref_threadsafe_function(env, newCallback);
+
+  {
+    std::lock_guard<std::mutex> lock(gDeviceNotificationMutex);
+    gDeviceNotificationCallback = newCallback;
+  }
+
+  return CreateUndefined(env);
 }
 
-napi_value GetInputs(napi_env env, napi_callback_info) {
+napi_value GetSources(napi_env env, napi_callback_info) {
+  if (!EnsureClient(env)) {
+    return CreateUndefined(env);
+  }
+
   napi_value array;
   napi_create_array(env, &array);
 
@@ -702,7 +841,11 @@ napi_value GetInputs(napi_env env, napi_callback_info) {
   return array;
 }
 
-napi_value GetOutputs(napi_env env, napi_callback_info) {
+napi_value GetDestinations(napi_env env, napi_callback_info) {
+  if (!EnsureClient(env)) {
+    return CreateUndefined(env);
+  }
+
   napi_value array;
   napi_create_array(env, &array);
 
@@ -717,7 +860,7 @@ napi_value GetOutputs(napi_env env, napi_callback_info) {
   return array;
 }
 
-napi_value OpenInput(napi_env env, napi_callback_info callbackInfo) {
+napi_value ConnectSource(napi_env env, napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -726,7 +869,7 @@ napi_value OpenInput(napi_env env, napi_callback_info callbackInfo) {
   napi_value args[1];
   napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
   if (argc < 1) {
-    Throw(env, "openInput requires a MIDI endpoint.");
+    Throw(env, "connectSource requires a MIDI source endpoint.");
     return CreateUndefined(env);
   }
 
@@ -752,7 +895,7 @@ napi_value OpenInput(napi_env env, napi_callback_info callbackInfo) {
   return CreateInputObject(env, input.release());
 }
 
-napi_value OpenOutput(napi_env env, napi_callback_info callbackInfo) {
+napi_value OpenDestination(napi_env env, napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -761,7 +904,7 @@ napi_value OpenOutput(napi_env env, napi_callback_info callbackInfo) {
   napi_value args[1];
   napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
   if (argc < 1) {
-    Throw(env, "openOutput requires a MIDI endpoint.");
+    Throw(env, "openDestination requires a MIDI destination endpoint.");
     return CreateUndefined(env);
   }
 
@@ -780,7 +923,8 @@ napi_value OpenOutput(napi_env env, napi_callback_info callbackInfo) {
   return CreateOutputObject(env, output.release());
 }
 
-napi_value CreateVirtualInput(napi_env env, napi_callback_info callbackInfo) {
+napi_value CreateVirtualDestination(napi_env env,
+                                    napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -789,13 +933,13 @@ napi_value CreateVirtualInput(napi_env env, napi_callback_info callbackInfo) {
   napi_value args[2];
   napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
   if (argc < 1) {
-    Throw(env, "createVirtualInput requires a port name.");
+    Throw(env, "createVirtualDestination requires a port name.");
     return CreateUndefined(env);
   }
 
   std::string name;
   if (!GetStringArgument(env, args[0], &name) || name.empty()) {
-    Throw(env, "Virtual input name must be a non-empty string.");
+    Throw(env, "Virtual destination name must be a non-empty string.");
     return CreateUndefined(env);
   }
 
@@ -807,7 +951,7 @@ napi_value CreateVirtualInput(napi_env env, napi_callback_info callbackInfo) {
 
   CFStringRef portName = CreateCFString(name);
   if (portName == nullptr) {
-    Throw(env, "Unable to create virtual input name.");
+    Throw(env, "Unable to create virtual destination name.");
     return CreateUndefined(env);
   }
 
@@ -825,7 +969,7 @@ napi_value CreateVirtualInput(napi_env env, napi_callback_info callbackInfo) {
   return CreateInputObject(env, input.release());
 }
 
-napi_value CreateVirtualOutput(napi_env env, napi_callback_info callbackInfo) {
+napi_value CreateVirtualSource(napi_env env, napi_callback_info callbackInfo) {
   if (!EnsureClient(env)) {
     return CreateUndefined(env);
   }
@@ -834,13 +978,13 @@ napi_value CreateVirtualOutput(napi_env env, napi_callback_info callbackInfo) {
   napi_value args[2];
   napi_get_cb_info(env, callbackInfo, &argc, args, nullptr, nullptr);
   if (argc < 1) {
-    Throw(env, "createVirtualOutput requires a port name.");
+    Throw(env, "createVirtualSource requires a port name.");
     return CreateUndefined(env);
   }
 
   std::string name;
   if (!GetStringArgument(env, args[0], &name) || name.empty()) {
-    Throw(env, "Virtual output name must be a non-empty string.");
+    Throw(env, "Virtual source name must be a non-empty string.");
     return CreateUndefined(env);
   }
 
@@ -852,7 +996,7 @@ napi_value CreateVirtualOutput(napi_env env, napi_callback_info callbackInfo) {
 
   CFStringRef portName = CreateCFString(name);
   if (portName == nullptr) {
-    Throw(env, "Unable to create virtual output name.");
+    Throw(env, "Unable to create virtual source name.");
     return CreateUndefined(env);
   }
 
@@ -871,19 +1015,19 @@ napi_value CreateVirtualOutput(napi_env env, napi_callback_info callbackInfo) {
 
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor properties[] = {
-      {"getSupportInfo", nullptr, GetSupportInfo, nullptr, nullptr, nullptr,
+      {"getSources", nullptr, GetSources, nullptr, nullptr, nullptr,
        napi_default, nullptr},
-      {"getInputs", nullptr, GetInputs, nullptr, nullptr, nullptr, napi_default,
-       nullptr},
-      {"getOutputs", nullptr, GetOutputs, nullptr, nullptr, nullptr,
+      {"getDestinations", nullptr, GetDestinations, nullptr, nullptr, nullptr,
        napi_default, nullptr},
-      {"openInput", nullptr, OpenInput, nullptr, nullptr, nullptr, napi_default,
-       nullptr},
-      {"openOutput", nullptr, OpenOutput, nullptr, nullptr, nullptr,
+      {"setNotificationCallback", nullptr, SetNotificationCallback, nullptr,
+       nullptr, nullptr, napi_default, nullptr},
+      {"connectSource", nullptr, ConnectSource, nullptr, nullptr, nullptr,
        napi_default, nullptr},
-      {"createVirtualInput", nullptr, CreateVirtualInput, nullptr, nullptr,
-       nullptr, napi_default, nullptr},
-      {"createVirtualOutput", nullptr, CreateVirtualOutput, nullptr, nullptr,
+      {"openDestination", nullptr, OpenDestination, nullptr, nullptr, nullptr,
+       napi_default, nullptr},
+      {"createVirtualDestination", nullptr, CreateVirtualDestination, nullptr,
+       nullptr, nullptr, napi_default, nullptr},
+      {"createVirtualSource", nullptr, CreateVirtualSource, nullptr, nullptr,
        nullptr, napi_default, nullptr},
   };
 
