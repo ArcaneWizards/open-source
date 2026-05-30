@@ -1,5 +1,38 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.3.0
+
+### Minor Changes
+
+- 0dfacd9: Introduce MIDI Timecode (MTC)
+
+  It's now possible for you to connect MIDI devices
+  (and create virtual devices on MacOS) that allows you to send MIDI timecode
+  signals as outputs, and receive them as inputs.
+
+  Right now this feature is only supported on Windows and MacOS,
+  but linux support for our CLI users will come at some point in the future.
+
+### Patch Changes
+
+- c63004c: Required Action: Correct Application folder in Windows
+
+  On windows, Timecode Toolbox was incorrectly using the folder `ArcaneDesktop` to
+  install itself, which was incorrect and conflicting with our other application
+  that's currently in early-access.
+
+  This will probably mean that when you install this version, the existing version
+  will remain installed, which will require you to manually uninstall it yourself.
+
+- cd35667: Introduce clearer messages for misconfigured Art-Net
+  - Display a warning when broadcast is configured for a loopback interface
+  - Display a warning when no interface has been selected
+
+- Updated dependencies [3e62576]
+- Updated dependencies [3e62576]
+- Updated dependencies [816aa78]
+  - @arcanewizards/midi@0.1.0
+
 ## 0.2.1
 
 ### Patch Changes
