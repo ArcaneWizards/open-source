@@ -75,7 +75,7 @@ jobs:
           echo "Release $TAG does not exist or requires desktop assets. Desktop build and release will proceed."
           echo "require_desktop_release=true" >> $GITHUB_OUTPUT
   build-macos:
-    runs-on: macos-14
+    runs-on: macos-latest
     environment: ${{ inputs.notarize && 'package' || 'ci' }}
     env:
       APPLE_API_KEY_ID: ${{ vars.APPLE_API_KEY_ID }}
