@@ -22,6 +22,7 @@ import { AssignToOutputCallback, DialogMode, SettingsProps } from './types';
 import {
   InputConfig,
   InputDefinition,
+  MidiTargetConfig,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
@@ -34,6 +35,7 @@ import {
 } from '@arcanewizards/sigil/frontend/context';
 import { TimecodeTreeDisplay } from './core/timecode-display';
 import { NoToolboxChildren } from './content';
+import { MidiTargetSettings } from './core/midi';
 
 const DmxConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   data,
@@ -171,6 +173,37 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   );
 };
 
+const MIDIConnectionSettings: FC<
+  SettingsProps<InputDefinition> & { name: string | undefined }
+> = ({ name, data, updateSettings }) => {
+  const updateMidiTarget = useCallback(
+    (change: (current: MidiTargetConfig) => MidiTargetConfig) => {
+      updateSettings((current) =>
+        current.type === 'midi'
+          ? {
+              ...current,
+              target: change(current.target),
+            }
+          : current,
+      );
+    },
+    [updateSettings],
+  );
+
+  if (data.type !== 'midi') {
+    return null;
+  }
+
+  return (
+    <MidiTargetSettings
+      type="input"
+      name={name}
+      target={data.target}
+      updateTarget={updateMidiTarget}
+    />
+  );
+};
+
 type InputSettingsDialogProps = {
   target: DialogMode['target'];
   input: InputDefinition['type'];
@@ -193,10 +226,18 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
             iface: '',
             port: undefined,
           }
-        : {
-            type: 'tcnet',
-            iface: '',
-          },
+        : input === 'tcnet'
+          ? {
+              type: 'tcnet',
+              iface: '',
+            }
+          : {
+              type: 'midi',
+              target: {
+                type: 'port',
+                deviceName: '',
+              },
+            },
   });
 
   const close = useCallback(() => setDialogMode(null), [setDialogMode]);
@@ -316,6 +357,12 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
           />
         ) : data.definition.type === 'tcnet' ? (
           <TCNetConnectionSettings
+            data={data.definition}
+            updateSettings={updateDefinition}
+          />
+        ) : data.definition.type === 'midi' ? (
+          <MIDIConnectionSettings
+            name={data.name}
             data={data.definition}
             updateSettings={updateDefinition}
           />
@@ -472,7 +519,7 @@ export const InputsSection: FC<InputSectionProps> = ({
       title={STRINGS.inputs.title}
       buttons={
         <>
-          {(['artnet', 'tcnet'] as const).map((type) => (
+          {(['artnet', 'tcnet', 'midi'] as const).map((type) => (
             <ControlButton
               key={type}
               onClick={() =>

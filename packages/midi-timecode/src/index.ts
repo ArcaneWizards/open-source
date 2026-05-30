@@ -104,9 +104,9 @@ const fullTimecodeMessage = (
     0x01, // Sub-ID #1: Time Code
     0x01, // Sub-ID #2: Full Time Code Message
     (frame.hours & 0b11111) | (MODE_VALUES[frame.mode] << 5),
-    frame.minutes,
-    frame.seconds,
-    frame.frame,
+    frame.minutes & 0b111111,
+    frame.seconds & 0b111111,
+    frame.frame & 0b11111,
     0xf7, // SysEx end
   ];
 };

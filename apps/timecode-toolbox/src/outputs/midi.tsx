@@ -20,13 +20,9 @@ import {
 import { adjustTimecodeForDelay, getTimecodeInstance } from '../util';
 import { useLogger } from '@arcanewizards/sigil';
 import { StateSensitiveComponentProps } from '../types';
-import midi, {
-  MidiEndpointInfo,
-  MIDIEndpointsChangedEvent,
-  MIDIEventListener,
-  MIDIOutput,
-} from '@arcanewizards/midi';
+import midi, { MIDIOutput } from '@arcanewizards/midi';
 import { createMIDITimecodeSender } from '@arcanewizards/midi-timecode';
+import { useMidiDeviceWatcher } from '../lib/midi';
 
 type MIDIOutputConnectionProps = StateSensitiveComponentProps & {
   uuid: string;
@@ -34,8 +30,6 @@ type MIDIOutputConnectionProps = StateSensitiveComponentProps & {
   connection: OutputMidiDefinition;
   state: ApplicationState;
 };
-
-const STATUS_POLL_INTERVAL = 5000;
 
 const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
   uuid,
@@ -50,73 +44,9 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
 
   const m = useMemo(() => midi(), []);
 
-  const [availableOutputs, setAvailableOutputs] = useState<MidiEndpointInfo[]>(
-    [],
-  );
-
-  useEffect(() => {
-    // Keep track of available outputs as state so that we can react to changes
-    // in device availability
-
-    let listener: MIDIEventListener<MIDIEndpointsChangedEvent> | null = null;
-    let interval: NodeJS.Timeout | null = null;
-
-    m.getSupportInfo()
-      .then((supportInfo) => {
-        if (!supportInfo.supported) {
-          setAvailableOutputs([]);
-          return;
-        }
-
-        if (supportInfo.notifications.supported) {
-          listener = (e) => {
-            setAvailableOutputs(e.endpoints.outputs);
-          };
-          m.addEventListener('endpointschanged', listener);
-          // Get the initial list of outputs
-          m.getOutputs()
-            .then(setAvailableOutputs)
-            .catch((cause) => {
-              const error = new Error('Failed to get MIDI outputs', { cause });
-              log.error(error);
-            });
-        } else {
-          // If notifications aren't supported, poll for changes every 5 seconds
-          interval = setInterval(() => {
-            m.getOutputs()
-              .then(setAvailableOutputs)
-              .catch((cause) => {
-                const error = new Error('Failed to get MIDI outputs', {
-                  cause,
-                });
-                log.error(error);
-              });
-          }, STATUS_POLL_INTERVAL);
-        }
-      })
-      .catch((cause) => {
-        const error = new Error('Failed to get MIDI support info', { cause });
-        log.error(error);
-        setAvailableOutputs([]);
-      });
-
-    return () => {
-      if (listener) {
-        m.removeEventListener('endpointschanged', listener);
-      }
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [m, log]);
-
   const name = target.type === 'virtual' ? config.name : target.deviceName;
-  const outputInfo = useMemo(() => {
-    if (target.type === 'virtual') {
-      return null;
-    }
-    return availableOutputs.find((o) => o.name === target.deviceName) ?? null;
-  }, [availableOutputs, target]);
+
+  const outputInfo = useMidiDeviceWatcher(log, m, 'outputs', target);
 
   const setOutputState = useCallback(
     (outputState: OutputState) =>
@@ -144,6 +74,10 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
       return;
     }
     setOutputState({ status: 'connecting' });
+
+    if (outputInfo === 'loading') {
+      return;
+    }
 
     const outputPromise =
       target.type === 'virtual'
@@ -200,8 +134,17 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
     if (!midiInstance) {
       return null;
     }
+    let closed = false;
+    midiInstance.addEventListener('closed', () => {
+      closed = true;
+    });
     return createMIDITimecodeSender({
-      sendMessage: midiInstance.sendMessage,
+      sendMessage: (message) => {
+        if (closed) {
+          return;
+        }
+        midiInstance.sendMessage(message);
+      },
       mode: 'SMPTE',
     });
   }, [midiInstance]);

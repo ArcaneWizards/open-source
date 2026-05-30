@@ -96,12 +96,18 @@ const MIDI_TARGET_CONFIG = z.union([
   }),
 ]);
 
+export type MidiTargetConfig = z.infer<typeof MIDI_TARGET_CONFIG>;
+
 const INPUT_MIDI_DEFINITION = z.object({
   type: z.literal('midi'),
   target: MIDI_TARGET_CONFIG,
 });
 
 export type InputMidiDefinition = z.infer<typeof INPUT_MIDI_DEFINITION>;
+
+export const isInputMidiDefinition = (
+  definition: InputDefinition,
+): definition is InputMidiDefinition => definition.type === 'midi';
 
 const OUTPUT_MIDI_DEFINITION = z.object({
   type: z.literal('midi'),

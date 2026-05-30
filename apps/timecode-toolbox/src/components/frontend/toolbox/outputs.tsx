@@ -18,7 +18,6 @@ import {
   ControlDialogButtons,
   ControlInput,
   ControlLabel,
-  ControlParagraph,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
 import { ConfigContext, NetworkContext, useApplicationState } from './context';
@@ -28,7 +27,6 @@ import {
   OutputDefinition,
   OutputMidiDefinition,
   TimecodeInstance,
-  ToolboxRootGetMidiDevicesReturn,
   ToolboxRootGetNetworkInterfacesReturn,
 } from '../../proto';
 import {
@@ -55,7 +53,7 @@ import {
   getTimecodeInstance,
 } from '../../../util';
 import { NoToolboxChildren } from './content';
-import { MIDISupportResponse } from '@arcanewizards/midi';
+import { MidiTargetSettings } from './core/midi';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   data,
@@ -219,45 +217,11 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   );
 };
 
-type MIDIState = MIDISupportResponse &
-  (
-    | {
-        supported: true;
-        devices: ToolboxRootGetMidiDevicesReturn;
-      }
-    | {
-        supported: false;
-      }
-  );
-
 const MidiConnectionSettings: FC<
   SettingsProps<OutputDefinition> & {
     name: string | undefined;
   }
 > = ({ name, data, updateSettings }) => {
-  const { getMidiSupportInfo, getMidiDevices } = useContext(NetworkContext);
-  const [midiDevices, setMidiDevices] = useState<MIDIState | null>(null);
-
-  const refreshDevices = useCallback(() => {
-    setMidiDevices(null);
-    getMidiSupportInfo().then((info) => {
-      if (!info.supported) {
-        setMidiDevices(info);
-        return;
-      }
-      getMidiDevices().then((devices) => {
-        setMidiDevices({
-          ...info,
-          devices,
-        });
-      });
-    });
-  }, [getMidiSupportInfo, getMidiDevices]);
-
-  useEffect(() => {
-    refreshDevices();
-  }, [refreshDevices]);
-
   const updateMidiSettings = useCallback(
     (change: (current: OutputMidiDefinition) => OutputMidiDefinition) => {
       updateSettings((current) =>
@@ -267,104 +231,23 @@ const MidiConnectionSettings: FC<
     [updateSettings],
   );
 
-  if (data.type !== 'midi' || midiDevices === null) {
+  if (data.type !== 'midi') {
     return null;
-  }
-
-  if (!midiDevices.supported) {
-    return (
-      <>
-        <ControlParagraph mode="error" position="row">
-          {`MIDI is not supported on this device: ${midiDevices.reason}`}
-        </ControlParagraph>
-      </>
-    );
   }
 
   return (
     <>
-      <ControlLabel>Device Type</ControlLabel>
-      <ControlSelect
-        value={data.target.type}
-        options={[
-          { value: 'port', label: 'Connected Device' },
-          { value: 'virtual', label: 'Arcane Virtual MIDI Device' },
-        ]}
-        variant="large"
-        position="both"
-        onChange={(type) => {
+      <MidiTargetSettings
+        type="output"
+        name={name}
+        target={data.target}
+        updateTarget={(update) =>
           updateMidiSettings((current) => ({
             ...current,
-            target:
-              current.target.type === type
-                ? current.target
-                : type === 'port'
-                  ? {
-                      type: 'port',
-                      deviceName: '',
-                    }
-                  : {
-                      type: 'virtual',
-                      deviceName: '',
-                    },
-          }));
-        }}
+            target: update(current.target),
+          }))
+        }
       />
-      {data.target.type === 'port' ? (
-        <>
-          <ControlLabel>Device</ControlLabel>
-          <ControlButton
-            onClick={refreshDevices}
-            title="Refresh Devices"
-            position="first"
-            variant="large"
-          >
-            <Icon icon="refresh" />
-          </ControlButton>
-          {midiDevices.devices.outputs.length === 0 ? (
-            <ControlParagraph mode="warning" position="row">
-              No MIDI output devices found. Please connect a MIDI device and
-              refresh the list.
-            </ControlParagraph>
-          ) : (
-            <ControlSelect
-              value={data.target.deviceName}
-              options={
-                midiDevices.devices.outputs.map((device) => ({
-                  value: device.name,
-                  label: device.name,
-                })) || []
-              }
-              variant="large"
-              position="second"
-              placeholder="Select Device"
-              onChange={(deviceName) => {
-                updateMidiSettings((current) => ({
-                  ...current,
-                  target: {
-                    type: 'port',
-                    deviceName,
-                  },
-                }));
-              }}
-            />
-          )}
-        </>
-      ) : midiDevices.virtual.supported ? (
-        name ? (
-          <ControlParagraph position="row">
-            {`The virtual MIDI device will have the name ${name}`}
-          </ControlParagraph>
-        ) : (
-          <ControlParagraph mode="warning" position="row">
-            {`Please specify a name for your virtual MIDI device`}
-          </ControlParagraph>
-        )
-      ) : (
-        <ControlParagraph mode="error" position="row">
-          {`Virtual MIDI devices are not supported on this machine: ${midiDevices.virtual.reason}`}
-        </ControlParagraph>
-      )}
       <ControlLabel>FPS</ControlLabel>
       <ControlSelect<TimecodeMode>
         position="both"
