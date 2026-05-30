@@ -108,7 +108,7 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: 'ArcaneDesktop',
+        name: 'TimecodeToolboxDesktop',
         setupIcon: 'assets/icon.ico',
       },
     },
