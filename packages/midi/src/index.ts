@@ -29,8 +29,8 @@ export type {
   MIDIOutput,
   MIDIOutputEventMap,
   MIDISupportResponse,
-  MidiEndpointInfo,
-  MidiEndpoints,
+  MIDIEndpointInfo as MidiEndpointInfo,
+  MIDIEndpoints as MidiEndpoints,
   VirtualPortOptions,
 } from './types.js';
 

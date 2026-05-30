@@ -25,14 +25,14 @@ export type MIDISupportResponse =
       reason: string;
     };
 
-export type MidiEndpointInfo = {
+export type MIDIEndpointInfo = {
   name: string;
   portId: number;
 };
 
-export type MidiEndpoints = {
-  inputs: MidiEndpointInfo[];
-  outputs: MidiEndpointInfo[];
+export type MIDIEndpoints = {
+  inputs: MIDIEndpointInfo[];
+  outputs: MIDIEndpointInfo[];
 };
 
 const MIDI_EVENT_TYPE = Symbol('type');
@@ -56,7 +56,7 @@ export type MIDIMessageEvent = MIDIEvent<'message'> & {
 };
 
 export type MIDIEndpointClosedEvent = MIDIEvent<'closed'> & {
-  endpoint: MidiEndpointInfo;
+  endpoint: MIDIEndpointInfo;
 };
 
 export type MIDIErrorEvent = MIDIEvent<'error'> & {
@@ -64,9 +64,9 @@ export type MIDIErrorEvent = MIDIEvent<'error'> & {
 };
 
 export type MIDIEndpointsChangedEvent = MIDIEvent<'endpointschanged'> & {
-  endpoints: MidiEndpoints;
-  added: MidiEndpoints;
-  removed: MidiEndpoints;
+  endpoints: MIDIEndpoints;
+  added: MIDIEndpoints;
+  removed: MIDIEndpoints;
 };
 
 export type MIDIEventListener<Event extends MIDIEvent> = (event: Event) => void;
@@ -87,7 +87,7 @@ export type MIDIInterfaceEventMap = {
 };
 
 export type MIDIOutput = {
-  getInfo(): MidiEndpointInfo;
+  getInfo(): MIDIEndpointInfo;
   sendMessage(message: number[]): Promise<void>;
   close(): Promise<void>;
   addEventListener<Type extends keyof MIDIOutputEventMap>(
@@ -101,7 +101,7 @@ export type MIDIOutput = {
 };
 
 export type MIDIInput = {
-  getInfo(): MidiEndpointInfo;
+  getInfo(): MIDIEndpointInfo;
   close(): Promise<void>;
   addEventListener<Type extends keyof MIDIInputEventMap>(
     type: Type,
@@ -120,11 +120,11 @@ export type VirtualPortOptions = {
 
 export type MIDIInterface = {
   getSupportInfo(): Promise<MIDISupportResponse>;
-  getEndpoints(): Promise<MidiEndpoints>;
-  getInputs(): Promise<MidiEndpointInfo[]>;
-  getOutputs(): Promise<MidiEndpointInfo[]>;
-  openInput(endpoint: MidiEndpointInfo): Promise<MIDIInput>;
-  openOutput(endpoint: MidiEndpointInfo): Promise<MIDIOutput>;
+  getEndpoints(): Promise<MIDIEndpoints>;
+  getInputs(): Promise<MIDIEndpointInfo[]>;
+  getOutputs(): Promise<MIDIEndpointInfo[]>;
+  openInput(endpoint: MIDIEndpointInfo): Promise<MIDIInput>;
+  openOutput(endpoint: MIDIEndpointInfo): Promise<MIDIOutput>;
   createVirtualInput(
     name: string,
     options?: VirtualPortOptions,

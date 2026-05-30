@@ -1,4 +1,4 @@
-import type { MidiEndpointInfo } from './types.js';
+import type { MIDIEndpointInfo } from './types.js';
 
 export type MIDIErrorCode =
   | 'ERR_MIDI_NOT_SUPPORTED'
@@ -41,12 +41,12 @@ export class MIDINotImplementedError extends MIDIError {
 }
 
 export class MIDIEndpointClosedError extends MIDIError {
-  readonly endpoint: MidiEndpointInfo | undefined;
+  readonly endpoint: MIDIEndpointInfo | undefined;
 
   constructor(
     message: string,
     options: MIDIErrorOptions & {
-      endpoint?: MidiEndpointInfo;
+      endpoint?: MIDIEndpointInfo;
     } = {},
   ) {
     super('ERR_MIDI_ENDPOINT_CLOSED', message, options);
@@ -71,12 +71,12 @@ export class MIDIInvalidArgumentError extends MIDIError {
 }
 
 export class MIDIEndpointNotFoundError extends MIDIError {
-  readonly endpoint: MidiEndpointInfo | undefined;
+  readonly endpoint: MIDIEndpointInfo | undefined;
 
   constructor(
     message: string,
     options: MIDIErrorOptions & {
-      endpoint?: MidiEndpointInfo;
+      endpoint?: MIDIEndpointInfo;
     } = {},
   ) {
     super('ERR_MIDI_ENDPOINT_NOT_FOUND', message, options);
