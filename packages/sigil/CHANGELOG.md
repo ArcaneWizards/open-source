@@ -1,5 +1,18 @@
 # @arcanewizards/sigil
 
+## 0.1.10
+
+### Patch Changes
+
+- a65eaac: Allow debugger text to be selected
+
+  Previously, it wasn't possible to select the text from the Debug Tools window,
+  making copying sections of the log, or the system paths, difficult.
+
+- 1fa54e5: Some minor updates to ControlInput & InputWithDelayedPropagation
+  - Introduce a hasError property on ControlInput
+  - Allow Esc key to reset value to last value provided by the prop
+
 ## 0.1.9
 
 ### Patch Changes

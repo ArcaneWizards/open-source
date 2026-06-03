@@ -1,5 +1,50 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.3.1
+
+### Patch Changes
+
+- a65eaac: Allow debugger text to be selected
+
+  Previously, it wasn't possible to select the text from the Debug Tools window,
+  making copying sections of the log, or the system paths, difficult.
+
+- 5d6029f: Introduce system clock generator
+
+  Allow users to configure a clock generator to use the system time rather than
+  have controlled playback. Users can also select different timezones to the
+  default system timezone.
+
+- 05fa056: Keep player running when settings/debugger/info opened
+
+  Previously, when opening any of the other app windows while music was playing,
+  the music would stop without any warning. Now it continues playing in the
+  background.
+
+  fixes 82
+
+- fb725fa: Add more config metadata to timecodes UI
+  - ArtNet & TCNet Inputs now display interface name & IP address
+  - ArtNet Outputs now display interface name & IP address, or hostname
+  - MIDI Inputs & Outputs now display device type (virtual vs physical)
+    and device name
+  - System clock generators now show timezone when it's different to
+    system clock
+
+  All this information is displayed at the top of the timecode alongside
+  the name. If a name is set, that will be shown first (to the left),
+  with the metadata shown after. If no name is set,
+  the metadata is shown to the left of the placeholder.
+
+- 1fa54e5: Improve usability of Delay config
+  - Make it clear that delay field can also be used for an offset
+  - Highlight either Offset or Delay, depending on whether the value is negative
+    or positive.
+  - Allow users to enter offsets/delays using a timecode format,
+    and display this by default in the config options
+
+  fixes #78
+
 ## 0.3.0
 
 ### Minor Changes
