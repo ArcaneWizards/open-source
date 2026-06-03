@@ -1,14 +1,7 @@
-import {
-  FC,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { FC, useCallback, useContext, useMemo, useState } from 'react';
 import { STRINGS } from '../constants';
 import { PrimaryToolboxSection } from './util';
-import { ConfigContext, SystemContext, useApplicationState } from './context';
+import { ConfigContext, useApplicationState } from './context';
 import {
   ControlButton,
   ControlColorSelect,
@@ -23,7 +16,7 @@ import {
   InputConfig,
   InputDefinition,
   MidiTargetConfig,
-  ToolboxRootGetNetworkInterfacesReturn,
+  TimecodeInstanceId,
 } from '../../proto';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { ARTNET_PORT } from '@arcanewizards/artnet/constants';
@@ -33,27 +26,21 @@ import {
   ChangeCommitContext,
   useChangeCommitBoundary,
 } from '@arcanewizards/sigil/frontend/context';
-import { TimecodeTreeDisplay } from './core/timecode-display';
+import {
+  TimecodeTreeDisplay,
+  useTimecodeLabels,
+} from './core/timecode-display';
 import { NoToolboxChildren } from './content';
 import { MidiTargetSettings } from './core/midi';
+import { useNetworkInterfaces } from './hooks';
 
 const DmxConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   data,
   updateSettings,
 }) => {
   const { commitChanges } = useContext(ChangeCommitContext);
-  const { getNetworkInterfaces } = useContext(SystemContext);
-  const [interfaces, setInterfaces] =
-    useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
 
-  const refreshInterfaces = useCallback(() => {
-    setInterfaces(null);
-    getNetworkInterfaces().then((ifs) => setInterfaces(ifs));
-  }, [getNetworkInterfaces]);
-
-  useEffect(() => {
-    refreshInterfaces();
-  }, [refreshInterfaces]);
+  const { interfaces, refreshInterfaces } = useNetworkInterfaces();
 
   if (data.type !== 'artnet') {
     return null;
@@ -120,18 +107,7 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   data,
   updateSettings,
 }) => {
-  const { getNetworkInterfaces } = useContext(SystemContext);
-  const [interfaces, setInterfaces] =
-    useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
-
-  const refreshInterfaces = useCallback(() => {
-    setInterfaces(null);
-    getNetworkInterfaces().then((ifs) => setInterfaces(ifs));
-  }, [getNetworkInterfaces]);
-
-  useEffect(() => {
-    refreshInterfaces();
-  }, [refreshInterfaces]);
+  const { interfaces, refreshInterfaces } = useNetworkInterfaces();
 
   if (data.type !== 'tcnet') {
     return null;
@@ -463,9 +439,12 @@ export const InputDisplay: FC<InputDisplayProps> = ({
     [state?.errors, state?.warnings],
   );
 
+  const id: TimecodeInstanceId = useMemo(() => ['input', uuid], [uuid]);
+  const labels = useTimecodeLabels(id);
+
   return (
     <TimecodeTreeDisplay
-      id={['input', uuid]}
+      id={id}
       config={{ delayMs: config.delayMs ?? null }}
       type={STRINGS.protocols[config.definition.type].short}
       name={config.name ? [config.name] : []}
@@ -498,6 +477,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
           />
         </>
       }
+      labels={labels}
       assignToOutput={assignToOutput}
     />
   );

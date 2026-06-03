@@ -12,6 +12,7 @@ import {
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
+import { STRINGS } from '../../constants';
 
 type MidiTargetSettingsProps = {
   type: 'input' | 'output';
@@ -84,8 +85,8 @@ export const MidiTargetSettings: FC<MidiTargetSettingsProps> = ({
       <ControlSelect
         value={target.type}
         options={[
-          { value: 'port', label: 'Connected Device' },
-          { value: 'virtual', label: 'Arcane Virtual MIDI Device' },
+          { value: 'port', label: STRINGS.midi.deviceTypePort },
+          { value: 'virtual', label: STRINGS.midi.deviceTypeVirtual },
         ]}
         variant="large"
         position="both"

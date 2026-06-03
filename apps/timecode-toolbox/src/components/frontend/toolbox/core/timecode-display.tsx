@@ -21,6 +21,7 @@ import {
   isGeneratorInstanceId,
   ToolboxConfig,
   UniversalConfig,
+  MidiTargetConfig,
 } from '../../../proto';
 import { displayMillis } from '../util';
 import { StageContext } from '@arcanejs/toolkit-frontend';
@@ -54,6 +55,7 @@ import {
   getTimecodeInstance,
 } from '../../../../util';
 import { LoadFileCallback, WithAudioPlayer } from './audio-player';
+import { useNetworkInterfaceInfo } from '../hooks';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -584,6 +586,14 @@ export const getLinkedSourceInfo = (
   return info;
 };
 
+/**
+ * Additional labels / metadata that can be displayed on a timecode instance,
+ * such as network information or other config.
+ */
+type TimecodeLabel = {
+  text: string;
+};
+
 type TimecodeTreeDisplayProps = {
   config: UniversalConfig;
   /**
@@ -598,6 +608,7 @@ type TimecodeTreeDisplayProps = {
   rootState: TimecodeDisplayProps['rootState'];
   namePlaceholder: string;
   buttons: ReactNode;
+  labels: TimecodeLabel[];
   /**
    * If set, calling this will assign the instance to the given output on
    */
@@ -637,6 +648,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   rootState,
   namePlaceholder,
   buttons,
+  labels,
   assignToOutput,
   loadFile,
   startPlayer,
@@ -692,6 +704,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         rootState={rootState}
         namePlaceholder={namePlaceholder}
         buttons={buttons}
+        labels={labels}
         assignToOutput={assignToOutput}
         loadFile={loadFile}
         startPlayer={startPlayer}
@@ -722,61 +735,93 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         headerComponents={
           <>
             <div className="flex grow basis-0 items-start gap-0.25">
-              <div className="grow">
-                <div className="flex items-center gap-0.25">
-                  <div
-                    className="
-                      m-0.25 rounded-md border border-sigil-bg-light
-                      bg-timecode-usage-foreground px-1 py-0.25
-                      text-sigil-control text-timecode-usage-text
-                    "
-                  >
-                    {type}
-                  </div>
-                  <div
-                    className={cn(
-                      'w-0 grow truncate p-0.5',
-                      cnd(name.length, 'font-bold', 'italic opacity-50'),
-                    )}
-                  >
-                    {name.length ? name.join(' / ') : namePlaceholder}
-                  </div>
-                </div>
-                {link && (
-                  <div
-                    className="
-                      flex items-center gap-0.25 text-timecode-usage-foreground
-                    "
-                    style={cssSigilColorUsageVariables(
-                      'timecode-usage',
-                      // Override timecode color with the user hint preferences
-                      // when no color is specified
-                      // as that will be what's used by the linked input/generator
-                      sigilColorUsage(link.color ?? 'hint'),
-                    )}
-                  >
-                    <div
+              <div className="relative grow">
+                <div className="absolute inset-x-0 top-0">
+                  <div className="flex items-center gap-0.25 truncate">
+                    <span
                       className="
-                        m-0.25 flex items-center gap-0.25 rounded-md border
-                        border-sigil-bg-light bg-timecode-usage-foreground px-1
-                        py-0.25 text-sigil-control text-timecode-usage-text
+                        m-0.25 rounded-md border border-sigil-bg-light
+                        bg-timecode-usage-foreground px-1 py-0.25
+                        text-sigil-control text-timecode-usage-text
                       "
                     >
-                      <Icon icon="link" className="text-[120%]" />
-                      <span>{link.type}</span>
-                    </div>
+                      {type}
+                    </span>
+                    {name.length ? (
+                      <TooltipWrapper tooltip={name.join(' / ')}>
+                        <span className="truncate p-0.5 font-bold">
+                          {name.join(' / ')}
+                        </span>
+                      </TooltipWrapper>
+                    ) : null}
+                    {labels.map((label, index) => (
+                      <TooltipWrapper key={index} tooltip={label.text}>
+                        <span
+                          key={index}
+                          className="
+                            m-0.25 truncate rounded-md border
+                            border-sigil-bg-light bg-sigil-foreground-muted px-1
+                            py-0.25 text-sigil-control text-sigil-bg-dark
+                          "
+                        >
+                          {label.text}
+                        </span>
+                      </TooltipWrapper>
+                    ))}
+                    {!name.length && (
+                      <TooltipWrapper tooltip={namePlaceholder}>
+                        <span
+                          className="
+                            grow basis-0 truncate p-0.5 italic opacity-50
+                          "
+                        >
+                          {namePlaceholder}
+                        </span>
+                      </TooltipWrapper>
+                    )}
+                  </div>
+                  {link && (
                     <div
-                      className={cn(
-                        'w-0 grow truncate p-0.5',
-                        cnd(link.name.length, 'font-bold', 'italic opacity-50'),
+                      className="
+                        flex items-center gap-0.25
+                        text-timecode-usage-foreground
+                      "
+                      style={cssSigilColorUsageVariables(
+                        'timecode-usage',
+                        // Override timecode color with the user hint preferences
+                        // when no color is specified
+                        // as that will be what's used by the linked input/generator
+                        sigilColorUsage(link.color ?? 'hint'),
                       )}
                     >
-                      {link.name.length
-                        ? link.name.join(' / ')
-                        : link.namePlaceholder}
+                      <div
+                        className="
+                          m-0.25 flex items-center gap-0.25 rounded-md border
+                          border-sigil-bg-light bg-timecode-usage-foreground
+                          px-1 py-0.25 text-sigil-control
+                          text-timecode-usage-text
+                        "
+                      >
+                        <Icon icon="link" className="text-[120%]" />
+                        <span>{link.type}</span>
+                      </div>
+                      <div
+                        className={cn(
+                          'w-0 grow truncate p-0.5',
+                          cnd(
+                            link.name.length,
+                            'font-bold',
+                            'italic opacity-50',
+                          ),
+                        )}
+                      >
+                        {link.name.length
+                          ? link.name.join(' / ')
+                          : link.namePlaceholder}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
             <ControlButtonGroup className="rounded-md bg-sigil-bg-light">
@@ -824,6 +869,109 @@ type FullscreenTimecodeConfig = {
   disabled: boolean;
 };
 
+const labelForMidiTarget = (target: MidiTargetConfig): TimecodeLabel => ({
+  text:
+    target.type === 'virtual'
+      ? STRINGS.midi.deviceLabelForVirtual
+      : STRINGS.midi.deviceLabelForPort(target.deviceName),
+});
+
+export const useTimecodeLabels = (id: TimecodeInstanceId): TimecodeLabel[] => {
+  const { config } = useContext(ConfigContext);
+
+  const iface = useMemo<string | null>(() => {
+    if (isInputInstanceId(id)) {
+      const c = config.inputs[id[1]];
+      if (!c) {
+        return null;
+      }
+      if (c.definition.type === 'artnet' || c.definition.type === 'tcnet') {
+        return c.definition.iface;
+      }
+    } else if (isOutputInstanceId(id)) {
+      const c = config.outputs[id[1]];
+      if (!c) {
+        return null;
+      }
+      if (
+        c.definition.type === 'artnet' &&
+        c.definition.target.type === 'interface'
+      ) {
+        return c.definition.target.interface;
+      }
+      return null;
+    }
+    return null;
+  }, [id, config]);
+
+  const ifaceInfo = useNetworkInterfaceInfo(iface);
+
+  const extraLabels = useMemo<TimecodeLabel[]>(() => {
+    if (isInputInstanceId(id)) {
+      const c = config.inputs[id[1]];
+      if (!c) {
+        return [];
+      }
+      if (c.definition.type === 'midi') {
+        return [labelForMidiTarget(c.definition.target)];
+      }
+      return [];
+    } else if (isGeneratorInstanceId(id)) {
+      const c = config.generators[id[1]];
+      if (!c) {
+        return [];
+      }
+      if (
+        c.definition.type === 'clock' &&
+        c.definition.mode === 'system' &&
+        c.definition.timezone
+      ) {
+        return [
+          {
+            text: STRINGS.generators.clock.systemTimezone(
+              c.definition.timezone,
+            ),
+          },
+        ];
+      }
+      return [];
+    } else {
+      const c = config.outputs[id[1]];
+      if (!c) {
+        return [];
+      }
+      if (c.definition.type === 'midi') {
+        return [labelForMidiTarget(c.definition.target)];
+      }
+      if (
+        c.definition.type === 'artnet' &&
+        c.definition.target.type === 'host'
+      ) {
+        return [
+          {
+            text: STRINGS.general.networkTargetHost(c.definition.target.host),
+          },
+        ];
+      }
+      return [];
+    }
+  }, [id, config]);
+
+  return useMemo(
+    () => [
+      ...(ifaceInfo
+        ? [
+            {
+              text: `${ifaceInfo.name} (${ifaceInfo.address})`,
+            },
+          ]
+        : []),
+      ...extraLabels,
+    ],
+    [ifaceInfo, extraLabels],
+  );
+};
+
 export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
   id,
 }) => {
@@ -864,6 +1012,8 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     }
     return null;
   }, [id, config.generators]);
+
+  const labels = useTimecodeLabels(id);
 
   const instanceConfig: FullscreenTimecodeConfig | null = useMemo(() => {
     if (isInputInstanceId(id)) {
@@ -962,6 +1112,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
               }}
               assignToOutput={null}
               buttons={null}
+              labels={labels}
               link={linkedSourceInfo}
               loadFile={loadFile}
               startPlayer={startPlayer}
@@ -976,6 +1127,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
           rootState={rootState}
           assignToOutput={null}
           buttons={null}
+          labels={labels}
           link={linkedSourceInfo}
           loadFile={null}
           startPlayer={null}
