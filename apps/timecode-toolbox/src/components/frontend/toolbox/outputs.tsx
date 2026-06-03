@@ -4,7 +4,6 @@ import {
   SetStateAction,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -20,19 +19,20 @@ import {
   ControlLabel,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
-import { ConfigContext, SystemContext, useApplicationState } from './context';
+import { ConfigContext, useApplicationState } from './context';
 import {
   OutputArtnetDefinition,
   OutputConfig,
   OutputDefinition,
   OutputMidiDefinition,
   TimecodeInstance,
-  ToolboxRootGetNetworkInterfacesReturn,
+  TimecodeInstanceId,
 } from '../../proto';
 import {
   getLinkedSourceInfo,
   LinkedSourceInfo,
   TimecodeTreeDisplay,
+  useTimecodeLabels,
 } from './core/timecode-display';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import {
@@ -54,24 +54,15 @@ import {
 } from '../../../util';
 import { NoToolboxChildren } from './content';
 import { MidiTargetSettings } from './core/midi';
+import { useNetworkInterfaces } from './hooks';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   data,
   updateSettings,
 }) => {
   const { commitChanges } = useContext(ChangeCommitContext);
-  const { getNetworkInterfaces } = useContext(SystemContext);
-  const [interfaces, setInterfaces] =
-    useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
 
-  const refreshInterfaces = useCallback(() => {
-    setInterfaces(null);
-    getNetworkInterfaces().then((ifs) => setInterfaces(ifs));
-  }, [getNetworkInterfaces]);
-
-  useEffect(() => {
-    refreshInterfaces();
-  }, [refreshInterfaces]);
+  const { interfaces, refreshInterfaces } = useNetworkInterfaces();
 
   const updateArtnetSettings = useCallback(
     (change: (current: OutputArtnetDefinition) => OutputArtnetDefinition) => {
@@ -560,6 +551,9 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
     [applicationState.outputs, uuid],
   );
 
+  const id: TimecodeInstanceId = useMemo(() => ['output', uuid], [uuid]);
+  const labels = useTimecodeLabels(id);
+
   return (
     <div
       className="relative flex flex-col"
@@ -572,7 +566,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
       }
     >
       <TimecodeTreeDisplay
-        id={['output', uuid]}
+        id={id}
         config={{ delayMs: config.delayMs ?? null }}
         assignToOutput={null}
         type={STRINGS.protocols[config.definition.type].short}
@@ -616,6 +610,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
             />
           </>
         }
+        labels={labels}
       />
       {assignToOutput === uuid && config.link && (
         <SizeAwareDiv className="absolute inset-0" onClick={clearLink}>

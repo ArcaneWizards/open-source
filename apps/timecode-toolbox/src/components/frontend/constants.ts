@@ -82,6 +82,9 @@ export const STRINGS = {
       `Edit ${protocol} Generator ${name}`,
     deleteDialog: `Delete generator?`,
     deleteDialogDetails: `Are you sure you want to delete this generator? This action cannot be undone.`,
+    clock: {
+      systemTimezone: (tz: string) => `Timezone: ${tz}`,
+    },
   },
   outputs: {
     title: 'OUTPUTS',
@@ -132,6 +135,12 @@ export const STRINGS = {
   errors: {
     unknownTimecodeID: 'Unknown timecode ID, please close the window',
   },
+  midi: {
+    deviceLabelForPort: (device: string) => `Device: ${device}`,
+    deviceLabelForVirtual: `VIRTUAL`,
+    deviceTypePort: 'Connected Device',
+    deviceTypeVirtual: 'Arcane Virtual MIDI Device',
+  },
   updates: {
     updateAvailable: (current: string, latest: string) =>
       `Version ${latest} is available! You are currently on version ${current}.`,
@@ -143,5 +152,6 @@ export const STRINGS = {
   general: {
     enabled: 'Enabled',
     disabled: 'Disabled',
+    networkTargetHost: (host: string) => `Host: ${host}`,
   },
 } as const;

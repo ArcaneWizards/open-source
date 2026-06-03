@@ -24,13 +24,13 @@ import {
   ToolbarWrapper,
 } from '@arcanewizards/sigil/frontend/toolbars';
 import { STRINGS } from '../constants';
-import { ConfigContext, SystemContext, useApplicationState } from './context';
-import { ToolboxRootGetNetworkInterfacesReturn } from '../../proto';
+import { ConfigContext, useApplicationState } from './context';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { cn } from '@arcanejs/toolkit-frontend/util';
 import { useBrowserContext } from '@arcanewizards/sigil/frontend';
 import { ListenerConfig } from '@arcanewizards/sigil';
 import { portString } from '@arcanewizards/sigil/shared/config';
+import { useNetworkInterfaces } from './hooks';
 
 type SettingsProps = {
   setWindowMode: (mode: null) => void;
@@ -48,18 +48,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
 type InterfaceChoice = 'any' | `specific:${string}`;
 
 const AppPortConfig: FC = () => {
-  const { getNetworkInterfaces } = useContext(SystemContext);
-  const [interfaces, setInterfaces] =
-    useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
-
-  const refreshInterfaces = useCallback(() => {
-    setInterfaces(null);
-    getNetworkInterfaces().then((ifs) => setInterfaces(ifs));
-  }, [getNetworkInterfaces]);
-
-  useEffect(() => {
-    refreshInterfaces();
-  }, [refreshInterfaces]);
+  const { interfaces, refreshInterfaces } = useNetworkInterfaces();
 
   const { appListenerChangesHandledExternally } = useBrowserContext();
 

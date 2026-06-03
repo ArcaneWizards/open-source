@@ -25,6 +25,7 @@ import {
   GeneratorClockDefinition,
   GeneratorConfig,
   GeneratorDefinition,
+  TimecodeInstanceId,
   ToolboxRootGetTimezoneInfoReturn,
 } from '../../proto';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +36,7 @@ import {
 import {
   TimecodeDisplayProps,
   TimecodeTreeDisplay,
+  useTimecodeLabels,
 } from './core/timecode-display';
 import { WithAudioPlayer } from './core/audio-player';
 
@@ -385,9 +387,12 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
     [state?.errors, state?.warnings, additionalErrors],
   );
 
+  const id: TimecodeInstanceId = useMemo(() => ['generator', uuid], [uuid]);
+  const labels = useTimecodeLabels(id);
+
   return (
     <TimecodeTreeDisplay
-      id={['generator', uuid]}
+      id={id}
       config={{ delayMs: config.delayMs ?? null }}
       type={STRINGS.generators.type[config.definition.type]}
       name={config.name ? [config.name] : []}
@@ -415,6 +420,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
           />
         </>
       }
+      labels={labels}
       assignToOutput={assignToOutput}
     />
   );
