@@ -109,7 +109,7 @@ export const Debugger: FC<DebuggerProps> = ({ title, className }) => {
       <pre
         className="
           m-0 overflow-x-auto border-b border-sigil-border bg-sigil-bg-dark p-2
-          scrollbar-sigil
+          select-text scrollbar-sigil
         "
       >
         {`OS: ${system.os}\nVersion: ${system.version}\nApp Path: ${system.appPath}\nCWD: ${system.cwd}\nData Directory: ${system.dataDirectory}`}
@@ -117,7 +117,7 @@ export const Debugger: FC<DebuggerProps> = ({ title, className }) => {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-auto scrollbar-sigil"
+        className="flex-1 overflow-auto select-text scrollbar-sigil"
       >
         {logs.map((log) => (
           <div key={log.index} className="px-arcane whitespace-pre-wrap">
