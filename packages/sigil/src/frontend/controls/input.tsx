@@ -74,6 +74,13 @@ export const InputWithDelayedPropagation: FC<InputProps> = ({
       ) {
         onChange(e.currentTarget.value, true);
       }
+      if (e.key === 'Escape' && inputRef.current) {
+        if (inputRef.current.value !== (lastValue.current ?? '')) {
+          // Cancel propagation of the change and reset to the last value
+          e.stopPropagation();
+          inputRef.current.value = lastValue.current ?? '';
+        }
+      }
       onKeyUpProp?.(e);
     },
     [onChange, onKeyUpProp],
@@ -97,6 +104,7 @@ export type ControlInputProps = ComponentProps<
   position?: ControlPosition;
   subgrid?: boolean;
   nonMicro?: boolean;
+  hasError?: boolean;
 };
 
 export const ControlInput: FC<ControlInputProps> = ({
@@ -104,6 +112,7 @@ export const ControlInput: FC<ControlInputProps> = ({
   nonMicro,
   position = 'first',
   subgrid,
+  hasError,
   ...props
 }) => (
   <InputWithDelayedPropagation
@@ -124,6 +133,13 @@ export const ControlInput: FC<ControlInputProps> = ({
       clsControlPosition(position),
       clsControlSubgridPosition(position, subgrid),
       cnd(nonMicro, 'max-[550px]:hidden'),
+      cnd(
+        hasError,
+        `
+          border-2 border-sigil-error-foreground px-[7px]!
+          py-arcane-slider-input-px text-sigil-error-foreground
+        `,
+      ),
       className,
     )}
   />

@@ -55,6 +55,7 @@ import {
 import { NoToolboxChildren } from './content';
 import { MidiTargetSettings } from './core/midi';
 import { useNetworkInterfaces } from './hooks';
+import { DelayConfig } from './core/delay';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   data,
@@ -417,24 +418,15 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
             updateSettings={updateDefinition}
           />
         ) : null}
-        <ControlLabel>Delay (ms)</ControlLabel>
-        <ControlInput
-          position="both"
-          type="string"
-          value={data.delayMs?.toString() ?? ''}
-          placeholder={`Default (0ms)`}
-          onChange={(value, enterPressed) => {
-            const delayMs = value ? parseInt(value, 10) : undefined;
-            if (delayMs !== undefined && isNaN(delayMs)) {
-              return;
-            }
+
+        <DelayConfig
+          delayMs={data.delayMs}
+          commitChanges={commitChanges}
+          updateDelay={(delayMs) => {
             updateSettings((current) => ({
               ...current,
               delayMs,
             }));
-            if (enterPressed) {
-              commitChanges();
-            }
           }}
         />
         {target.type === 'add' ? (
