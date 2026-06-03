@@ -94,10 +94,15 @@ export const Layout = <WindowMode extends string>({
               {STRINGS.reconnect}
             </ControlButton>
           </SizeAwareDiv>
-        ) : windowMode && modes?.[windowMode] ? (
-          modes[windowMode].child(setWindowMode)
         ) : (
-          children
+          <>
+            {windowMode && modes?.[windowMode] && (
+              <div className="flex size-full flex-col">
+                {modes[windowMode].child(setWindowMode)}
+              </div>
+            )}
+            {children}
+          </>
         )}
       </div>
       {footer && (
