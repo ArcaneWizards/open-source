@@ -19,6 +19,7 @@ import {
   TimecodeToolboxComponentCallDownload,
   isTimecodeToolboxComponentCallDownload,
   ToolboxRootUpdatePlayerState,
+  ToolboxRootGetTimezoneInfoReturn,
 } from '../proto';
 import {
   AnyClientComponentCall,
@@ -166,6 +167,14 @@ export class ToolboxRoot
       isTimecodeToolboxComponentCall(call, 'toolbox-root-get-midi-support-info')
     ) {
       return midi().getSupportInfo();
+    } else if (
+      isTimecodeToolboxComponentCall(call, 'toolbox-root-get-timezone-info')
+    ) {
+      const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return {
+        systemTimezone,
+        timezones: Intl.supportedValuesOf('timeZone').map((name) => ({ name })),
+      } satisfies ToolboxRootGetTimezoneInfoReturn;
     } else if (
       isTimecodeToolboxComponentCall(call, 'toolbox-root-call-handler')
     ) {

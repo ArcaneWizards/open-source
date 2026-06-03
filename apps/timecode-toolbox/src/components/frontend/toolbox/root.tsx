@@ -33,8 +33,8 @@ import {
   ConfigContextData,
   GlobalUserInteractionsContext,
   GlobalUserInteractionsContextData,
-  NetworkContext,
-  NetworkContextData,
+  SystemContext,
+  SystemContextData,
 } from './context';
 import {
   AssignToOutputCallback,
@@ -227,13 +227,35 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     });
   }, [call, info.key]);
 
-  const networkContextValue: NetworkContextData = useMemo(() => {
+  const getTimezoneInfo = useCallback(async () => {
+    if (!call) {
+      throw new Error('No call function available');
+    }
+    return call<
+      'timecode-toolbox',
+      TimecodeToolboxComponentCalls,
+      'toolbox-root-get-timezone-info'
+    >({
+      namespace: 'timecode-toolbox',
+      type: 'component-call',
+      componentKey: info.key,
+      action: 'toolbox-root-get-timezone-info',
+    });
+  }, [call, info.key]);
+
+  const systemContextValue: SystemContextData = useMemo(() => {
     return {
       getNetworkInterfaces,
       getMidiDevices,
       getMidiSupportInfo,
+      getTimezoneInfo,
     };
-  }, [getNetworkInterfaces, getMidiDevices, getMidiSupportInfo]);
+  }, [
+    getNetworkInterfaces,
+    getMidiDevices,
+    getMidiSupportInfo,
+    getTimezoneInfo,
+  ]);
 
   const assignToOutputCallback: AssignToOutputCallback = useMemo(() => {
     if (!assignToOutput) {
@@ -480,7 +502,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
   return (
     <GlobalUserInteractionsContext.Provider value={interactions}>
       <ConfigContext.Provider value={configContext}>
-        <NetworkContext.Provider value={networkContextValue}>
+        <SystemContext.Provider value={systemContextValue}>
           <RootAudioContext.Provider value={audioContextValue}>
             <ApplicationStateContext.Provider value={info.state}>
               <ApplicationHandlersContext.Provider value={handlers}>
@@ -488,7 +510,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
               </ApplicationHandlersContext.Provider>
             </ApplicationStateContext.Provider>
           </RootAudioContext.Provider>
-        </NetworkContext.Provider>
+        </SystemContext.Provider>
       </ConfigContext.Provider>
     </GlobalUserInteractionsContext.Provider>
   );

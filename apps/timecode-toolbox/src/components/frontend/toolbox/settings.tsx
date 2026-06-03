@@ -24,7 +24,7 @@ import {
   ToolbarWrapper,
 } from '@arcanewizards/sigil/frontend/toolbars';
 import { STRINGS } from '../constants';
-import { ConfigContext, NetworkContext, useApplicationState } from './context';
+import { ConfigContext, SystemContext, useApplicationState } from './context';
 import { ToolboxRootGetNetworkInterfacesReturn } from '../../proto';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { cn } from '@arcanejs/toolkit-frontend/util';
@@ -48,7 +48,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
 type InterfaceChoice = 'any' | `specific:${string}`;
 
 const AppPortConfig: FC = () => {
-  const { getNetworkInterfaces } = useContext(NetworkContext);
+  const { getNetworkInterfaces } = useContext(SystemContext);
   const [interfaces, setInterfaces] =
     useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
 

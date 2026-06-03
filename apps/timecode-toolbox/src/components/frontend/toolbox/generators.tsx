@@ -1,8 +1,15 @@
-import { FC, useCallback, useContext, useMemo, useState } from 'react';
+import {
+  FC,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { STRINGS } from '../constants';
 import { PrimaryToolboxSection } from './util';
 import { NoToolboxChildren } from './content';
-import { ConfigContext, useApplicationState } from './context';
+import { ConfigContext, SystemContext, useApplicationState } from './context';
 import { AssignToOutputCallback, DialogMode, SettingsProps } from './types';
 import {
   ControlButton,
@@ -11,8 +18,15 @@ import {
   ControlDialogButtons,
   ControlInput,
   ControlLabel,
+  ControlSelect,
+  SelectOption,
 } from '@arcanewizards/sigil/frontend/controls';
-import { GeneratorConfig, GeneratorDefinition } from '../../proto';
+import {
+  GeneratorClockDefinition,
+  GeneratorConfig,
+  GeneratorDefinition,
+  ToolboxRootGetTimezoneInfoReturn,
+} from '../../proto';
 import { v4 as uuidv4 } from 'uuid';
 import {
   ChangeCommitContext,
@@ -24,38 +38,123 @@ import {
 } from './core/timecode-display';
 import { WithAudioPlayer } from './core/audio-player';
 
+const CLOCK_MODE_OPTIONS: Array<
+  SelectOption<GeneratorClockDefinition['mode']>
+> = [
+  { label: 'Manual', value: 'manual' },
+  { label: 'System Time', value: 'system' },
+];
+
 const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
   data,
   updateSettings,
 }) => {
   const { commitChanges } = useContext(ChangeCommitContext);
+  const { getTimezoneInfo } = useContext(SystemContext);
 
-  if (data.type !== 'clock') {
+  const [timezoneInfo, setTimezoneInfo] =
+    useState<ToolboxRootGetTimezoneInfoReturn | null>(null);
+
+  useEffect(
+    () =>
+      void getTimezoneInfo()
+        .then(setTimezoneInfo)
+        .catch((cause) => {
+          const error = new Error(`Error getting timezone info`, { cause });
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }),
+    [getTimezoneInfo],
+  );
+
+  const defaultTimezoneLabel = `System Timezone (${timezoneInfo?.systemTimezone ?? 'Unknown'})`;
+
+  const timezoneOptions: Array<SelectOption<string | null>> = useMemo(
+    () => [
+      {
+        label: defaultTimezoneLabel,
+        value: null,
+      },
+      ...(timezoneInfo?.timezones.map(({ name }) => ({
+        label: name,
+        value: name,
+      })) ?? []),
+    ],
+    [timezoneInfo, defaultTimezoneLabel],
+  );
+
+  if (data.type !== 'clock' || !timezoneInfo) {
     return null;
   }
 
   return (
     <>
-      <ControlLabel>Speed</ControlLabel>
-      <ControlInput
-        position="both"
-        type="string"
-        value={data.speed?.toString() ?? ''}
-        placeholder={`Default (1)`}
-        onChange={(value, enterPressed) => {
-          const speed = value ? parseFloat(value) : 1;
-          if (speed !== undefined && isNaN(speed)) {
-            return;
-          }
-          updateSettings((current) => ({
-            ...current,
-            speed,
-          }));
-          if (enterPressed) {
-            commitChanges();
-          }
+      <ControlLabel>Mode</ControlLabel>
+      <ControlSelect
+        value={data.mode}
+        options={CLOCK_MODE_OPTIONS}
+        onChange={(mode) => {
+          updateSettings((current) =>
+            current.type === 'clock'
+              ? {
+                  type: 'clock',
+                  ...(mode === 'manual'
+                    ? {
+                        mode: 'manual',
+                        speed: 1,
+                      }
+                    : {
+                        mode: 'system',
+                        timezone: null,
+                      }),
+                }
+              : current,
+          );
         }}
+        position="both"
+        variant="large"
       />
+      {data.mode === 'manual' ? (
+        <>
+          <ControlLabel>Speed</ControlLabel>
+          <ControlInput
+            position="both"
+            type="string"
+            value={data.speed?.toString() ?? ''}
+            placeholder={`Default (1)`}
+            onChange={(value, enterPressed) => {
+              const speed = value ? parseFloat(value) : 1;
+              if (speed !== undefined && isNaN(speed)) {
+                return;
+              }
+              updateSettings((current) => ({
+                ...current,
+                speed,
+              }));
+              if (enterPressed) {
+                commitChanges();
+              }
+            }}
+          />
+        </>
+      ) : (
+        <>
+          <ControlLabel>TimeZone</ControlLabel>
+          <ControlSelect
+            value={data.timezone ?? null}
+            options={timezoneOptions}
+            placeholder={defaultTimezoneLabel}
+            onChange={(timezone) => {
+              updateSettings((current) => ({
+                ...current,
+                timezone,
+              }));
+            }}
+            position="both"
+            variant="large"
+          />
+        </>
+      )}
     </>
   );
 };
@@ -76,7 +175,7 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
     name: '',
     definition:
       generator === 'clock'
-        ? { type: 'clock', speed: 1 }
+        ? { type: 'clock', mode: 'manual', speed: 1 }
         : {
             type: generator,
             filePath: null,

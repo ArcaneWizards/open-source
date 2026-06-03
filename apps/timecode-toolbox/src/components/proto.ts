@@ -123,14 +123,40 @@ export const isOutputMidiDefinition = (
 
 // Clock
 
-const GENERATOR_CLOCK_DEFINITION = z.object({
-  type: z.literal('clock'),
-  speed: z.number(),
-});
+const GENERATOR_CLOCK_DEFINITION_V2 = z.union([
+  z.object({
+    type: z.literal('clock'),
+    mode: z.literal('manual'),
+    speed: z.number(),
+  }),
+  z.object({
+    type: z.literal('clock'),
+    mode: z.literal('system'),
+    timezone: z.string().nullable(),
+  }),
+]);
 
 export type GeneratorClockDefinition = z.infer<
-  typeof GENERATOR_CLOCK_DEFINITION
+  typeof GENERATOR_CLOCK_DEFINITION_V2
 >;
+
+/**
+ * Backwards compatibility for older definitions
+ */
+const GENERATOR_CLOCK_DEFINITION_V1 = z
+  .object({
+    type: z.literal('clock'),
+    speed: z.number(),
+  })
+  .transform<GeneratorClockDefinition>((d) => ({
+    ...d,
+    mode: 'manual',
+  }));
+
+const GENERATOR_CLOCK_DEFINITION = z.union([
+  GENERATOR_CLOCK_DEFINITION_V1,
+  GENERATOR_CLOCK_DEFINITION_V2,
+]);
 
 // Player
 
@@ -538,6 +564,18 @@ export type ToolboxRootGetMidiSupportInfo = BaseClientComponentCall<
 
 export type ToolboxRootGetMidiSupportInfoReturn = MIDISupportResponse;
 
+export type ToolboxRootGetTimezoneInfo = BaseClientComponentCall<
+  Namespace,
+  'toolbox-root-get-timezone-info'
+>;
+
+export type ToolboxRootGetTimezoneInfoReturn = {
+  systemTimezone: string;
+  timezones: Array<{
+    name: string;
+  }>;
+};
+
 export type ToolboxRootCallHandler<
   H extends keyof AvailableHandlers = keyof AvailableHandlers,
 > = BaseClientComponentCall<Namespace, 'toolbox-root-call-handler'> & {
@@ -560,6 +598,10 @@ export type TimecodeToolboxComponentCalls = {
   'toolbox-root-get-midi-support-info': {
     call: ToolboxRootGetMidiSupportInfo;
     return: ToolboxRootGetMidiSupportInfoReturn;
+  };
+  'toolbox-root-get-timezone-info': {
+    call: ToolboxRootGetTimezoneInfo;
+    return: ToolboxRootGetTimezoneInfoReturn;
   };
   'toolbox-root-call-handler': {
     call: ToolboxRootCallHandler;

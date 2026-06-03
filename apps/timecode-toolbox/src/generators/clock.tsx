@@ -18,6 +18,8 @@ import { useDataFileData } from '@arcanejs/react-toolkit/data';
 import { ToolboxConfigData } from '../config';
 import { HandlersUpdater, StateSensitiveComponentProps } from '../types';
 import { deleteTreePath, updateTreeState } from '../tree';
+import { useLogger } from '@arcanewizards/sigil';
+import { DateTime } from 'luxon';
 
 type ClockGeneratorProps = StateSensitiveComponentProps & {
   uuid: string;
@@ -35,14 +37,20 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
 }) => {
   const id: InputOrGenInstance = useMemo(() => ['generator', uuid], [uuid]);
 
+  const logger = useLogger();
+
   const [state, setLocalState] = useState<TimecodePlayState>({
     state: 'stopped',
     positionMillis: 0,
   });
+  const [errors, setErrors] = useState<string[]>([]);
 
-  const { speed } = generator;
+  const speed = generator.mode === 'manual' ? generator.speed : null;
 
   const play = useCallback(() => {
+    if (!speed) {
+      return;
+    }
     setLocalState((current) => {
       if (isPlaying(current)) {
         return current;
@@ -58,6 +66,9 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
   }, [speed]);
 
   const pause = useCallback(() => {
+    if (!speed) {
+      return;
+    }
     setLocalState((current) => {
       if (!isPlaying(current)) {
         return current;
@@ -73,6 +84,9 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
 
   const seekRelative = useCallback(
     (deltaMillis: number) => {
+      if (!speed) {
+        return;
+      }
       setLocalState((current) => {
         if (current.state === 'none' || current.state === 'unloaded') {
           return current;
@@ -100,6 +114,9 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
   );
 
   const beginning = useCallback(() => {
+    if (!speed) {
+      return;
+    }
     setLocalState((current) => {
       if (current.state === 'none') {
         return current;
@@ -117,34 +134,75 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
         };
       }
     });
-  }, []);
-
-  useEffect(() => {
-    setLocalState((current) => {
-      if (
-        current.state === 'none' ||
-        current.state === 'unloaded' ||
-        current.state === 'stopped'
-      ) {
-        return current;
-      }
-      const now = Date.now();
-      const positionMillis =
-        (now - current.effectiveStartTimeMillis) * current.speed;
-      const effectiveStartTimeMillis = now - positionMillis / speed;
-      return {
-        ...current,
-        effectiveStartTimeMillis,
-        speed,
-      };
-    });
   }, [speed]);
 
   useEffect(() => {
+    if (generator.mode === 'system') {
+      const timezone =
+        generator.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const now = new Date().toISOString();
+      const initTime = `${now.split('T')[0]}T00:00:00`;
+      const datetime = DateTime.fromISO(initTime, {
+        zone: timezone,
+      });
+      datetime.toMillis();
+
+      if (datetime.invalidReason) {
+        setErrors([`Unable to start clock: ${datetime.invalidReason}`]);
+        return;
+      }
+
+      const effectiveStartTimeMillis = datetime.toMillis();
+
+      setLocalState({
+        state: 'playing',
+        effectiveStartTimeMillis,
+        speed: 1,
+      });
+
+      return () => {
+        // Reset to 0 when unmounted to avoid continuous playback
+        // when switching back to manual
+        setLocalState({
+          state: 'stopped',
+          positionMillis: 0,
+        });
+        setErrors([]);
+      };
+    } else {
+      const { speed } = generator;
+      setLocalState((current) => {
+        if (
+          current.state === 'none' ||
+          current.state === 'unloaded' ||
+          current.state === 'stopped'
+        ) {
+          return current;
+        }
+        const now = Date.now();
+        const positionMillis =
+          (now - current.effectiveStartTimeMillis) * current.speed;
+        const effectiveStartTimeMillis = now - positionMillis / speed;
+        return {
+          ...current,
+          effectiveStartTimeMillis,
+          speed,
+        };
+      });
+    }
+  }, [logger, generator]);
+
+  useEffect(() => {
     setHandlers((current) =>
-      updateTreeState(current, id, { play, pause, seekRelative, beginning }),
+      updateTreeState(
+        current,
+        id,
+        generator.mode === 'manual'
+          ? { play, pause, seekRelative, beginning }
+          : {},
+      ),
     );
-  }, [setHandlers, id, play, pause, seekRelative, beginning]);
+  }, [setHandlers, generator.mode, id, play, pause, seekRelative, beginning]);
 
   useEffect(
     () =>
@@ -154,11 +212,10 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
           ...current.generators,
           [uuid]: {
             controlledBy: null,
+            errors,
             timecode: {
               metadata: null,
               name: null,
-              errors: [],
-              warnings: [],
               state: {
                 accuracyMillis: null,
                 smpteMode: null,
@@ -182,7 +239,7 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
           },
         },
       })),
-    [setState, uuid, state, config.name, config.delayMs],
+    [setState, uuid, state, config.name, config.delayMs, errors],
   );
 
   useEffect(
