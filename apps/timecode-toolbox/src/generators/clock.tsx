@@ -142,17 +142,27 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
         generator.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
       const now = new Date().toISOString();
       const initTime = `${now.split('T')[0]}T00:00:00`;
-      const datetime = DateTime.fromISO(initTime, {
+      let effectiveStart = DateTime.fromISO(initTime, {
         zone: timezone,
       });
-      datetime.toMillis();
+      effectiveStart.toMillis();
 
-      if (datetime.invalidReason) {
-        setErrors([`Unable to start clock: ${datetime.invalidReason}`]);
+      if (effectiveStart.invalidReason) {
+        setErrors([`Unable to start clock: ${effectiveStart.invalidReason}`]);
         return;
       }
 
-      const effectiveStartTimeMillis = datetime.toMillis();
+      // Ensure that we keep the effective start time within
+      // 24hours of now, and in the past
+      const dateTimeNow = DateTime.now();
+      while (effectiveStart.diff(dateTimeNow).as('days') < -1) {
+        effectiveStart = effectiveStart.plus({ days: 1 });
+      }
+      while (effectiveStart.diff(dateTimeNow).as('days') > 0) {
+        effectiveStart = effectiveStart.minus({ days: 1 });
+      }
+
+      const effectiveStartTimeMillis = effectiveStart.toMillis();
 
       setLocalState({
         state: 'playing',
