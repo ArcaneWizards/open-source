@@ -20,7 +20,7 @@ import {
   ControlLabel,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
-import { ConfigContext, NetworkContext, useApplicationState } from './context';
+import { ConfigContext, SystemContext, useApplicationState } from './context';
 import {
   OutputArtnetDefinition,
   OutputConfig,
@@ -60,7 +60,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   updateSettings,
 }) => {
   const { commitChanges } = useContext(ChangeCommitContext);
-  const { getNetworkInterfaces } = useContext(NetworkContext);
+  const { getNetworkInterfaces } = useContext(SystemContext);
   const [interfaces, setInterfaces] =
     useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
 

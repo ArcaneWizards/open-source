@@ -8,6 +8,7 @@ import {
   ToolboxRootGetMidiDevicesReturn,
   ToolboxRootGetMidiSupportInfoReturn,
   ToolboxRootGetNetworkInterfacesReturn,
+  ToolboxRootGetTimezoneInfoReturn,
 } from '../../proto';
 import { Tree } from '../../../tree';
 
@@ -54,14 +55,15 @@ export const ApplicationHandlersContext =
 export const useApplicationHandlers = () =>
   useContext(ApplicationHandlersContext);
 
-export type NetworkContextData = {
+export type SystemContextData = {
   getNetworkInterfaces: () => Promise<ToolboxRootGetNetworkInterfacesReturn>;
   getMidiDevices: () => Promise<ToolboxRootGetMidiDevicesReturn>;
   getMidiSupportInfo: () => Promise<ToolboxRootGetMidiSupportInfoReturn>;
+  getTimezoneInfo: () => Promise<ToolboxRootGetTimezoneInfoReturn>;
 };
 
-export const NetworkContext = createContext<NetworkContextData>(
-  new Proxy({} as NetworkContextData, {
+export const SystemContext = createContext<SystemContextData>(
+  new Proxy({} as SystemContextData, {
     get() {
       throw new Error('NetworkContext not initialized');
     },

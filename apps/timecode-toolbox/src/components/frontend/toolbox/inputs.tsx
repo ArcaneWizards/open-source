@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { STRINGS } from '../constants';
 import { PrimaryToolboxSection } from './util';
-import { ConfigContext, NetworkContext, useApplicationState } from './context';
+import { ConfigContext, SystemContext, useApplicationState } from './context';
 import {
   ControlButton,
   ControlColorSelect,
@@ -42,7 +42,7 @@ const DmxConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   updateSettings,
 }) => {
   const { commitChanges } = useContext(ChangeCommitContext);
-  const { getNetworkInterfaces } = useContext(NetworkContext);
+  const { getNetworkInterfaces } = useContext(SystemContext);
   const [interfaces, setInterfaces] =
     useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
 
@@ -120,7 +120,7 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   data,
   updateSettings,
 }) => {
-  const { getNetworkInterfaces } = useContext(NetworkContext);
+  const { getNetworkInterfaces } = useContext(SystemContext);
   const [interfaces, setInterfaces] =
     useState<ToolboxRootGetNetworkInterfacesReturn | null>(null);
 

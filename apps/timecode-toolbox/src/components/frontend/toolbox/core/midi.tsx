@@ -1,5 +1,5 @@
 import { FC, useCallback, useContext, useEffect, useState } from 'react';
-import { NetworkContext } from '../context';
+import { SystemContext } from '../context';
 import { MIDISupportResponse } from '@arcanewizards/midi';
 import {
   MidiTargetConfig,
@@ -39,7 +39,7 @@ export const MidiTargetSettings: FC<MidiTargetSettingsProps> = ({
   target,
   updateTarget,
 }) => {
-  const { getMidiSupportInfo, getMidiDevices } = useContext(NetworkContext);
+  const { getMidiSupportInfo, getMidiDevices } = useContext(SystemContext);
   const [midiDevices, setMidiDevices] = useState<MIDIState | null>(null);
 
   const refreshDevices = useCallback(() => {
