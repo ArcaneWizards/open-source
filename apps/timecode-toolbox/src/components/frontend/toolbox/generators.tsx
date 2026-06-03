@@ -39,6 +39,7 @@ import {
   useTimecodeLabels,
 } from './core/timecode-display';
 import { WithAudioPlayer } from './core/audio-player';
+import { DelayConfig } from './core/delay';
 
 const CLOCK_MODE_OPTIONS: Array<
   SelectOption<GeneratorClockDefinition['mode']>
@@ -303,24 +304,14 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
           />
         ) : null}
 
-        <ControlLabel>Delay (ms)</ControlLabel>
-        <ControlInput
-          position="both"
-          type="string"
-          value={data.delayMs?.toString() ?? ''}
-          placeholder={`Default (0ms)`}
-          onChange={(value, enterPressed) => {
-            const delayMs = value ? parseInt(value, 10) : undefined;
-            if (delayMs !== undefined && isNaN(delayMs)) {
-              return;
-            }
+        <DelayConfig
+          delayMs={data.delayMs}
+          commitChanges={commitChanges}
+          updateDelay={(delayMs) => {
             updateSettings((current) => ({
               ...current,
               delayMs,
             }));
-            if (enterPressed) {
-              commitChanges();
-            }
           }}
         />
         {target.type === 'add' ? (

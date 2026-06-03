@@ -461,11 +461,36 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         state.accuracyMillis !== null ||
         (config.delayMs !== null && config.delayMs !== undefined)) && (
         <div className="flex gap-px">
-          {config.delayMs !== null && config.delayMs !== undefined && (
-            <div className="grow basis-0 truncate bg-sigil-bg-light p-0.5">
-              {STRINGS.delay(displayMillis(config.delayMs))}
-            </div>
-          )}
+          {config.delayMs !== null &&
+            config.delayMs !== undefined &&
+            config.delayMs !== 0 && (
+              <div className="grow basis-0 truncate bg-sigil-bg-light p-0.5">
+                <span
+                  className={cn(
+                    cnd(
+                      config.delayMs < 0,
+                      'line-through opacity-50',
+                      'font-bold',
+                    ),
+                  )}
+                >
+                  {STRINGS.delay.delayLabel}
+                </span>
+                {' / '}
+                <span
+                  className={cn(
+                    cnd(
+                      config.delayMs > 0,
+                      'line-through opacity-50',
+                      'font-bold',
+                    ),
+                  )}
+                >
+                  {STRINGS.delay.offsetLabel}
+                </span>
+                {`: ${displayMillis(Math.abs(config.delayMs))}`}
+              </div>
+            )}
           {state.smpteMode !== null && (
             <div className="grow basis-0 truncate bg-sigil-bg-light p-0.5">
               {STRINGS.smtpeModes[state.smpteMode]}

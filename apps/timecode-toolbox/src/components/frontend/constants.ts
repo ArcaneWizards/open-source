@@ -67,7 +67,12 @@ export const STRINGS = {
   },
   accuracy: (accuracyMillis: number) =>
     `Accuracy: ${MS_FORMAT.format(accuracyMillis)}`,
-  delay: (delay: string) => `Delay: ${delay}`,
+  delay: {
+    delayLabel: 'Delay',
+    offsetLabel: 'Offset',
+    delayDescription:
+      'Enter a positive number for an offset, or a negative number for a delay.',
+  },
   generators: {
     title: 'GENERATORS',
     unnamed: 'Unnamed Generator',
