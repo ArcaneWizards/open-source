@@ -372,6 +372,10 @@ importers:
         version: 5.9.3
 
   packages/midi-timecode:
+    dependencies:
+      '@arcanewizards/smpte':
+        specifier: workspace:^
+        version: link:../smpte
     devDependencies:
       '@arcanewizards/eslint-config':
         specifier: workspace:^
@@ -379,9 +383,6 @@ importers:
       '@arcanewizards/midi':
         specifier: workspace:^
         version: link:../midi
-      '@arcanewizards/smpte':
-        specifier: workspace:^
-        version: link:../smpte
       '@arcanewizards/typescript-config':
         specifier: workspace:^
         version: link:../typescript-config
