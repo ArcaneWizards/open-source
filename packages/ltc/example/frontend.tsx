@@ -8,6 +8,7 @@ import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   createLTCReader,
   createLTCWriter,
+  SMPTETimecodeMode,
   SMPTETimecodePlayState,
 } from '../src';
 
@@ -35,6 +36,10 @@ const LtcDemo: FC = () => {
   const [openAudioStream, setOpenAudioStream] = useState<MediaStream | null>(
     null,
   );
+
+  const [frameDetectionMode, setFrameDetectionMode] = useState<
+    SMPTETimecodeMode | undefined
+  >(undefined);
 
   const [outputTimecodeState, setOutputTimecodeState] =
     useState<SMPTETimecodePlayState | null>(null);
@@ -65,15 +70,31 @@ const LtcDemo: FC = () => {
       return;
     }
 
+    return () => {
+      // Close audio stream when component unmounted or new stream opened
+      openAudioStream.getTracks().forEach((track) => track.stop());
+    };
+  }, [openAudioStream]);
+
+  useEffect(() => {
+    if (!openAudioStream) {
+      return;
+    }
+
     const sourceNode = inputCtx.createMediaStreamSource(openAudioStream);
     const reader = createLTCReader({
       ctx: inputCtx,
       channels: sourceNode.channelCount,
+      frameMode: frameDetectionMode,
       handlePlayStateChange: (channel, state) => {
         if (state.state === 'playing') {
           const timestamp = Date.now() - state.effectiveStartTime;
           console.log(
             `Channel ${channel} is playing with speed ${state.speed} and SMPTE mode ${state.smpteMode} for ${timestamp} ms`,
+          );
+        } else if (state.state === 'detecting-mode') {
+          console.log(
+            `Channel ${channel} is playing, waiting for enough data to detect framerate`,
           );
         } else {
           console.log(
@@ -85,10 +106,9 @@ const LtcDemo: FC = () => {
     sourceNode.connect(reader.getInput());
 
     return () => {
-      // Close audio stream when component unmounted or new stream opened
-      openAudioStream.getTracks().forEach((track) => track.stop());
+      reader.close();
     };
-  }, [openAudioStream, inputCtx]);
+  }, [openAudioStream, inputCtx, frameDetectionMode]);
 
   useEffect(() => {
     if (!('setSinkId' in AudioContext.prototype)) {
@@ -163,6 +183,20 @@ const LtcDemo: FC = () => {
           Start Output Timecode
         </button>
       )}
+      <select
+        value={frameDetectionMode}
+        onChange={(e) =>
+          setFrameDetectionMode(
+            e.target.value ? (e.target.value as SMPTETimecodeMode) : undefined,
+          )
+        }
+      >
+        <option value="">Auto-detect Frame Rate</option>
+        <option value="SMPTE">SMPTE (non-drop-frame)</option>
+        <option value="DF">Drop-Frame</option>
+        <option value="FILM">Film</option>
+        <option value="EBU">EBU</option>
+      </select>
       <ul>
         {audioInputs?.inputs.map((input) => (
           <li key={input.deviceId}>

@@ -1,5 +1,6 @@
 import {
   getMillisFromTimecode,
+  type SMPTETimecodeMode,
   type SMPTETimecodePlayState,
 } from '@arcanewizards/smpte';
 import {
@@ -13,15 +14,22 @@ import {
   type LTCTimingStabilizer,
 } from './frame.js';
 
-export type { SMPTETimecodePlayState } from '@arcanewizards/smpte';
+export type {
+  SMPTETimecodeMode,
+  SMPTETimecodePlayState,
+} from '@arcanewizards/smpte';
+
+export type LTCTimecodePlayState =
+  | SMPTETimecodePlayState
+  | {
+      state: 'detecting-mode';
+    };
 
 export type LTCReaderOptions = {
   ctx: AudioContext;
   channels: number;
-  handlePlayStateChange: (
-    channel: number,
-    state: SMPTETimecodePlayState,
-  ) => void;
+  frameMode?: SMPTETimecodeMode;
+  handlePlayStateChange: (channel: number, state: LTCTimecodePlayState) => void;
 };
 
 export type LTCReader = {
@@ -269,7 +277,7 @@ type LTCReaderWorkletMessage = {
 type LTCReaderChannelState = {
   lastFrameWallMillis: number | null;
   lastTimecodeMillis: number | null;
-  lastPlayingState: SMPTETimecodePlayState | null;
+  lastPlayState: LTCTimecodePlayState | null;
   /**
    * Timeout to send stopped state after losing sync.
    */
@@ -284,7 +292,7 @@ type LTCReaderChannelState = {
 const createReaderChannelState = (): LTCReaderChannelState => ({
   lastFrameWallMillis: null,
   lastTimecodeMillis: null,
-  lastPlayingState: null,
+  lastPlayState: null,
   stoppedTimeout: null,
   modeDetector: createLTCModeDetector(),
   timingStabilizer: createLTCTimingStabilizer(),
@@ -293,6 +301,7 @@ const createReaderChannelState = (): LTCReaderChannelState => ({
 export const createLTCReader = ({
   ctx,
   channels,
+  frameMode,
   handlePlayStateChange,
 }: LTCReaderOptions): LTCReader => {
   const input = ctx.createGain();
@@ -322,8 +331,25 @@ export const createLTCReader = ({
       currentTimeMillis,
     };
 
-    channelState.lastPlayingState = stoppedState;
+    channelState.lastPlayState = stoppedState;
     handlePlayStateChange(channel, stoppedState);
+  };
+
+  const sendDetectingModeState = (channel: number) => {
+    const channelState = channelStates[channel];
+    if (!channelState || closed) {
+      return;
+    }
+
+    if (channelState.lastPlayState?.state === 'detecting-mode') {
+      return;
+    }
+
+    const detectingModeState: LTCTimecodePlayState = {
+      state: 'detecting-mode',
+    };
+    channelState.lastPlayState = detectingModeState;
+    handlePlayStateChange(channel, detectingModeState);
   };
 
   const scheduleStoppedState = (
@@ -388,11 +414,11 @@ export const createLTCReader = ({
       return;
     }
 
-    const mode = channelState.modeDetector.recordFrame(
-      frameAddress,
-      frameWallMillis,
-    );
+    const mode =
+      frameMode ??
+      channelState.modeDetector.recordFrame(frameAddress, frameWallMillis);
     if (!mode) {
+      sendDetectingModeState(channel);
       return;
     }
 
@@ -418,8 +444,8 @@ export const createLTCReader = ({
           ? -1
           : 1;
     const previousSpeed =
-      channelState.lastPlayingState?.state === 'playing'
-        ? channelState.lastPlayingState.speed
+      channelState.lastPlayState?.state === 'playing'
+        ? channelState.lastPlayState.speed
         : null;
     const speed = normalizeLTCSpeed({
       measuredSpeed,
@@ -434,7 +460,7 @@ export const createLTCReader = ({
       speed,
       smpteMode: decodedFrame.timecode.mode,
     };
-    const previousPlayingState = channelState.lastPlayingState;
+    const previousPlayingState = channelState.lastPlayState;
 
     if (
       previousPlayingState?.state === 'playing' &&
@@ -455,7 +481,7 @@ export const createLTCReader = ({
         MIN_SPEED_CHANGE_TOLERANCE ||
       previousPlayingState.smpteMode !== decodedFrame.timecode.mode
     ) {
-      channelState.lastPlayingState = nextPlayingState;
+      channelState.lastPlayState = nextPlayingState;
       handlePlayStateChange(channel, nextPlayingState);
     }
 
