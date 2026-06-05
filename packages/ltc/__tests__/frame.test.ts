@@ -1,4 +1,5 @@
 import {
+  createLTCModeDetector,
   decodeLTCFrameAddress,
   decodeLTCFrameBits,
   encodeLTCFrameBits,
@@ -11,6 +12,11 @@ import type {
   SMPTETimecodeFrame,
   SMPTETimecodeMode,
 } from '@arcanewizards/smpte';
+
+const frameAddress = (frame: number, dropFrame = false) => ({
+  frame,
+  dropFrame,
+});
 
 const timecode = (
   mode: SMPTETimecodeMode,
@@ -115,6 +121,55 @@ describe('LTC frame utilities', () => {
       decodeLTCFrameBits(encodeLTCFrameBits({ timecode: timecode('EBU', 24) }))
         ?.timecode.mode,
     ).toBe('EBU');
+  });
+
+  test('detects mode from recent distinctive frame evidence', () => {
+    const detector = createLTCModeDetector();
+
+    expect(detector.recordFrame(frameAddress(29), 1_000)).toBeNull();
+    expect(detector.recordFrame(frameAddress(25), 1_500)).toBeNull();
+    expect(detector.recordFrame(frameAddress(29), 1_901)).toBe('SMPTE');
+    expect(detector.recordFrame(frameAddress(12), 2_000)).toBe('SMPTE');
+    expect(detector.recordFrame(frameAddress(24), 6_000)).toBeNull();
+    expect(detector.recordFrame(frameAddress(24), 6_901)).toBe('EBU');
+    expect(detector.recordFrame(frameAddress(12), 7_000)).toBe('EBU');
+    expect(detector.recordFrame(frameAddress(23), 11_000)).toBeNull();
+    expect(detector.recordFrame(frameAddress(23), 11_901)).toBe('FILM');
+    expect(detector.recordFrame(frameAddress(12), 12_000)).toBe('FILM');
+  });
+
+  test('allows mode changes once stronger frame evidence expires', () => {
+    const detector = createLTCModeDetector({
+      evidenceTimeoutMillis: 4_000,
+    });
+
+    expect(detector.recordFrame(frameAddress(29), 1_000)).toBeNull();
+    expect(detector.recordFrame(frameAddress(29), 1_901)).toBe('SMPTE');
+    expect(detector.recordFrame(frameAddress(24), 5_902)).toBeNull();
+    expect(detector.recordFrame(frameAddress(24), 6_803)).toBe('EBU');
+    expect(detector.recordFrame(frameAddress(23), 10_804)).toBeNull();
+    expect(detector.recordFrame(frameAddress(23), 11_705)).toBe('FILM');
+  });
+
+  test('treats drop-frame flag as immediate mode evidence without poisoning non-drop detection', () => {
+    const detector = createLTCModeDetector({
+      evidenceTimeoutMillis: 4_000,
+    });
+
+    expect(detector.recordFrame(frameAddress(29, true), 1_000)).toBe('DF');
+    expect(detector.recordFrame(frameAddress(24), 1_500)).toBeNull();
+    expect(detector.recordFrame(frameAddress(24), 2_401)).toBe('EBU');
+  });
+
+  test('can be tuned to require a different amount of mode evidence', () => {
+    const detector = createLTCModeDetector({
+      minimumEvidenceCount: 3,
+      minimumEvidenceSpanMillis: 1_500,
+    });
+
+    expect(detector.recordFrame(frameAddress(29), 1_000)).toBeNull();
+    expect(detector.recordFrame(frameAddress(28), 1_901)).toBeNull();
+    expect(detector.recordFrame(frameAddress(27), 2_501)).toBe('SMPTE');
   });
 
   test('rejects invalid BCD fields', () => {

@@ -2,7 +2,13 @@ import {
   getMillisFromTimecode,
   type SMPTETimecodePlayState,
 } from '@arcanewizards/smpte';
-import { decodeLTCFrameBits, LTC_FRAME_BIT_COUNT } from './frame.js';
+import {
+  createLTCModeDetector,
+  decodeLTCFrameAddress,
+  decodeLTCFrameBits,
+  LTC_FRAME_BIT_COUNT,
+  type LTCModeDetector,
+} from './frame.js';
 
 export type { SMPTETimecodePlayState } from '@arcanewizards/smpte';
 
@@ -262,6 +268,7 @@ type LTCReaderChannelState = {
   lastTimecodeMillis: number | null;
   lastPlayingState: SMPTETimecodePlayState | null;
   stoppedTimeoutId: ReturnType<typeof setTimeout> | null;
+  modeDetector: LTCModeDetector;
 };
 
 const createReaderChannelState = (): LTCReaderChannelState => ({
@@ -269,6 +276,7 @@ const createReaderChannelState = (): LTCReaderChannelState => ({
   lastTimecodeMillis: null,
   lastPlayingState: null,
   stoppedTimeoutId: null,
+  modeDetector: createLTCModeDetector(),
 });
 
 export const createLTCReader = ({
@@ -321,14 +329,26 @@ export const createLTCReader = ({
       return;
     }
 
-    const frameRate = sampleRate / (bitSamples * LTC_FRAME_BIT_COUNT);
-    const decodedFrame = decodeLTCFrameBits(bits, { direction, frameRate });
+    const frameWallMillis =
+      contextStartWallMillis + (bitStartFrame / sampleRate) * 1000;
+    const frameAddress = decodeLTCFrameAddress(bits, direction);
+    if (!frameAddress) {
+      return;
+    }
+
+    const mode = channelState.modeDetector.recordFrame(
+      frameAddress,
+      frameWallMillis,
+    );
+    if (!mode) {
+      return;
+    }
+
+    const decodedFrame = decodeLTCFrameBits(bits, { direction, mode });
     if (!decodedFrame) {
       return;
     }
 
-    const frameWallMillis =
-      contextStartWallMillis + (bitStartFrame / sampleRate) * 1000;
     const timecodeMillis = getMillisFromTimecode(decodedFrame.timecode);
     const wallDelta =
       channelState.lastFrameWallMillis === null

@@ -62,6 +62,20 @@ export type LTCFrameDecodeOptions = {
   frameRate?: number;
 };
 
+export type LTCModeDetectorOptions = {
+  evidenceTimeoutMillis?: number;
+  minimumEvidenceCount?: number;
+  minimumEvidenceSpanMillis?: number;
+};
+
+export type LTCModeDetector = {
+  recordFrame: (
+    address: Pick<LTCFrameAddress, 'dropFrame' | 'frame'>,
+    receivedAtMillis: number,
+  ) => SMPTETimecodeMode | null;
+  getMode: (receivedAtMillis: number) => SMPTETimecodeMode | null;
+};
+
 export type LTCDecodedFrame = {
   timecode: SMPTETimecodeFrame;
   direction: LTCDirection;
@@ -85,6 +99,9 @@ export const LTC_REVERSE_SYNC_WORD_BITS: Readonly<LTCBits> = new Uint8Array(
 
 const DEFAULT_BINARY_GROUP_FLAGS: LTCBinaryGroupFlags = [false, false, false];
 const DEFAULT_USER_BITS: LTCUserBits = [0, 0, 0, 0, 0, 0, 0, 0];
+const DEFAULT_MODE_EVIDENCE_TIMEOUT_MS = 4_000;
+const DEFAULT_MODE_MINIMUM_EVIDENCE_COUNT = 2;
+const DEFAULT_MODE_MINIMUM_EVIDENCE_SPAN_MS = 900;
 
 const readBits = (
   bits: ArrayLike<number>,
@@ -340,6 +357,81 @@ export const getSMPTETimecodeModeFromLTCFrame = (
   }
 
   return nearestDiff <= 0.2 ? nearestMode : null;
+};
+
+export const createLTCModeDetector = ({
+  evidenceTimeoutMillis = DEFAULT_MODE_EVIDENCE_TIMEOUT_MS,
+  minimumEvidenceCount = DEFAULT_MODE_MINIMUM_EVIDENCE_COUNT,
+  minimumEvidenceSpanMillis = DEFAULT_MODE_MINIMUM_EVIDENCE_SPAN_MS,
+}: LTCModeDetectorOptions = {}): LTCModeDetector => {
+  const smpteEvidence: number[] = [];
+  const ebuEvidence: number[] = [];
+  const filmEvidence: number[] = [];
+
+  const pruneEvidence = (
+    evidence: number[],
+    receivedAtMillis: number,
+  ): void => {
+    while (
+      evidence.length > 0 &&
+      receivedAtMillis - evidence[0]! > evidenceTimeoutMillis
+    ) {
+      evidence.shift();
+    }
+  };
+
+  const pruneAllEvidence = (receivedAtMillis: number): void => {
+    pruneEvidence(smpteEvidence, receivedAtMillis);
+    pruneEvidence(ebuEvidence, receivedAtMillis);
+    pruneEvidence(filmEvidence, receivedAtMillis);
+  };
+
+  const hasEnoughEvidence = (evidence: number[]): boolean => {
+    return (
+      evidence.length >= minimumEvidenceCount &&
+      evidence[evidence.length - 1]! - evidence[0]! >= minimumEvidenceSpanMillis
+    );
+  };
+
+  const getMode = (receivedAtMillis: number): SMPTETimecodeMode | null => {
+    pruneAllEvidence(receivedAtMillis);
+
+    if (hasEnoughEvidence(smpteEvidence)) {
+      return 'SMPTE';
+    }
+    if (smpteEvidence.length === 0 && hasEnoughEvidence(ebuEvidence)) {
+      return 'EBU';
+    }
+    if (
+      smpteEvidence.length === 0 &&
+      ebuEvidence.length === 0 &&
+      hasEnoughEvidence(filmEvidence)
+    ) {
+      return 'FILM';
+    }
+    return null;
+  };
+
+  return {
+    recordFrame(address, receivedAtMillis) {
+      if (address.dropFrame) {
+        return 'DF';
+      }
+
+      pruneAllEvidence(receivedAtMillis);
+
+      if (address.frame > 24) {
+        smpteEvidence.push(receivedAtMillis);
+      } else if (address.frame === 24) {
+        ebuEvidence.push(receivedAtMillis);
+      } else if (address.frame === 23) {
+        filmEvidence.push(receivedAtMillis);
+      }
+
+      return getMode(receivedAtMillis);
+    },
+    getMode,
+  };
 };
 
 export const decodeLTCFrameBits = (
