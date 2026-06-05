@@ -151,6 +151,13 @@ const LtcDemo: FC = () => {
       channels: outputCtx.destination.channelCount,
     });
     writer.getOutput().connect(outputCtx.destination);
+    for (
+      let channel = 0;
+      channel < outputCtx.destination.channelCount;
+      channel++
+    ) {
+      writer.setPlayState(channel, outputTimecodeState);
+    }
 
     return () => {
       writer.close();
