@@ -9,13 +9,16 @@ import {
 } from 'react';
 import {
   GeneratorState,
+  OutputState,
   TIMECODE_INSTANCE_ID,
+  TimecodeInstanceId,
   TimecodeToolboxComponentCalls,
   TimecodeToolboxDownloadAudioFile,
   ToolboxConfig,
   ToolboxRootComponent,
   ToolboxRootConfigUpdate,
-  ToolboxRootReleasePlayerControl,
+  ToolboxRootReleaseControl,
+  ToolboxRootUpdateOutputState,
   ToolboxRootUpdatePlayerState,
 } from '../../proto';
 
@@ -56,7 +59,7 @@ import {
   ControlButton,
   ControlDetails,
 } from '@arcanewizards/sigil/frontend/controls';
-import { RootAudioContext, RootAudioContextData } from './core/audio-player';
+import { RootAudioContext, RootAudioContextData } from './core/audio-context';
 import { AudioDevicesQueryProvider } from './core/audio-context';
 
 type Props = {
@@ -357,32 +360,57 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       [sendMessage, info.key],
     );
 
-  const releasePlayerControl: RootAudioContextData['releasePlayerControl'] =
+  const updateOutputState: RootAudioContextData['updateOutputState'] =
     useCallback(
-      async (generatorUuid: string) => {
+      async (
+        outputUuid: string,
+        claim: boolean,
+        state: Omit<OutputState, 'controlledBy'>,
+      ) => {
         if (!sendMessage) {
           throw new Error('No sendMessage function available');
         }
 
-        sendMessage?.<ToolboxRootReleasePlayerControl>({
+        sendMessage?.<ToolboxRootUpdateOutputState>({
           type: 'component-message',
           namespace: 'timecode-toolbox',
           component: 'toolbox-root',
           componentKey: info.key,
-          action: 'release-player-control',
-          generatorUuid,
+          action: 'update-output-state',
+          outputUuid,
+          claim,
+          state,
         });
       },
       [sendMessage, info.key],
     );
 
+  const releaseControl: RootAudioContextData['releaseControl'] = useCallback(
+    async (id: TimecodeInstanceId) => {
+      if (!sendMessage) {
+        throw new Error('No sendMessage function available');
+      }
+
+      sendMessage?.<ToolboxRootReleaseControl>({
+        type: 'component-message',
+        namespace: 'timecode-toolbox',
+        component: 'toolbox-root',
+        componentKey: info.key,
+        action: 'release-control',
+        id,
+      });
+    },
+    [sendMessage, info.key],
+  );
+
   const audioContextValue: RootAudioContextData = useMemo(
     () => ({
       downloadAudioFile,
       updatePlayerState,
-      releasePlayerControl,
+      updateOutputState,
+      releaseControl,
     }),
-    [downloadAudioFile, updatePlayerState, releasePlayerControl],
+    [downloadAudioFile, updatePlayerState, updateOutputState, releaseControl],
   );
 
   const windowedTimecodeId = useMemo(

@@ -446,6 +446,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
       namePlaceholder={STRINGS.inputs.unnamed}
       loadFile={null}
       startPlayer={null}
+      ltc={null}
       buttons={
         <>
           <ControlButton

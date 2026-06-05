@@ -113,6 +113,7 @@ const TcnetInputConnection: FC<TcnetInputConnectionProps> = ({
       setConnection({
         status:
           errors.length > 0 ? 'error' : isConnecting ? 'connecting' : 'active',
+        controlledBy: null,
         clients,
         warnings,
         errors,

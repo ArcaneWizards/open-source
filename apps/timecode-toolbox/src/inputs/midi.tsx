@@ -49,6 +49,7 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
 
   const [inputState, setInputState] = useState<Omit<InputState, 'timecode'>>({
     status: 'disabled',
+    controlledBy: null,
     warnings: [],
     errors: [],
   });
@@ -105,6 +106,7 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
     if (!name?.trim()) {
       setInputState({
         status: 'disabled',
+        controlledBy: null,
         warnings: [
           target.type === 'virtual'
             ? 'Please specify a name for your virtual MIDI device'
@@ -113,7 +115,7 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
       });
       return;
     }
-    setInputState({ status: 'connecting' });
+    setInputState({ status: 'connecting', controlledBy: null });
 
     if (inputInfo === 'loading') {
       return;
@@ -142,6 +144,7 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
         log.error(error);
         setInputState({
           status: 'error',
+          controlledBy: null,
           errors: [`${cause}`],
         });
       });

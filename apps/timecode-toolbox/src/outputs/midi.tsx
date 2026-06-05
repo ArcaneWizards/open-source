@@ -65,6 +65,7 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
     if (!name?.trim()) {
       setOutputState({
         status: 'disabled',
+        controlledBy: null,
         warnings: [
           target.type === 'virtual'
             ? 'Please specify a name for your virtual MIDI device'
@@ -73,7 +74,7 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
       });
       return;
     }
-    setOutputState({ status: 'connecting' });
+    setOutputState({ status: 'connecting', controlledBy: null });
 
     if (outputInfo === 'loading') {
       return;
@@ -102,6 +103,7 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
         log.error(error);
         setOutputState({
           status: 'error',
+          controlledBy: null,
           errors: [`${cause}`],
         });
       });

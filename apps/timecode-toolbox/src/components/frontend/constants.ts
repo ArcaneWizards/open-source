@@ -39,6 +39,10 @@ export const STRINGS = {
       short: 'MTC',
       long: 'MIDI Timecode (MTC)',
     },
+    ltc: {
+      short: 'LTC (BETA)',
+      long: 'Linear Timecode (LTC)',
+    },
   },
   inputs: {
     title: 'INPUTS',

@@ -24,6 +24,7 @@ import {
   OutputArtnetDefinition,
   OutputConfig,
   OutputDefinition,
+  OutputLtcDefinition,
   OutputMidiDefinition,
   TimecodeInstance,
   TimecodeInstanceId,
@@ -31,6 +32,7 @@ import {
 import {
   getLinkedSourceInfo,
   LinkedSourceInfo,
+  TimecodeDisplayProps,
   TimecodeTreeDisplay,
   useTimecodeLabels,
 } from './core/timecode-display';
@@ -56,6 +58,8 @@ import { NoToolboxChildren } from './content';
 import { MidiTargetSettings } from './core/midi';
 import { useNetworkInterfaces } from './hooks';
 import { DelayConfig } from './core/delay';
+import { WithLtcPlayer } from './core/ltc-player';
+import { AudioPlaybackContextProvider } from './core/audio-context';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   data,
@@ -259,6 +263,44 @@ const MidiConnectionSettings: FC<
   );
 };
 
+const LtcConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
+  data,
+  updateSettings,
+}) => {
+  const updateLtcSettings = useCallback(
+    (change: (current: OutputLtcDefinition) => OutputLtcDefinition) => {
+      updateSettings((current) =>
+        current.type === 'ltc' ? change(current) : current,
+      );
+    },
+    [updateSettings],
+  );
+
+  if (data.type !== 'ltc') {
+    return null;
+  }
+
+  return (
+    <>
+      <ControlLabel>FPS</ControlLabel>
+      <ControlSelect<TimecodeMode>
+        position="both"
+        variant="large"
+        value={data.mode}
+        options={(
+          Object.entries(STRINGS.smtpeModeOptions) as [TimecodeMode, string][]
+        ).map(([mode, label]) => ({
+          label,
+          value: mode,
+        }))}
+        onChange={(mode) => {
+          updateLtcSettings((current) => ({ ...current, mode }));
+        }}
+      />
+    </>
+  );
+};
+
 type OutputSettingsDialogProps = {
   target: DialogMode['target'];
   output: OutputDefinition['type'];
@@ -284,14 +326,19 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
             },
             mode: 'SMPTE',
           }
-        : {
-            type: 'midi',
-            target: {
-              type: 'port',
-              deviceName: '',
+        : output === 'midi'
+          ? {
+              type: 'midi',
+              target: {
+                type: 'port',
+                deviceName: '',
+              },
+              mode: 'SMPTE',
+            }
+          : {
+              type: 'ltc',
+              mode: 'SMPTE',
             },
-            mode: 'SMPTE',
-          },
     link: null,
   });
 
@@ -418,7 +465,12 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
             updateSettings={updateDefinition}
           />
         ) : null}
-
+        {data.definition.type === 'ltc' ? (
+          <LtcConnectionSettings
+            data={data.definition}
+            updateSettings={updateDefinition}
+          />
+        ) : null}
         <DelayConfig
           delayMs={data.delayMs}
           commitChanges={commitChanges}
@@ -469,6 +521,8 @@ type OutputDisplayProps = {
   setDialogMode: (mode: DialogMode | null) => void;
   assignToOutput: string | null;
   setAssignToOutput: Dispatch<SetStateAction<string | null>>;
+  ltc: TimecodeDisplayProps['ltc'];
+  additionalErrors: string[];
 };
 
 const OutputDisplay: FC<OutputDisplayProps> = ({
@@ -477,6 +531,8 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
   setDialogMode,
   assignToOutput,
   setAssignToOutput,
+  ltc,
+  additionalErrors,
 }) => {
   const applicationState = useApplicationState();
   const { config: allConfig, updateConfig } = useContext(ConfigContext);
@@ -537,10 +593,13 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
 
   const rootState = useMemo(
     () => ({
-      errors: applicationState.outputs[uuid]?.errors ?? [],
+      errors: [
+        ...(applicationState.outputs[uuid]?.errors ?? []),
+        ...additionalErrors,
+      ],
       warnings: applicationState.outputs[uuid]?.warnings ?? [],
     }),
-    [applicationState.outputs, uuid],
+    [applicationState.outputs, uuid, additionalErrors],
   );
 
   const id: TimecodeInstanceId = useMemo(() => ['output', uuid], [uuid]);
@@ -570,6 +629,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         link={link}
         loadFile={null}
         startPlayer={null}
+        ltc={ltc}
         buttons={
           <>
             <ControlButton
@@ -642,7 +702,7 @@ export const OutputsSection: FC<OutputSectionProps> = ({
       title={STRINGS.outputs.title}
       buttons={
         <>
-          {(['artnet', 'midi'] as const).map((type) => (
+          {(['artnet', 'midi', 'ltc'] as const).map((type) => (
             <ControlButton
               key={type}
               onClick={() =>
@@ -655,6 +715,16 @@ export const OutputsSection: FC<OutputSectionProps> = ({
               icon="add"
             >
               {STRINGS.outputs.addButton(STRINGS.protocols[type].long)}
+              {type === 'ltc' && (
+                <span
+                  className="
+                    ml-1 rounded-md bg-sigil-foreground px-1 py-0.3
+                    text-sigil-control text-sigil-bg-dark
+                  "
+                >
+                  BETA
+                </span>
+              )}
             </ControlButton>
           ))}
         </>
@@ -670,16 +740,39 @@ export const OutputsSection: FC<OutputSectionProps> = ({
             min-[900px]:grid-cols-3
           "
         >
-          {Object.entries(config.outputs).map(([uuid, output]) => (
-            <OutputDisplay
-              key={uuid}
-              uuid={uuid}
-              config={output}
-              setDialogMode={setDialogMode}
-              assignToOutput={assignToOutput}
-              setAssignToOutput={setAssignToOutput}
-            />
-          ))}
+          {Object.entries(config.outputs).map(([uuid, output]) =>
+            output.definition.type === 'ltc' ? (
+              <AudioPlaybackContextProvider key={uuid} id={['output', uuid]}>
+                <WithLtcPlayer
+                  key={uuid}
+                  uuid={uuid}
+                  config={output}
+                  timecodeDisplay={({ ltc, errors }) => (
+                    <OutputDisplay
+                      uuid={uuid}
+                      config={output}
+                      setDialogMode={setDialogMode}
+                      assignToOutput={assignToOutput}
+                      setAssignToOutput={setAssignToOutput}
+                      ltc={ltc}
+                      additionalErrors={errors}
+                    />
+                  )}
+                />
+              </AudioPlaybackContextProvider>
+            ) : (
+              <OutputDisplay
+                key={uuid}
+                uuid={uuid}
+                config={output}
+                setDialogMode={setDialogMode}
+                assignToOutput={assignToOutput}
+                setAssignToOutput={setAssignToOutput}
+                ltc={null}
+                additionalErrors={[]}
+              />
+            ),
+          )}
         </div>
       )}
     </PrimaryToolboxSection>

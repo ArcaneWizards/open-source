@@ -87,6 +87,7 @@ const ArtnetInputConnection: FC<ArtnetInputConnectionProps> = ({
 
   useEffect(() => {
     const connectionConfig: Omit<InputState, 'status'> = {
+      controlledBy: null,
       timecode: {
         name: null,
         state: {
@@ -194,6 +195,7 @@ const ArtnetInputConnection: FC<ArtnetInputConnectionProps> = ({
         };
         setConnection({
           status: 'active',
+          controlledBy: null,
           timecode: {
             name: null,
             state: timecode,
@@ -216,6 +218,7 @@ const ArtnetInputConnection: FC<ArtnetInputConnectionProps> = ({
       };
       setConnection({
         status: 'active',
+        controlledBy: null,
         timecode: {
           name: null,
           state: timecode,

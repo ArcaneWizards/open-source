@@ -121,6 +121,19 @@ export const isOutputMidiDefinition = (
   definition: OutputDefinition,
 ): definition is OutputMidiDefinition => definition.type === 'midi';
 
+// LTC Config
+
+const OUTPUT_LTC_DEFINITION = z.object({
+  type: z.literal('ltc'),
+  mode: z.enum(['FILM', 'EBU', 'DF', 'SMPTE']),
+});
+
+export type OutputLtcDefinition = z.infer<typeof OUTPUT_LTC_DEFINITION>;
+
+export const isOutputLtcDefinition = (
+  definition: OutputDefinition,
+): definition is OutputLtcDefinition => definition.type === 'ltc';
+
 // Clock
 
 const GENERATOR_CLOCK_DEFINITION_V2 = z.union([
@@ -217,6 +230,7 @@ export type GeneratorConfig = z.infer<typeof GENERATOR_CONFIG>;
 const OUTPUT_DEFINITION = z.union([
   OUTPUT_ARTNET_DEFINITION,
   OUTPUT_MIDI_DEFINITION,
+  OUTPUT_LTC_DEFINITION,
 ]);
 
 export type OutputDefinition = z.infer<typeof OUTPUT_DEFINITION>;
@@ -460,6 +474,7 @@ export type ConnectedClient = {
 
 export type InputState = {
   status: 'disabled' | 'connecting' | 'error' | 'active';
+  controlledBy: Pick<ToolkitConnection, 'uuid'> | null;
   errors?: string[];
   warnings?: string[];
   timecode: TimecodeInstance | TimecodeGroup | null;
@@ -478,6 +493,8 @@ export type GeneratorState = {
 
 export type OutputState = {
   status: 'disabled' | 'connecting' | 'error' | 'active';
+  /** Only relevant for LTC outputs */
+  controlledBy: Pick<ToolkitConnection, 'uuid'> | null;
   errors?: string[];
   warnings?: string[];
   /**
@@ -662,18 +679,33 @@ export type ToolboxRootUpdatePlayerState =
     claim: boolean;
     state: Omit<GeneratorState, 'controlledBy'>;
   };
-export type ToolboxRootReleasePlayerControl =
+
+export type ToolboxRootUpdateOutputState =
   BaseClientComponentMessage<Namespace> & {
     component: 'toolbox-root';
-    action: 'release-player-control';
-    generatorUuid: string;
+    action: 'update-output-state';
+    outputUuid: string;
+    /**
+     * True if this connection should claim control of the output if it
+     * is not already controlled by this connection.
+     */
+    claim: boolean;
+    state: Omit<OutputState, 'controlledBy'>;
+  };
+
+export type ToolboxRootReleaseControl =
+  BaseClientComponentMessage<Namespace> & {
+    component: 'toolbox-root';
+    action: 'release-control';
+    id: TimecodeInstanceId;
   };
 
 export type TimecodeToolboxComponentMessage =
   | ToolboxRootConfigUpdate
   | ToolboxLicenseGateAcceptLicense
   | ToolboxRootUpdatePlayerState
-  | ToolboxRootReleasePlayerControl;
+  | ToolboxRootUpdateOutputState
+  | ToolboxRootReleaseControl;
 
 export type TimecodeToolboxDownloadAudioFile = BaseClientComponentCallDownload<
   Namespace,

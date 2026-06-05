@@ -19,12 +19,48 @@ import {
   ControlSelect,
   SelectOption,
 } from '@arcanewizards/sigil/frontend/controls';
-import { TimecodeInstanceId } from '../../../proto';
+import {
+  GeneratorState,
+  OutputState,
+  TimecodeInstanceId,
+} from '../../../proto';
 import z from 'zod';
 import {
   BrowserPreferencesDefinition,
   createBrowserPreferencesHook,
 } from '@arcanewizards/sigil/frontend/preferences';
+
+export type RootAudioContextData = {
+  downloadAudioFile: (
+    generatorUuid: string,
+  ) => Promise<ReadableStream<Uint8Array<ArrayBuffer>>>;
+  updatePlayerState: (
+    generatorUuid: string,
+    claim: boolean,
+    state: Omit<GeneratorState, 'controlledBy'>,
+  ) => void;
+  updateOutputState: (
+    outputUuid: string,
+    claim: boolean,
+    state: Omit<OutputState, 'controlledBy'>,
+  ) => void;
+  releaseControl: (id: TimecodeInstanceId) => void;
+};
+
+export const RootAudioContext = createContext<RootAudioContextData>({
+  downloadAudioFile: async () => {
+    throw new Error('RootAudioContext not initialized');
+  },
+  updatePlayerState: () => {
+    throw new Error('RootAudioContext not initialized');
+  },
+  updateOutputState: () => {
+    throw new Error('RootAudioContext not initialized');
+  },
+  releaseControl: () => {
+    throw new Error('RootAudioContext not initialized');
+  },
+});
 
 type AudioDevices = {
   inputs: MediaDeviceInfo[];

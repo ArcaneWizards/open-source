@@ -73,6 +73,9 @@ importers:
       '@arcanewizards/eslint-config':
         specifier: workspace:^
         version: link:../../packages/eslint-config
+      '@arcanewizards/ltc':
+        specifier: workspace:^
+        version: link:../../packages/ltc
       '@arcanewizards/midi-timecode':
         specifier: workspace:^
         version: link:../../packages/midi-timecode

@@ -20,6 +20,8 @@ import {
   isTimecodeToolboxComponentCallDownload,
   ToolboxRootUpdatePlayerState,
   ToolboxRootGetTimezoneInfoReturn,
+  TimecodeInstanceId,
+  ToolboxRootUpdateOutputState,
 } from '../proto';
 import {
   AnyClientComponentCall,
@@ -40,8 +42,12 @@ export type Events = {
     call: ToolboxRootUpdatePlayerState,
     connection: ToolkitConnection,
   ) => void;
-  releasePlayerControl: (
-    generatorUuid: string,
+  updateOutputState: (
+    call: ToolboxRootUpdateOutputState,
+    connection: ToolkitConnection,
+  ) => void;
+  releaseControl: (
+    id: TimecodeInstanceId,
     connection: ToolkitConnection,
   ) => void;
 };
@@ -54,7 +60,8 @@ export type AppRootProps = Pick<
   onCallHandler?: Events['callHandler'];
   onDownloadAudioFile?: Events['downloadAudioFile'];
   onUpdatePlayerState?: Events['updatePlayerState'];
-  onReleasePlayerControl?: Events['releasePlayerControl'];
+  onUpdateOutputState?: Events['updateOutputState'];
+  onReleaseControl?: Events['releaseControl'];
 };
 
 const DEFAULT_PROPS: AppRootProps = {
@@ -94,7 +101,8 @@ export class ToolboxRoot
             onCallHandler: 'callHandler',
             onDownloadAudioFile: 'downloadAudioFile',
             onUpdatePlayerState: 'updatePlayerState',
-            onReleasePlayerControl: 'releasePlayerControl',
+            onUpdateOutputState: 'updateOutputState',
+            onReleaseControl: 'releaseControl',
           },
           oldProps,
           this.props,
@@ -130,12 +138,10 @@ export class ToolboxRoot
         this.events.emit('updateConfig', message.diff);
       } else if (message.action === 'update-player-state') {
         this.events.emit('updatePlayerState', message, connection);
-      } else if (message.action === 'release-player-control') {
-        this.events.emit(
-          'releasePlayerControl',
-          message.generatorUuid,
-          connection,
-        );
+      } else if (message.action === 'update-output-state') {
+        this.events.emit('updateOutputState', message, connection);
+      } else if (message.action === 'release-control') {
+        this.events.emit('releaseControl', message.id, connection);
       }
     }
   };
