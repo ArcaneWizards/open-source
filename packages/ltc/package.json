@@ -1,0 +1,66 @@
+{
+  "name": "@arcanewizards/ltc",
+  "version": "0.0.1",
+  "description": "Package for inputting & outputting Linear Timecode with the WebAudio API.",
+  "private": false,
+  "license": "MIT",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArcaneWizards/open-source.git",
+    "directory": "packages/ltc"
+  },
+  "exports": {
+    ".": {
+      "@arcanewizards/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm clean && tsup && check-export-map",
+    "clean": "rm -rf dist",
+    "check:types": "tsc --noEmit",
+    "format:fix": "cd .. && pnpm format:fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint --fix .",
+    "run:list": "tsx scripts/list.ts",
+    "run:receive": "tsx scripts/receive.ts",
+    "run:send": "tsx scripts/send.ts",
+    "example:build:frontend": "rm -rf example/dist && pnpm example:build:styles && arcane-build-frontend --entry example/frontend.tsx --outfile example/dist/custom-entrypoint.js --sourcemap",
+    "example:build:styles": "tailwindcss -i ./example/frontend.css -o ./example/dist/custom-entrypoint.css",
+    "example:run": "pnpm example:build:frontend && node --import=tsx example"
+  },
+  "devDependencies": {
+    "@arcanejs/build-utils": "^0.1.2",
+    "@arcanejs/protocol": "^0.9.0",
+    "@arcanejs/react-toolkit": "^0.16.0",
+    "@arcanejs/toolkit": "^9.0.0",
+    "@arcanejs/toolkit-frontend": "^0.12.0",
+    "@arcanewizards/eslint-config": "workspace:^",
+    "@arcanewizards/typescript-config": "workspace:^",
+    "@tailwindcss/cli": "^4.2.2",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "check-export-map": "^1.3.1",
+    "eslint": "^9.39.4",
+    "pino": "^9.14.0",
+    "pino-pretty": "^11.3.0",
+    "react": "^19.2.4",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@arcanewizards/smpte": "workspace:^"
+  },
+  "engines": {
+    "node": ">=22.12.0 || >=23.1.0"
+  }
+}

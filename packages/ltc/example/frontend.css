@@ -1,0 +1,8 @@
+@import '@arcanejs/toolkit-frontend/styles/core.css';
+@import '@arcanejs/toolkit-frontend/styles/theme.css';
+@import '@arcanejs/toolkit-frontend/styles/base.css';
+
+@source './**/*.{ts,tsx}';
+
+@theme inline {
+}
