@@ -69,8 +69,17 @@ const LtcDemo: FC = () => {
     const reader = createLTCReader({
       ctx: inputCtx,
       channels: sourceNode.channelCount,
-      handlePlayStateChange: (state) => {
-        console.log(state);
+      handlePlayStateChange: (channel, state) => {
+        if (state.state === 'playing') {
+          const timestamp = Date.now() - state.effectiveStartTime;
+          console.log(
+            `Channel ${channel} is playing with speed ${state.speed} and SMPTE mode ${state.smpteMode} for ${timestamp} ms`,
+          );
+        } else {
+          console.log(
+            `Channel ${channel} is stopped at time ${state.currentTimeMillis} ms`,
+          );
+        }
       },
     });
     sourceNode.connect(reader.getInput());
