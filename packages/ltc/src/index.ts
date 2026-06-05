@@ -4,7 +4,11 @@ export type { SMPTETimecodePlayState } from '@arcanewizards/smpte';
 
 export type LTCReaderOptions = {
   ctx: AudioContext;
-  handlePlayStateChange: (state: SMPTETimecodePlayState) => void;
+  channels: number;
+  handlePlayStateChange: (
+    channel: number,
+    state: SMPTETimecodePlayState,
+  ) => void;
 };
 
 export type LTCReader = {
@@ -14,16 +18,23 @@ export type LTCReader = {
 
 export type LTCWriterOptions = {
   ctx: AudioContext;
+  channels: number;
 };
 
 export type LTCWriter = {
   getOutput(): AudioNode;
-  setPlayState: (state: SMPTETimecodePlayState | null) => void;
+  setPlayState: (channel: number, state: SMPTETimecodePlayState | null) => void;
   close(): void;
 };
 
-export const createLTCReader = ({ ctx }: LTCReaderOptions): LTCReader => {
+export const createLTCReader = ({
+  ctx,
+  channels,
+}: LTCReaderOptions): LTCReader => {
   const input = ctx.createGain();
+  input.channelCount = channels;
+  input.channelCountMode = 'explicit';
+  input.channelInterpretation = 'discrete';
 
   // TODO: temporarily just read the amplitude occasionally
 
@@ -49,13 +60,19 @@ export const createLTCReader = ({ ctx }: LTCReaderOptions): LTCReader => {
   };
 };
 
-export const createLTCWriter = ({ ctx }: LTCWriterOptions): LTCWriter => {
+export const createLTCWriter = ({
+  ctx,
+  channels,
+}: LTCWriterOptions): LTCWriter => {
   const output = ctx.createGain();
+  output.channelCount = channels;
+  output.channelCountMode = 'explicit';
+  output.channelInterpretation = 'discrete';
 
   // Create simple oscillator for testing
   const oscillator = ctx.createOscillator();
   oscillator.type = 'square';
-  oscillator.frequency.value = 1200; // 1200 Hz for LTC signal
+  oscillator.frequency.value = 600;
   oscillator.connect(output);
   oscillator.start();
 

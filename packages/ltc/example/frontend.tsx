@@ -68,6 +68,7 @@ const LtcDemo: FC = () => {
     const sourceNode = inputCtx.createMediaStreamSource(openAudioStream);
     const reader = createLTCReader({
       ctx: inputCtx,
+      channels: sourceNode.channelCount,
       handlePlayStateChange: (state) => {
         console.log(state);
       },
@@ -116,7 +117,10 @@ const LtcDemo: FC = () => {
       return;
     }
 
-    const writer = createLTCWriter({ ctx: outputCtx });
+    const writer = createLTCWriter({
+      ctx: outputCtx,
+      channels: outputCtx.destination.channelCount,
+    });
     writer.getOutput().connect(outputCtx.destination);
 
     return () => {
