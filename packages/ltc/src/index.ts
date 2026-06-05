@@ -269,9 +269,14 @@ type LTCReaderWorkletMessage = {
 type LTCReaderChannelState = {
   lastFrameWallMillis: number | null;
   lastTimecodeMillis: number | null;
-  lastValidTimecodeMillis: number | null;
   lastPlayingState: SMPTETimecodePlayState | null;
-  stoppedTimeoutId: ReturnType<typeof setTimeout> | null;
+  /**
+   * Timeout to send stopped state after losing sync.
+   */
+  stoppedTimeout: {
+    id: ReturnType<typeof setTimeout>;
+    timeMillis: number;
+  } | null;
   modeDetector: LTCModeDetector;
   timingStabilizer: LTCTimingStabilizer;
 };
@@ -279,9 +284,8 @@ type LTCReaderChannelState = {
 const createReaderChannelState = (): LTCReaderChannelState => ({
   lastFrameWallMillis: null,
   lastTimecodeMillis: null,
-  lastValidTimecodeMillis: null,
   lastPlayingState: null,
-  stoppedTimeoutId: null,
+  stoppedTimeout: null,
   modeDetector: createLTCModeDetector(),
   timingStabilizer: createLTCTimingStabilizer(),
 });
@@ -325,25 +329,31 @@ export const createLTCReader = ({
   const scheduleStoppedState = (
     channel: number,
     frameDurationMillis: number,
+    timeMillis: number,
   ) => {
     const channelState = channelStates[channel];
     if (!channelState || closed) {
       return;
     }
 
-    if (channelState.stoppedTimeoutId) {
-      clearTimeout(channelState.stoppedTimeoutId);
+    if (channelState.stoppedTimeout) {
+      clearTimeout(channelState.stoppedTimeout.id);
     }
 
     const stoppedTimeoutMillis = Math.max(
       DEFAULT_STOPPED_TIMEOUT_MS,
       frameDurationMillis * 4,
     );
-    channelState.stoppedTimeoutId = setTimeout(() => {
-      if (channelState.lastValidTimecodeMillis !== null) {
-        sendStoppedState(channel, channelState.lastValidTimecodeMillis);
-      }
-    }, stoppedTimeoutMillis);
+
+    channelState.stoppedTimeout = {
+      id: setTimeout(() => {
+        // Only send timeout if the value to send is unchanged
+        if (channelState.stoppedTimeout?.timeMillis === timeMillis) {
+          sendStoppedState(channel, timeMillis);
+        }
+      }, stoppedTimeoutMillis),
+      timeMillis,
+    };
   };
 
   const handleWorkletMessage = (
@@ -362,7 +372,14 @@ export const createLTCReader = ({
 
     const frameDurationMillis =
       (bitSamples * LTC_FRAME_BIT_COUNT * 1000) / sampleRate;
-    scheduleStoppedState(channel, frameDurationMillis);
+    if (channelState.stoppedTimeout) {
+      // Clear and re-schedule stopped timeout for the same value as last time
+      scheduleStoppedState(
+        channel,
+        frameDurationMillis,
+        channelState.stoppedTimeout.timeMillis,
+      );
+    }
 
     const frameWallMillis =
       contextStartWallMillis + (bitStartFrame / sampleRate) * 1000;
@@ -385,7 +402,7 @@ export const createLTCReader = ({
     }
 
     const timecodeMillis = getMillisFromTimecode(decodedFrame.timecode);
-    channelState.lastValidTimecodeMillis = timecodeMillis;
+    scheduleStoppedState(channel, frameDurationMillis, timecodeMillis);
     const wallDelta =
       channelState.lastFrameWallMillis === null
         ? null
@@ -486,8 +503,8 @@ export const createLTCReader = ({
       input.disconnect();
       splitter.disconnect();
       for (const channelState of channelStates) {
-        if (channelState.stoppedTimeoutId) {
-          clearTimeout(channelState.stoppedTimeoutId);
+        if (channelState.stoppedTimeout) {
+          clearTimeout(channelState.stoppedTimeout.id);
         }
       }
       for (const node of channelNodes) {
