@@ -27,6 +27,38 @@ export type LTCWriter = {
   close(): void;
 };
 
+const LTC_READER_PROCESSOR_NAME = 'arcanewizards-ltc-reader';
+
+const LTC_READER_WORKLET_SOURCE = `
+class LTCReaderProcessor extends AudioWorkletProcessor {
+  process() {
+    return true;
+  }
+}
+
+registerProcessor('${LTC_READER_PROCESSOR_NAME}', LTCReaderProcessor);
+`;
+
+const readerWorkletLoadPromises = new WeakMap<AudioContext, Promise<void>>();
+
+const loadReaderWorklet = (ctx: AudioContext): Promise<void> => {
+  const existingPromise = readerWorkletLoadPromises.get(ctx);
+  if (existingPromise) {
+    return existingPromise;
+  }
+
+  const blob = new Blob([LTC_READER_WORKLET_SOURCE], {
+    type: 'text/javascript',
+  });
+  const url = URL.createObjectURL(blob);
+  const promise = ctx.audioWorklet.addModule(url).finally(() => {
+    URL.revokeObjectURL(url);
+  });
+
+  readerWorkletLoadPromises.set(ctx, promise);
+  return promise;
+};
+
 export const createLTCReader = ({
   ctx,
   channels,
@@ -36,26 +68,56 @@ export const createLTCReader = ({
   input.channelCountMode = 'explicit';
   input.channelInterpretation = 'discrete';
 
-  // TODO: temporarily just read the amplitude occasionally
+  const splitter = ctx.createChannelSplitter(channels);
+  const silentSink = ctx.createGain();
+  silentSink.gain.value = 0;
 
-  let lastValue = 0;
-  const analyser = ctx.createAnalyser();
-  input.connect(analyser);
-  const interval = setInterval(() => {
-    const data = new Uint8Array(analyser.fftSize);
-    analyser.getByteTimeDomainData(data);
-    const value = data.reduce((sum, v) => sum + Math.abs(v - 128), 0);
-    if (Math.abs(value - lastValue) > 10) {
-      lastValue = value;
+  let closed = false;
+  const channelNodes: AudioWorkletNode[] = [];
+
+  input.connect(splitter);
+
+  const initializeReaderGraph = async () => {
+    await loadReaderWorklet(ctx);
+
+    if (closed) {
+      return;
     }
-  }, 100);
+
+    for (let channel = 0; channel < channels; channel += 1) {
+      const node = new AudioWorkletNode(ctx, LTC_READER_PROCESSOR_NAME, {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        outputChannelCount: [1],
+        channelCount: 1,
+        channelCountMode: 'explicit',
+        channelInterpretation: 'discrete',
+        processorOptions: { channel },
+      });
+
+      splitter.connect(node, channel, 0);
+      node.connect(silentSink);
+      channelNodes.push(node);
+    }
+
+    silentSink.connect(ctx.destination);
+  };
+
+  void initializeReaderGraph();
 
   return {
     getInput() {
       return input;
     },
     close() {
-      clearInterval(interval);
+      closed = true;
+      input.disconnect();
+      splitter.disconnect();
+      for (const node of channelNodes) {
+        node.disconnect();
+        node.port.close();
+      }
+      silentSink.disconnect();
     },
   };
 };
