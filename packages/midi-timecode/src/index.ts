@@ -5,6 +5,7 @@ import {
   SMPTE_TIMECODE_FPS,
   SMPTETimecodeFrame,
   SMPTETimecodeMode,
+  SMPTETimecodePlayState,
 } from '@arcanewizards/smpte';
 
 /**
@@ -32,43 +33,33 @@ const MIN_TC_DIFF_TOLERANCE_MS = 10;
  */
 const MIN_SPEED_CHANGE_TOLERANCE = 0.01;
 
-export type MIDITimecodePlayState =
-  | {
-      state: 'playing';
-      effectiveStartTime: number;
-      /**
-       * 1.0 means normal speed, 2.0 means double speed, etc.
-       * Can be negative for reverse playback,
-       *
-       * in which case effectiveStartTime represents the time when the track will reach 0:00.
-       */
-      speed: number;
-      smpteMode: SMPTETimecodeMode;
-    }
-  | {
-      state: 'stopped';
-      currentTimeMillis: number;
-    };
+/**
+ * @deprecated use `SMPTETimecodePlayState` instead
+ */
+export type MIDITimecodePlayState = SMPTETimecodePlayState;
 
-export type MIDISMPTEMode = 'FILM' | 'EBU' | 'DF' | 'SMPTE';
+/**
+ * @deprecated use `SMPTETimecodeMode` instead
+ */
+export type MIDISMPTEMode = SMPTETimecodeMode;
 
 export type MIDITimecodeSenderOptions = {
   sendMessage: (message: number[]) => void;
-  mode: MIDISMPTEMode;
+  mode: SMPTETimecodeMode;
 };
 
 export type MIDITimecodeSender = {
-  setPlayState: (state: MIDITimecodePlayState | null) => void;
+  setPlayState: (state: SMPTETimecodePlayState | null) => void;
 };
 
-const MODE_VALUES: Record<MIDISMPTEMode, number> = {
+const MODE_VALUES: Record<SMPTETimecodeMode, number> = {
   FILM: 0b00,
   EBU: 0b01,
   DF: 0b10,
   SMPTE: 0b11,
 };
 
-const modeFromValue = (value: number): MIDISMPTEMode | null => {
+const modeFromValue = (value: number): SMPTETimecodeMode | null => {
   switch (value) {
     case MODE_VALUES.FILM:
       return 'FILM';

@@ -19,6 +19,24 @@ export type SMPTETimecodeFrameWithMillis = SMPTETimecodeFrame & {
   timeMillis: number;
 };
 
+export type SMPTETimecodePlayState =
+  | {
+      state: 'playing';
+      effectiveStartTime: number;
+      /**
+       * 1.0 means normal speed, 2.0 means double speed, etc.
+       * Can be negative for reverse playback,
+       *
+       * in which case effectiveStartTime represents the time when the track will reach 0:00.
+       */
+      speed: number;
+      smpteMode: SMPTETimecodeMode;
+    }
+  | {
+      state: 'stopped';
+      currentTimeMillis: number;
+    };
+
 const DROP_FRAME_NUMERATOR = 30_000;
 const DROP_FRAME_DENOMINATOR = 1_001;
 const DROP_FRAME_COUNT = 2;
