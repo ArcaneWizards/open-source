@@ -1,5 +1,6 @@
 import {
   createLTCModeDetector,
+  createLTCTimingStabilizer,
   decodeLTCFrameAddress,
   decodeLTCFrameBits,
   encodeLTCFrameBits,
@@ -7,6 +8,7 @@ import {
   LTC_FRAME_BIT_COUNT,
   LTC_SYNC_WORD_START,
   matchesLTCSyncWord,
+  normalizeLTCSpeed,
 } from '../src/frame';
 import type {
   SMPTETimecodeFrame,
@@ -16,6 +18,16 @@ import type {
 const frameAddress = (frame: number, dropFrame = false) => ({
   frame,
   dropFrame,
+});
+
+const timingCandidate = (
+  effectiveStartTime: number,
+  speed: number,
+  smpteMode: SMPTETimecodeMode = 'SMPTE',
+) => ({
+  effectiveStartTime,
+  speed,
+  smpteMode,
 });
 
 const timecode = (
@@ -170,6 +182,117 @@ describe('LTC frame utilities', () => {
     expect(detector.recordFrame(frameAddress(29), 1_000)).toBeNull();
     expect(detector.recordFrame(frameAddress(28), 1_901)).toBeNull();
     expect(detector.recordFrame(frameAddress(27), 2_501)).toBe('SMPTE');
+  });
+
+  test('normalizes speeds close to standard playback', () => {
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: 1.009,
+        direction: 'forward',
+        previousSpeed: 1.2,
+        tolerance: 0.01,
+      }),
+    ).toBe(1);
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: -1.009,
+        direction: 'forward',
+        previousSpeed: -1.2,
+        tolerance: 0.01,
+      }),
+    ).toBe(-1);
+  });
+
+  test('preserves previous speed for likely playhead jumps', () => {
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: 4.1,
+        direction: 'forward',
+        previousSpeed: 1.2,
+      }),
+    ).toBe(1.2);
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: 0.2,
+        direction: 'forward',
+        previousSpeed: 0.8,
+      }),
+    ).toBe(0.8);
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: -4.1,
+        direction: 'reverse',
+        previousSpeed: -1.2,
+      }),
+    ).toBe(-1.2);
+  });
+
+  test('preserves previous non-standard speeds within tolerance', () => {
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: 0.8996,
+        direction: 'forward',
+        previousSpeed: 0.9002,
+        tolerance: 0.01,
+      }),
+    ).toBe(0.9002);
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: -0.8996,
+        direction: 'reverse',
+        previousSpeed: -0.9002,
+        tolerance: 0.01,
+      }),
+    ).toBe(-0.9002);
+  });
+
+  test('uses standard speed for invalid measurements with no previous speed', () => {
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: Number.NaN,
+        direction: 'forward',
+      }),
+    ).toBe(1);
+    expect(
+      normalizeLTCSpeed({
+        measuredSpeed: 12,
+        direction: 'reverse',
+      }),
+    ).toBe(-1);
+  });
+
+  test('accepts timing candidates close to the previous accepted state', () => {
+    const stabilizer = createLTCTimingStabilizer();
+
+    expect(
+      stabilizer.shouldAccept(
+        timingCandidate(1_005, 1.01),
+        timingCandidate(1_000, 1),
+      ),
+    ).toBe(true);
+  });
+
+  test('rejects isolated timing jumps without poisoning later candidates', () => {
+    const stabilizer = createLTCTimingStabilizer();
+    const previous = timingCandidate(1_000, 1);
+
+    expect(
+      stabilizer.shouldAccept(timingCandidate(20_000, 2.96), previous),
+    ).toBe(false);
+    expect(stabilizer.shouldAccept(timingCandidate(1_006, 1), previous)).toBe(
+      true,
+    );
+  });
+
+  test('accepts repeated consistent timing jumps', () => {
+    const stabilizer = createLTCTimingStabilizer();
+    const previous = timingCandidate(1_000, 1);
+    const next = timingCandidate(20_000, 2.96);
+
+    expect(stabilizer.shouldAccept(next, previous)).toBe(false);
+    expect(
+      stabilizer.shouldAccept(timingCandidate(20_030, 2.95), previous),
+    ).toBe(true);
   });
 
   test('rejects invalid BCD fields', () => {

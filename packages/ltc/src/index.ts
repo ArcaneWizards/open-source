@@ -4,10 +4,13 @@ import {
 } from '@arcanewizards/smpte';
 import {
   createLTCModeDetector,
+  createLTCTimingStabilizer,
   decodeLTCFrameAddress,
   decodeLTCFrameBits,
   LTC_FRAME_BIT_COUNT,
+  normalizeLTCSpeed,
   type LTCModeDetector,
+  type LTCTimingStabilizer,
 } from './frame.js';
 
 export type { SMPTETimecodePlayState } from '@arcanewizards/smpte';
@@ -39,7 +42,7 @@ export type LTCWriter = {
 
 const LTC_READER_PROCESSOR_NAME = 'arcanewizards-ltc-reader';
 const MIN_TC_DIFF_TOLERANCE_MS = 10;
-const MIN_SPEED_CHANGE_TOLERANCE = 0.01;
+const MIN_SPEED_CHANGE_TOLERANCE = 0.05;
 const DEFAULT_STOPPED_TIMEOUT_MS = 150;
 
 const LTC_READER_WORKLET_SOURCE = `
@@ -266,17 +269,21 @@ type LTCReaderWorkletMessage = {
 type LTCReaderChannelState = {
   lastFrameWallMillis: number | null;
   lastTimecodeMillis: number | null;
+  lastValidTimecodeMillis: number | null;
   lastPlayingState: SMPTETimecodePlayState | null;
   stoppedTimeoutId: ReturnType<typeof setTimeout> | null;
   modeDetector: LTCModeDetector;
+  timingStabilizer: LTCTimingStabilizer;
 };
 
 const createReaderChannelState = (): LTCReaderChannelState => ({
   lastFrameWallMillis: null,
   lastTimecodeMillis: null,
+  lastValidTimecodeMillis: null,
   lastPlayingState: null,
   stoppedTimeoutId: null,
   modeDetector: createLTCModeDetector(),
+  timingStabilizer: createLTCTimingStabilizer(),
 });
 
 export const createLTCReader = ({
@@ -315,6 +322,30 @@ export const createLTCReader = ({
     handlePlayStateChange(channel, stoppedState);
   };
 
+  const scheduleStoppedState = (
+    channel: number,
+    frameDurationMillis: number,
+  ) => {
+    const channelState = channelStates[channel];
+    if (!channelState || closed) {
+      return;
+    }
+
+    if (channelState.stoppedTimeoutId) {
+      clearTimeout(channelState.stoppedTimeoutId);
+    }
+
+    const stoppedTimeoutMillis = Math.max(
+      DEFAULT_STOPPED_TIMEOUT_MS,
+      frameDurationMillis * 4,
+    );
+    channelState.stoppedTimeoutId = setTimeout(() => {
+      if (channelState.lastValidTimecodeMillis !== null) {
+        sendStoppedState(channel, channelState.lastValidTimecodeMillis);
+      }
+    }, stoppedTimeoutMillis);
+  };
+
   const handleWorkletMessage = (
     event: MessageEvent<LTCReaderWorkletMessage>,
   ) => {
@@ -328,6 +359,10 @@ export const createLTCReader = ({
     if (!channelState || bits.length !== LTC_FRAME_BIT_COUNT) {
       return;
     }
+
+    const frameDurationMillis =
+      (bitSamples * LTC_FRAME_BIT_COUNT * 1000) / sampleRate;
+    scheduleStoppedState(channel, frameDurationMillis);
 
     const frameWallMillis =
       contextStartWallMillis + (bitStartFrame / sampleRate) * 1000;
@@ -350,6 +385,7 @@ export const createLTCReader = ({
     }
 
     const timecodeMillis = getMillisFromTimecode(decodedFrame.timecode);
+    channelState.lastValidTimecodeMillis = timecodeMillis;
     const wallDelta =
       channelState.lastFrameWallMillis === null
         ? null
@@ -364,12 +400,16 @@ export const createLTCReader = ({
         : direction === 'reverse'
           ? -1
           : 1;
-    const speed =
-      Number.isFinite(measuredSpeed) && Math.abs(measuredSpeed) >= 0.1
-        ? measuredSpeed
-        : direction === 'reverse'
-          ? -1
-          : 1;
+    const previousSpeed =
+      channelState.lastPlayingState?.state === 'playing'
+        ? channelState.lastPlayingState.speed
+        : null;
+    const speed = normalizeLTCSpeed({
+      measuredSpeed,
+      direction,
+      previousSpeed,
+      tolerance: MIN_SPEED_CHANGE_TOLERANCE,
+    });
     const effectiveStartTime = frameWallMillis - timecodeMillis / speed;
     const nextPlayingState: SMPTETimecodePlayState = {
       state: 'playing',
@@ -378,6 +418,16 @@ export const createLTCReader = ({
       smpteMode: decodedFrame.timecode.mode,
     };
     const previousPlayingState = channelState.lastPlayingState;
+
+    if (
+      previousPlayingState?.state === 'playing' &&
+      !channelState.timingStabilizer.shouldAccept(
+        nextPlayingState,
+        previousPlayingState,
+      )
+    ) {
+      return;
+    }
 
     if (
       !previousPlayingState ||
@@ -394,20 +444,6 @@ export const createLTCReader = ({
 
     channelState.lastFrameWallMillis = frameWallMillis;
     channelState.lastTimecodeMillis = timecodeMillis;
-
-    if (channelState.stoppedTimeoutId) {
-      clearTimeout(channelState.stoppedTimeoutId);
-    }
-
-    const frameDurationMillis =
-      (bitSamples * LTC_FRAME_BIT_COUNT * 1000) / sampleRate;
-    const stoppedTimeoutMillis = Math.max(
-      DEFAULT_STOPPED_TIMEOUT_MS,
-      frameDurationMillis * 4,
-    );
-    channelState.stoppedTimeoutId = setTimeout(() => {
-      sendStoppedState(channel, timecodeMillis);
-    }, stoppedTimeoutMillis);
   };
 
   input.connect(splitter);

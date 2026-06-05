@@ -76,6 +76,34 @@ export type LTCModeDetector = {
   getMode: (receivedAtMillis: number) => SMPTETimecodeMode | null;
 };
 
+export type LTCNormalizeSpeedOptions = {
+  measuredSpeed: number;
+  direction: LTCDirection;
+  previousSpeed?: number | null;
+  tolerance?: number;
+  minimumSpeed?: number;
+  maximumSpeed?: number;
+};
+
+export type LTCTimingCandidate = {
+  effectiveStartTime: number;
+  speed: number;
+  smpteMode: SMPTETimecodeMode;
+};
+
+export type LTCTimingStabilizerOptions = {
+  effectiveStartTimeToleranceMillis?: number;
+  speedTolerance?: number;
+  requiredConfirmationCount?: number;
+};
+
+export type LTCTimingStabilizer = {
+  shouldAccept: (
+    candidate: LTCTimingCandidate,
+    previous: LTCTimingCandidate | null,
+  ) => boolean;
+};
+
 export type LTCDecodedFrame = {
   timecode: SMPTETimecodeFrame;
   direction: LTCDirection;
@@ -102,6 +130,12 @@ const DEFAULT_USER_BITS: LTCUserBits = [0, 0, 0, 0, 0, 0, 0, 0];
 const DEFAULT_MODE_EVIDENCE_TIMEOUT_MS = 4_000;
 const DEFAULT_MODE_MINIMUM_EVIDENCE_COUNT = 2;
 const DEFAULT_MODE_MINIMUM_EVIDENCE_SPAN_MS = 900;
+const DEFAULT_SPEED_CHANGE_TOLERANCE = 0.01;
+const DEFAULT_MINIMUM_SPEED = 0.25;
+const DEFAULT_MAXIMUM_SPEED = 4;
+const DEFAULT_TIMING_EFFECTIVE_START_TOLERANCE_MS = 100;
+const DEFAULT_TIMING_SPEED_TOLERANCE = 0.05;
+const DEFAULT_TIMING_CONFIRMATION_COUNT = 2;
 
 const readBits = (
   bits: ArrayLike<number>,
@@ -431,6 +465,89 @@ export const createLTCModeDetector = ({
       return getMode(receivedAtMillis);
     },
     getMode,
+  };
+};
+
+export const normalizeLTCSpeed = ({
+  measuredSpeed,
+  direction,
+  previousSpeed,
+  tolerance = DEFAULT_SPEED_CHANGE_TOLERANCE,
+  minimumSpeed = DEFAULT_MINIMUM_SPEED,
+  maximumSpeed = DEFAULT_MAXIMUM_SPEED,
+}: LTCNormalizeSpeedOptions): number => {
+  const directionSpeed = direction === 'reverse' ? -1 : 1;
+
+  if (!Number.isFinite(measuredSpeed)) {
+    return previousSpeed ?? directionSpeed;
+  }
+
+  const absoluteMeasuredSpeed = Math.abs(measuredSpeed);
+  if (
+    absoluteMeasuredSpeed < minimumSpeed ||
+    absoluteMeasuredSpeed > maximumSpeed
+  ) {
+    return previousSpeed ?? directionSpeed;
+  }
+
+  if (Math.abs(absoluteMeasuredSpeed - 1) <= tolerance) {
+    return measuredSpeed < 0 ? -1 : 1;
+  }
+
+  if (
+    typeof previousSpeed === 'number' &&
+    Number.isFinite(previousSpeed) &&
+    Math.abs(measuredSpeed - previousSpeed) <= tolerance
+  ) {
+    return previousSpeed;
+  }
+
+  return measuredSpeed;
+};
+
+export const createLTCTimingStabilizer = ({
+  effectiveStartTimeToleranceMillis = DEFAULT_TIMING_EFFECTIVE_START_TOLERANCE_MS,
+  speedTolerance = DEFAULT_TIMING_SPEED_TOLERANCE,
+  requiredConfirmationCount = DEFAULT_TIMING_CONFIRMATION_COUNT,
+}: LTCTimingStabilizerOptions = {}): LTCTimingStabilizer => {
+  let pendingCandidate: LTCTimingCandidate | null = null;
+  let pendingCandidateCount = 0;
+
+  const candidateMatches = (
+    a: LTCTimingCandidate,
+    b: LTCTimingCandidate,
+  ): boolean => {
+    return (
+      a.smpteMode === b.smpteMode &&
+      Math.abs(a.speed - b.speed) <= speedTolerance &&
+      Math.abs(a.effectiveStartTime - b.effectiveStartTime) <=
+        effectiveStartTimeToleranceMillis
+    );
+  };
+
+  return {
+    shouldAccept(candidate, previous) {
+      if (!previous || candidateMatches(candidate, previous)) {
+        pendingCandidate = null;
+        pendingCandidateCount = 0;
+        return true;
+      }
+
+      if (!pendingCandidate || !candidateMatches(candidate, pendingCandidate)) {
+        pendingCandidate = candidate;
+        pendingCandidateCount = 1;
+        return false;
+      }
+
+      pendingCandidateCount += 1;
+      if (pendingCandidateCount < requiredConfirmationCount) {
+        return false;
+      }
+
+      pendingCandidate = null;
+      pendingCandidateCount = 0;
+      return true;
+    },
   };
 };
 
