@@ -797,7 +797,6 @@ export const createLTCReader = ({
   const handleWorkletMessage = (
     event: MessageEvent<LTCReaderWorkletMessage>,
   ) => {
-    console.log(event);
     if (closed || event.data.type !== 'frame') {
       return;
     }

@@ -60,7 +60,7 @@ const LtcDemo: FC = () => {
 
   const openAudioInput = useCallback(async (deviceId: string) => {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { deviceId: { exact: deviceId } },
+      audio: { deviceId: { exact: deviceId }, echoCancellation: false },
     });
     setOpenAudioStream(stream);
   }, []);
