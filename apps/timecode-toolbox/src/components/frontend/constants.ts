@@ -141,6 +141,9 @@ export const STRINGS = {
   errors: {
     unknownTimecodeID: 'Unknown timecode ID, please close the window',
   },
+  audio: {
+    outputDevice: (device: string) => `Device: ${device}`,
+  },
   midi: {
     deviceLabelForPort: (device: string) => `Device: ${device}`,
     deviceLabelForVirtual: `VIRTUAL`,
