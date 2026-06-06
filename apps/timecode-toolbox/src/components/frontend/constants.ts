@@ -20,6 +20,7 @@ export const STRINGS = {
   toggle: (text: string) => `Toggle ${text}`,
   close: (text: string) => `Close ${text}`,
   clearFile: 'Clear loaded file',
+  audioOutputSettings: 'Audio Output Settings',
   license: 'License & About',
   acceptLicense: 'Accept License',
   licensePrompt: 'Please review and accept the license to use Timecode Toolbox',

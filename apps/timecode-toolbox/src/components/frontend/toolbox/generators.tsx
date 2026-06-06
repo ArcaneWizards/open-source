@@ -40,6 +40,7 @@ import {
 } from './core/timecode-display';
 import { WithAudioPlayer } from './core/audio-player';
 import { DelayConfig } from './core/delay';
+import { AudioPlaybackContextProvider } from './core/audio-context';
 
 const CLOCK_MODE_OPTIONS: Array<
   SelectOption<GeneratorClockDefinition['mode']>
@@ -462,23 +463,24 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
         >
           {Object.entries(config.generators).map(([uuid, generator]) =>
             generator.definition.type === 'player' ? (
-              <WithAudioPlayer
-                key={uuid}
-                uuid={uuid}
-                config={generator}
-                timecodeDisplay={({ loadFile, startPlayer, errors }) => (
-                  <GeneratorDisplay
-                    key={uuid}
-                    uuid={uuid}
-                    config={generator}
-                    setDialogMode={setDialogMode}
-                    assignToOutput={assignToOutput}
-                    loadFile={loadFile}
-                    startPlayer={startPlayer}
-                    additionalErrors={errors}
-                  />
-                )}
-              />
+              <AudioPlaybackContextProvider key={uuid} id={['generator', uuid]}>
+                <WithAudioPlayer
+                  uuid={uuid}
+                  config={generator}
+                  timecodeDisplay={({ loadFile, startPlayer, errors }) => (
+                    <GeneratorDisplay
+                      key={uuid}
+                      uuid={uuid}
+                      config={generator}
+                      setDialogMode={setDialogMode}
+                      assignToOutput={assignToOutput}
+                      loadFile={loadFile}
+                      startPlayer={startPlayer}
+                      additionalErrors={errors}
+                    />
+                  )}
+                />
+              </AudioPlaybackContextProvider>
             ) : (
               <GeneratorDisplay
                 key={uuid}

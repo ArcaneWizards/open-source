@@ -56,6 +56,10 @@ import {
 } from '../../../../util';
 import { LoadFileCallback, WithAudioPlayer } from './audio-player';
 import { useNetworkInterfaceInfo } from '../hooks';
+import {
+  AudioPlaybackContext,
+  AudioPlaybackContextProvider,
+} from './audio-context';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -680,6 +684,9 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
 }) => {
   const { openNewWidow } = useBrowserContext();
 
+  const { openOutputDeviceDialog, currentVolume } =
+    useContext(AudioPlaybackContext);
+
   const openInNewWindow = useCallback(() => {
     if (id) {
       openNewWidow(withUrlFragment({ values: { tc: id } }).href, {
@@ -850,6 +857,16 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               </div>
             </div>
             <ControlButtonGroup className="rounded-md bg-sigil-bg-light">
+              {openOutputDeviceDialog && (
+                <ControlButton
+                  variant="toolbar"
+                  icon="volume_up"
+                  title={STRINGS.audioOutputSettings}
+                  onClick={openOutputDeviceDialog}
+                >
+                  {`${Math.round(currentVolume * 100)}%`}
+                </ControlButton>
+              )}
               {clearFile && (
                 <ControlButton
                   variant="toolbar"
@@ -1124,27 +1141,29 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
       "
     >
       {audioConfig ? (
-        <WithAudioPlayer
-          uuid={id[1]}
-          config={instanceConfig.config}
-          timecodeDisplay={({ loadFile, startPlayer, errors }) => (
-            <TimecodeTreeDisplay
-              id={id}
-              timecode={instanceConfig.disabled ? 'disabled' : timecode}
-              rootState={{
-                ...rootState,
-                errors: [...rootState.errors, ...errors],
-              }}
-              assignToOutput={null}
-              buttons={null}
-              labels={labels}
-              link={linkedSourceInfo}
-              loadFile={loadFile}
-              startPlayer={startPlayer}
-              {...instanceConfig}
-            />
-          )}
-        />
+        <AudioPlaybackContextProvider id={id}>
+          <WithAudioPlayer
+            uuid={id[1]}
+            config={instanceConfig.config}
+            timecodeDisplay={({ loadFile, startPlayer, errors }) => (
+              <TimecodeTreeDisplay
+                id={id}
+                timecode={instanceConfig.disabled ? 'disabled' : timecode}
+                rootState={{
+                  ...rootState,
+                  errors: [...rootState.errors, ...errors],
+                }}
+                assignToOutput={null}
+                buttons={null}
+                labels={labels}
+                link={linkedSourceInfo}
+                loadFile={loadFile}
+                startPlayer={startPlayer}
+                {...instanceConfig}
+              />
+            )}
+          />
+        </AudioPlaybackContextProvider>
       ) : (
         <TimecodeTreeDisplay
           id={id}

@@ -30,6 +30,7 @@ import {
   BrowserCloseListener,
   useBrowserContext,
 } from '@arcanewizards/sigil/frontend';
+import { AudioPlaybackContext } from './audio-context';
 
 export type LoadFileCallback = (file: File | null) => void;
 
@@ -109,12 +110,9 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   const { mediaSession, addCloseListener, removeCloseListener } =
     useBrowserContext();
 
-  const context = useMemo(() => {
-    const ctx = new AudioContext();
-    const masterGain = ctx.createGain();
-    masterGain.connect(ctx.destination);
-    return { ctx, masterGain };
-  }, []);
+  const { ctx, errors: audioContextErrors } = useContext(AudioPlaybackContext);
+
+  const context = ctx();
 
   const [loadedAudio, setLoadedAudio] = useState<LoadedAudio | null>(null);
 
@@ -556,5 +554,10 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     };
   }, [releasePlayerControl, uuid]);
 
-  return timecodeDisplay({ loadFile, startPlayer, errors });
+  const compositeErrors = useMemo(
+    () => [...errors, ...audioContextErrors],
+    [errors, audioContextErrors],
+  );
+
+  return timecodeDisplay({ loadFile, startPlayer, errors: compositeErrors });
 };
