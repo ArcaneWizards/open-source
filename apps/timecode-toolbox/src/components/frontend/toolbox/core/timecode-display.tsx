@@ -687,7 +687,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
 }) => {
   const { openNewWidow } = useBrowserContext();
 
-  const { openOutputDeviceDialog, currentVolume } =
+  const { openOutputDeviceDialog, currentVolume, outputDevice } =
     useContext(AudioPlaybackContext);
 
   const openInNewWindow = useCallback(() => {
@@ -747,6 +747,13 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
     ));
   }
 
+  const allLabels = [
+    ...labels,
+    ...(outputDevice
+      ? [{ text: STRINGS.audio.outputDevice(outputDevice) }]
+      : []),
+  ];
+
   return (
     <div
       className="relative flex grow flex-col text-timecode-usage-foreground"
@@ -789,7 +796,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
                         </span>
                       </TooltipWrapper>
                     ) : null}
-                    {labels.map((label, index) => (
+                    {allLabels.map((label, index) => (
                       <TooltipWrapper key={index} tooltip={label.text}>
                         <span
                           key={index}
