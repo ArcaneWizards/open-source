@@ -3,8 +3,10 @@ import {
   FC,
   ReactNode,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { STRINGS } from '../../constants';
@@ -23,6 +25,92 @@ import {
   BrowserPreferencesDefinition,
   createBrowserPreferencesHook,
 } from '@arcanewizards/sigil/frontend/preferences';
+
+type AudioDevices = {
+  inputs: MediaDeviceInfo[];
+  outputs: MediaDeviceInfo[];
+};
+
+type AudioDevicesQueryProviderData = {
+  audioDevices:
+    | null
+    | { state: 'loading' }
+    | { state: 'ready'; devices: AudioDevices }
+    | { state: 'error'; error: string };
+  refreshAudioDevices: () => void;
+};
+
+const AudioDevicesQueryContext = createContext<AudioDevicesQueryProviderData>({
+  audioDevices: null,
+  refreshAudioDevices: () => {
+    throw new Error('No AudioDevicesQueryContext provider found.');
+  },
+});
+
+export const AudioDevicesQueryProvider: FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const hasDevicePermission = useRef(false);
+
+  const [audioDevices, setAudioDevices] =
+    useState<AudioDevicesQueryProviderData['audioDevices']>(null);
+
+  const getDevicePermission = useCallback(async () => {
+    if (hasDevicePermission.current) {
+      // Don't try to get permissions again if we've already done it once,
+      // so we avoid requesting/ using microphone access unnecessarily.
+      return;
+    }
+    // Devices will not be visible until the user has granted permission
+    // which requires us to ask for microphone access and request a stream
+    // even if we only care about audio output devices.
+    const tempStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+    });
+    tempStream.getTracks().forEach((track) => track.stop());
+    hasDevicePermission.current = true;
+  }, []);
+
+  const refreshAudioDevices = useCallback(() => {
+    setAudioDevices((current) => {
+      if (current?.state === 'loading') {
+        return current; // Don't do anything if we're already loading
+      }
+
+      getDevicePermission()
+        .then(async () => {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+
+          const outputs = devices.filter(
+            (device) => device.kind === 'audiooutput',
+          );
+          const inputs = devices.filter(
+            (device) => device.kind === 'audioinput',
+          );
+          setAudioDevices({ state: 'ready', devices: { inputs, outputs } });
+        })
+        .catch((cause) => {
+          const errorMessage = `Error fetching audio devices: ${cause.message}`;
+          setAudioDevices({ state: 'error', error: errorMessage });
+        });
+      return { state: 'loading' };
+    });
+  }, [getDevicePermission]);
+
+  const data: AudioDevicesQueryProviderData = useMemo(
+    () => ({
+      audioDevices,
+      refreshAudioDevices,
+    }),
+    [audioDevices, refreshAudioDevices],
+  );
+
+  return (
+    <AudioDevicesQueryContext.Provider value={data}>
+      {children}
+    </AudioDevicesQueryContext.Provider>
+  );
+};
 
 export type AudioPlaybackContextData = {
   /**
@@ -114,26 +202,6 @@ export const useBrowserPreferences = createBrowserPreferencesHook(
   AUDIO_PLAYBACK_PREFERENCES,
 );
 
-type AudioDevices = {
-  inputs: MediaDeviceInfo[];
-  outputs: MediaDeviceInfo[];
-};
-
-const getAudioDevices = async (): Promise<AudioDevices> => {
-  // Labels will not be visible until the user has granted permission
-  // which requires us to ask for microphone access and request a stream
-  // even if we only care about audio output devices.
-  const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  tempStream.getTracks().forEach((track) => track.stop());
-
-  const devices = await navigator.mediaDevices.enumerateDevices();
-
-  const outputs = devices.filter((device) => device.kind === 'audiooutput');
-  const inputs = devices.filter((device) => device.kind === 'audioinput');
-
-  return { inputs, outputs };
-};
-
 type SelectedDevice = MediaDeviceInfo | 'default' | 'loading' | 'not-found';
 
 export const AudioPlaybackContextProvider: FC<
@@ -159,20 +227,20 @@ export const AudioPlaybackContextProvider: FC<
     return { ctx, masterGain };
   }, []);
 
-  const [audioDevices, setAudioDevices] = useState<
-    AudioDevices | null | 'loading'
-  >(null);
+  const { audioDevices, refreshAudioDevices } = useContext(
+    AudioDevicesQueryContext,
+  );
 
   const selectedDevice: SelectedDevice = useMemo(() => {
     if (!wantedDevice) {
       return 'default' as const;
     }
 
-    if (audioDevices === null || audioDevices === 'loading') {
+    if (audioDevices?.state !== 'ready') {
       return 'loading' as const;
     }
 
-    const deviceById = audioDevices.outputs.find(
+    const deviceById = audioDevices.devices.outputs.find(
       (device) => device.deviceId === wantedDevice.deviceId,
     );
 
@@ -180,7 +248,7 @@ export const AudioPlaybackContextProvider: FC<
       return deviceById;
     }
 
-    const deviceByLabel = audioDevices.outputs.find(
+    const deviceByLabel = audioDevices.devices.outputs.find(
       (device) => device.label === wantedDevice.label,
     );
 
@@ -211,9 +279,9 @@ export const AudioPlaybackContextProvider: FC<
       });
     }
 
-    if (audioDevices && audioDevices !== 'loading') {
+    if (audioDevices?.state === 'ready') {
       options.push(
-        ...audioDevices.outputs.map((device) => ({
+        ...audioDevices.devices.outputs.map((device) => ({
           label: device.label || `Device ${device.deviceId}`,
           value: device.deviceId,
         })),
@@ -255,19 +323,6 @@ export const AudioPlaybackContextProvider: FC<
 
   const openOutputDeviceDialog = useCallback(() => {
     setDialogSettingsOpen(true);
-  }, []);
-
-  const refreshAudioDevices = useCallback(() => {
-    setAudioDevices('loading');
-    getAudioDevices()
-      .then(setAudioDevices)
-      .catch((cause) => {
-        const errorMessage = `Error fetching audio devices: ${cause.message}`;
-        // eslint-disable-next-line no-console
-        console.error(new Error(errorMessage, { cause }));
-        setErrors([errorMessage]);
-        setAudioDevices(null);
-      });
   }, []);
 
   useEffect(() => {
@@ -364,8 +419,7 @@ export const AudioPlaybackContextProvider: FC<
             options={deviceSelectionOptions}
             onChange={(dev) => {
               if (
-                !audioDevices ||
-                audioDevices === 'loading' ||
+                audioDevices?.state !== 'ready' ||
                 dev === 'loading' ||
                 dev === 'not-found'
               ) {
@@ -378,7 +432,7 @@ export const AudioPlaybackContextProvider: FC<
                 }));
                 return;
               }
-              const selected = audioDevices.outputs.find(
+              const selected = audioDevices.devices.outputs.find(
                 (device) => device.deviceId === dev,
               );
               if (selected) {

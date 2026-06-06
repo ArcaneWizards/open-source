@@ -57,6 +57,7 @@ import {
   ControlDetails,
 } from '@arcanewizards/sigil/frontend/controls';
 import { RootAudioContext, RootAudioContextData } from './core/audio-player';
+import { AudioDevicesQueryProvider } from './core/audio-context';
 
 type Props = {
   info: ToolboxRootComponent;
@@ -501,17 +502,19 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
 
   return (
     <GlobalUserInteractionsContext.Provider value={interactions}>
-      <ConfigContext.Provider value={configContext}>
-        <SystemContext.Provider value={systemContextValue}>
-          <RootAudioContext.Provider value={audioContextValue}>
-            <ApplicationStateContext.Provider value={info.state}>
-              <ApplicationHandlersContext.Provider value={handlers}>
-                {root}
-              </ApplicationHandlersContext.Provider>
-            </ApplicationStateContext.Provider>
-          </RootAudioContext.Provider>
-        </SystemContext.Provider>
-      </ConfigContext.Provider>
+      <AudioDevicesQueryProvider>
+        <ConfigContext.Provider value={configContext}>
+          <SystemContext.Provider value={systemContextValue}>
+            <RootAudioContext.Provider value={audioContextValue}>
+              <ApplicationStateContext.Provider value={info.state}>
+                <ApplicationHandlersContext.Provider value={handlers}>
+                  {root}
+                </ApplicationHandlersContext.Provider>
+              </ApplicationStateContext.Provider>
+            </RootAudioContext.Provider>
+          </SystemContext.Provider>
+        </ConfigContext.Provider>
+      </AudioDevicesQueryProvider>
     </GlobalUserInteractionsContext.Provider>
   );
 };
