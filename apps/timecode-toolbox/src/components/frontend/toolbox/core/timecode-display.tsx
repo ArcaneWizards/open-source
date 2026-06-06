@@ -22,6 +22,9 @@ import {
   ToolboxConfig,
   UniversalConfig,
   MidiTargetConfig,
+  GeneratorPlayerDefinition,
+  UniversalConfigWithDefinition,
+  isAudioPlayerGenerator,
 } from '../../../proto';
 import { displayMillis } from '../util';
 import { StageContext } from '@arcanejs/toolkit-frontend';
@@ -1045,15 +1048,16 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     return undefined;
   }, [id, config]);
 
-  const audioConfig = useMemo(() => {
-    if (isGeneratorInstanceId(id)) {
-      const c = config.generators[id[1]];
-      if (c?.definition.type === 'player') {
-        return c;
+  const audioConfig: UniversalConfigWithDefinition<GeneratorPlayerDefinition> | null =
+    useMemo(() => {
+      if (isGeneratorInstanceId(id)) {
+        const c = config.generators[id[1]];
+        if (isAudioPlayerGenerator(c)) {
+          return c;
+        }
       }
-    }
-    return null;
-  }, [id, config.generators]);
+      return null;
+    }, [id, config.generators]);
 
   const labels = useTimecodeLabels(id);
 
@@ -1144,7 +1148,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         <AudioPlaybackContextProvider id={id}>
           <WithAudioPlayer
             uuid={id[1]}
-            config={instanceConfig.config}
+            config={audioConfig}
             timecodeDisplay={({ loadFile, startPlayer, errors }) => (
               <TimecodeTreeDisplay
                 id={id}

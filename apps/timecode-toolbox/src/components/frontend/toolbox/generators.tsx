@@ -25,6 +25,7 @@ import {
   GeneratorClockDefinition,
   GeneratorConfig,
   GeneratorDefinition,
+  isAudioPlayerGenerator,
   TimecodeInstanceId,
   ToolboxRootGetTimezoneInfoReturn,
 } from '../../proto';
@@ -123,7 +124,10 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
           <ControlLabel>Speed</ControlLabel>
           <ControlInput
             position="both"
-            type="string"
+            type="number"
+            min="0.1"
+            max="4"
+            step="0.1"
             value={data.speed?.toString() ?? ''}
             placeholder={`Default (1)`}
             onChange={(value, enterPressed) => {
@@ -159,6 +163,45 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
           />
         </>
       )}
+    </>
+  );
+};
+
+const AudioPlayerSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
+  data,
+  updateSettings,
+}) => {
+  const { commitChanges } = useContext(ChangeCommitContext);
+
+  if (data.type !== 'player') {
+    return null;
+  }
+
+  return (
+    <>
+      <ControlLabel>Speed</ControlLabel>
+      <ControlInput
+        position="both"
+        type="number"
+        min="0.1"
+        max="4"
+        step="0.1"
+        value={data.speed?.toString() ?? ''}
+        placeholder={`Default (1)`}
+        onChange={(value, enterPressed) => {
+          const speed = value ? parseFloat(value) : 1;
+          if (speed !== undefined && isNaN(speed)) {
+            return;
+          }
+          updateSettings((current) => ({
+            ...current,
+            speed,
+          }));
+          if (enterPressed) {
+            commitChanges();
+          }
+        }}
+      />
     </>
   );
 };
@@ -304,6 +347,12 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
             updateSettings={updateDefinition}
           />
         ) : null}
+        {data.definition.type === 'player' ? (
+          <AudioPlayerSpecificSettings
+            data={data.definition}
+            updateSettings={updateDefinition}
+          />
+        ) : null}
 
         <DelayConfig
           delayMs={data.delayMs}
@@ -385,7 +434,10 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
   return (
     <TimecodeTreeDisplay
       id={id}
-      config={{ delayMs: config.delayMs ?? null }}
+      config={{
+        delayMs: config.delayMs ?? null,
+        definition: config.definition,
+      }}
       type={STRINGS.generators.type[config.definition.type]}
       name={config.name ? [config.name] : []}
       color={config.color}
@@ -462,7 +514,7 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
           "
         >
           {Object.entries(config.generators).map(([uuid, generator]) =>
-            generator.definition.type === 'player' ? (
+            isAudioPlayerGenerator(generator) ? (
               <AudioPlaybackContextProvider key={uuid} id={['generator', uuid]}>
                 <WithAudioPlayer
                   uuid={uuid}
