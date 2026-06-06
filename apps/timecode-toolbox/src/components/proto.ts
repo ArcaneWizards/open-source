@@ -170,6 +170,10 @@ const GENERATOR_PLAYER_DEFINITION = z.object({
   volume: z.number(),
 });
 
+export type GeneratorPlayerDefinition = z.infer<
+  typeof GENERATOR_PLAYER_DEFINITION
+>;
+
 // Inputs
 
 const INPUT_DEFINITION = z.union([
@@ -222,7 +226,31 @@ export type OutputDefinition = z.infer<typeof OUTPUT_DEFINITION>;
  */
 export type UniversalConfig = {
   delayMs?: number | null;
+  definition?: InputDefinition | GeneratorDefinition | OutputDefinition;
 };
+
+export type UniversalConfigWithDefinition<
+  T extends InputDefinition | GeneratorDefinition | OutputDefinition,
+> = UniversalConfig & {
+  definition: T;
+};
+
+export const hasDefinition = <
+  T extends InputDefinition | GeneratorDefinition | OutputDefinition,
+>(
+  config: UniversalConfig | null | undefined,
+  guard: (
+    definition: InputDefinition | GeneratorDefinition | OutputDefinition,
+  ) => definition is T,
+): config is UniversalConfigWithDefinition<T> =>
+  !!config?.definition && guard(config.definition);
+
+export const isAudioPlayerGenerator = (
+  config: UniversalConfig | null | undefined,
+): config is UniversalConfigWithDefinition<GeneratorPlayerDefinition> =>
+  hasDefinition(config, (d): d is GeneratorPlayerDefinition =>
+    d.type === 'player' ? true : false,
+  );
 
 export type InputInstanceId = [
   type: 'input',

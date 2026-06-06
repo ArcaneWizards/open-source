@@ -5,18 +5,20 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
   GeneratorConfig,
   GeneratorInstanceId,
+  GeneratorPlayerDefinition,
   GeneratorState,
   isPlaying,
   isTimecodeToolboxControlPlaybackRequest,
   TimecodeMetadata,
   TimecodePlayStatePlayingOrLagging,
   TimecodePlayStateStopped,
-  UniversalConfig,
+  UniversalConfigWithDefinition,
 } from '../../../proto';
 import { useFileResolver } from '../hooks';
 import { ConfigContext, useApplicationHandlers } from '../context';
@@ -30,6 +32,7 @@ import {
   BrowserCloseListener,
   useBrowserContext,
 } from '@arcanewizards/sigil/frontend';
+import { AudioPlaybackContext } from './audio-context';
 
 export type LoadFileCallback = (file: File | null) => void;
 
@@ -59,7 +62,7 @@ export const RootAudioContext = createContext<RootAudioContextData>({
 
 type WithAudioPlayerProps = {
   uuid: string;
-  config: UniversalConfig;
+  config: UniversalConfigWithDefinition<GeneratorPlayerDefinition>;
   timecodeDisplay: (props: {
     loadFile: LoadFileCallback;
     /**
@@ -109,12 +112,9 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   const { mediaSession, addCloseListener, removeCloseListener } =
     useBrowserContext();
 
-  const context = useMemo(() => {
-    const ctx = new AudioContext();
-    const masterGain = ctx.createGain();
-    masterGain.connect(ctx.destination);
-    return { ctx, masterGain };
-  }, []);
+  const { ctx, errors: audioContextErrors } = useContext(AudioPlaybackContext);
+
+  const context = ctx();
 
   const [loadedAudio, setLoadedAudio] = useState<LoadedAudio | null>(null);
 
@@ -231,6 +231,16 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     [downloadAudioFile, loadAudioFile, uuid],
   );
 
+  /**
+   * Maintain a ref to the current speed so that it can be accessed without
+   * causing re-rendering when it changes.
+   *
+   * To accurately respond to changes in the speed,
+   * we have an effect that keeps this ref up-to-date,
+   * and calls the appropriate callbacks.
+   */
+  const speedRef = useRef(config.definition.speed);
+
   useEffect(() => {
     if (!loadedAudio) {
       return;
@@ -253,6 +263,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     if (loadedAudio.autoplay) {
       const source = context.ctx.createBufferSource();
       source.buffer = loadedAudio.buffer;
+      const newSpeed = speedRef.current;
+      source.playbackRate.value = newSpeed;
       source.connect(context.masterGain);
       source.start(context.ctx.currentTime);
       setPlayingAudio({
@@ -260,7 +272,7 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
         source,
         state: {
           effectiveStartTimeMillis: Date.now(),
-          speed: 1,
+          speed: newSpeed,
           state: 'playing',
         },
       });
@@ -297,6 +309,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
         }
         const source = context.ctx.createBufferSource();
         source.buffer = current.loadedAudio.buffer;
+        const newSpeed = speedRef.current;
+        source.playbackRate.value = newSpeed;
         source.connect(context.masterGain);
         source.start(
           context.ctx.currentTime,
@@ -307,8 +321,9 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
           source,
           state: {
             state: 'playing',
-            effectiveStartTimeMillis: Date.now() - current.state.positionMillis,
-            speed: 1,
+            effectiveStartTimeMillis:
+              Date.now() - current.state.positionMillis / newSpeed,
+            speed: newSpeed,
           },
         } satisfies PlayingAudio;
       }),
@@ -349,6 +364,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
               deltaMillis,
           );
           const source = context.ctx.createBufferSource();
+          const newSpeed = speedRef.current;
+          source.playbackRate.value = newSpeed;
           source.buffer = current.loadedAudio.buffer;
           source.connect(context.masterGain);
           source.start(context.ctx.currentTime, positionMillis / 1000);
@@ -357,8 +374,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
             source,
             state: {
               state: 'playing',
-              effectiveStartTimeMillis: Date.now() - positionMillis,
-              speed: current.state.speed,
+              effectiveStartTimeMillis: Date.now() - positionMillis / newSpeed,
+              speed: newSpeed,
             },
           } satisfies PlayingAudio;
         } else {
@@ -383,6 +400,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
         }
         if (isPlaying(current.state)) {
           const source = context.ctx.createBufferSource();
+          const newSpeed = speedRef.current;
+          source.playbackRate.value = newSpeed;
           source.buffer = current.loadedAudio.buffer;
           source.connect(context.masterGain);
           positionMillis = Math.max(positionMillis, 0);
@@ -392,8 +411,8 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
             source,
             state: {
               state: 'playing',
-              effectiveStartTimeMillis: Date.now() - positionMillis,
-              speed: current.state.speed,
+              effectiveStartTimeMillis: Date.now() - positionMillis / newSpeed,
+              speed: newSpeed,
             },
           } satisfies PlayingAudio;
         } else {
@@ -408,6 +427,13 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
       }),
     [context],
   );
+
+  useEffect(() => {
+    speedRef.current = config.definition.speed;
+
+    // Trigger a new playback by using seekRelative with 0 delta.
+    seekRelative(0);
+  }, [config.definition.speed, seekRelative]);
 
   useNotificationHandler(
     isTimecodeToolboxControlPlaybackRequest,
@@ -556,5 +582,10 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     };
   }, [releasePlayerControl, uuid]);
 
-  return timecodeDisplay({ loadFile, startPlayer, errors });
+  const compositeErrors = useMemo(
+    () => [...errors, ...audioContextErrors],
+    [errors, audioContextErrors],
+  );
+
+  return timecodeDisplay({ loadFile, startPlayer, errors: compositeErrors });
 };

@@ -72,6 +72,9 @@ export const InputWithDelayedPropagation: FC<InputProps> = ({
         (e.key === 'Enter' || e.key.startsWith('Arrow')) &&
         e.currentTarget.value !== lastValue.current
       ) {
+        onChange(e.currentTarget.value, e.key === 'Enter');
+      } else if (e.key === 'Enter') {
+        // If Enter is pressed but the value hasn't changed, we still want to trigger a change with the current value to indicate that editing is done
         onChange(e.currentTarget.value, true);
       }
       if (e.key === 'Escape' && inputRef.current) {
