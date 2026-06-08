@@ -63,7 +63,7 @@ import {
   AudioPlaybackContext,
   AudioPlaybackContextProvider,
 } from './audio-context';
-import { WithLtcPlayer } from './ltc-player';
+import { LtcContext, WithLtcPlayer } from './ltc-player';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -188,8 +188,6 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
   );
 };
 
-export type LtcState = 'here' | 'elsewhere' | null;
-
 export type TimecodeDisplayProps = {
   id: TimecodeInstanceId;
   timecode: TimecodeInstance;
@@ -202,18 +200,6 @@ export type TimecodeDisplayProps = {
   };
   loadFile: null | LoadFileCallback;
   startPlayer: null | (() => void);
-  ltc: {
-    /**
-     * Is this LTC timecode currently connected to an audio input/output?
-     * And if so where...
-     *
-     * To keep things simple,
-     * we require that only one window / client is playing/receiving a
-     * specific LTC output/input at a time.
-     */
-    state: LtcState;
-    startLtcPlayback: () => void;
-  } | null;
 };
 
 const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
@@ -225,7 +211,6 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   rootState,
   loadFile,
   startPlayer,
-  ltc,
 }) => {
   const { handlers, callHandler } = useApplicationHandlers();
 
@@ -276,6 +261,8 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
 
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const ltc = useContext(LtcContext);
+
   const clickAction = useMemo(() => {
     if (!disabled && hooks?.play && hooks?.pause) {
       return () => {
@@ -291,7 +278,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
       };
     } else if (state.state === 'unloaded' && startPlayer) {
       return startPlayer;
-    } else if (ltc?.state === null && ltc) {
+    } else if (!disabled && ltc?.state === null && ltc) {
       return ltc.startLtcPlayback;
     }
   }, [hooks, play, pause, state.state, loadFile, startPlayer, disabled, ltc]);
@@ -337,6 +324,11 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   }, [loadFile]);
 
   const { draggingFileIntoWindow } = useGlobalUserInteractions();
+
+  const errors = useMemo(
+    () => [...rootState.errors, ...(ltc?.errors || [])],
+    [rootState.errors, ltc],
+  );
 
   return (
     <div className="flex grow flex-col gap-px">
@@ -562,9 +554,9 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           </div>
         </TooltipWrapper>
       ) : null}
-      {rootState.errors.length > 0 && (
+      {errors.length > 0 && (
         <div className="flex gap-px">
-          {rootState.errors.map((error, index) => (
+          {errors.map((error, index) => (
             <div
               key={index}
               className="
@@ -672,7 +664,6 @@ type TimecodeTreeDisplayProps = {
    */
   loadFile: TimecodeDisplayProps['loadFile'];
   startPlayer: TimecodeDisplayProps['startPlayer'];
-  ltc: TimecodeDisplayProps['ltc'];
 };
 
 const EMPTY_TIMECODE: TimecodeInstance = {
@@ -706,7 +697,6 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   assignToOutput,
   loadFile,
   startPlayer,
-  ltc,
 }) => {
   const { openNewWidow } = useBrowserContext();
 
@@ -766,7 +756,6 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         assignToOutput={assignToOutput}
         loadFile={loadFile}
         startPlayer={startPlayer}
-        ltc={ltc}
       />
     ));
   }
@@ -798,7 +787,6 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         config={config}
         loadFile={loadFile}
         startPlayer={startPlayer}
-        ltc={ltc}
         headerComponents={
           <>
             <div className="flex grow basis-0 items-start gap-0.25">
@@ -1205,7 +1193,6 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
                 link={linkedSourceInfo}
                 loadFile={loadFile}
                 startPlayer={startPlayer}
-                ltc={null}
                 {...instanceConfig}
               />
             )}
@@ -1215,26 +1202,22 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
         <AudioPlaybackContextProvider id={id}>
           <WithLtcPlayer
             uuid={id[1]}
-            config={instanceConfig.config}
-            timecodeDisplay={({ ltc, errors }) => (
-              <TimecodeTreeDisplay
-                id={id}
-                timecode={instanceConfig.disabled ? 'disabled' : timecode}
-                rootState={{
-                  ...rootState,
-                  errors: [...rootState.errors, ...errors],
-                }}
-                assignToOutput={null}
-                buttons={null}
-                labels={labels}
-                link={linkedSourceInfo}
-                loadFile={null}
-                startPlayer={null}
-                ltc={ltc}
-                {...instanceConfig}
-              />
-            )}
-          />
+            config={ltcOutputConfig}
+            timecode={instanceConfig.disabled ? null : timecode}
+          >
+            <TimecodeTreeDisplay
+              id={id}
+              timecode={instanceConfig.disabled ? 'disabled' : timecode}
+              rootState={rootState}
+              assignToOutput={null}
+              buttons={null}
+              labels={labels}
+              link={linkedSourceInfo}
+              loadFile={null}
+              startPlayer={null}
+              {...instanceConfig}
+            />
+          </WithLtcPlayer>
         </AudioPlaybackContextProvider>
       ) : (
         <TimecodeTreeDisplay
@@ -1247,7 +1230,6 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
           link={linkedSourceInfo}
           loadFile={null}
           startPlayer={null}
-          ltc={null}
           {...instanceConfig}
         />
       )}

@@ -446,7 +446,6 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
       namePlaceholder={STRINGS.generators.unnamed}
       loadFile={loadFile}
       startPlayer={startPlayer}
-      ltc={null}
       buttons={
         <>
           <ControlButton

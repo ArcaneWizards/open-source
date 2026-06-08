@@ -32,7 +32,6 @@ import {
 import {
   getLinkedSourceInfo,
   LinkedSourceInfo,
-  TimecodeDisplayProps,
   TimecodeTreeDisplay,
   useTimecodeLabels,
 } from './core/timecode-display';
@@ -521,7 +520,6 @@ type OutputDisplayProps = {
   setDialogMode: (mode: DialogMode | null) => void;
   assignToOutput: string | null;
   setAssignToOutput: Dispatch<SetStateAction<string | null>>;
-  ltc: TimecodeDisplayProps['ltc'];
   additionalErrors: string[];
 };
 
@@ -531,7 +529,6 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
   setDialogMode,
   assignToOutput,
   setAssignToOutput,
-  ltc,
   additionalErrors,
 }) => {
   const applicationState = useApplicationState();
@@ -605,7 +602,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
   const id: TimecodeInstanceId = useMemo(() => ['output', uuid], [uuid]);
   const labels = useTimecodeLabels(id);
 
-  return (
+  const tc = (
     <div
       className="relative flex flex-col"
       style={
@@ -629,7 +626,6 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         link={link}
         loadFile={null}
         startPlayer={null}
-        ltc={ltc}
         buttons={
           <>
             <ControlButton
@@ -683,6 +679,18 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
       )}
     </div>
   );
+
+  if (config.definition.type === 'ltc') {
+    return (
+      <AudioPlaybackContextProvider id={['output', uuid]}>
+        <WithLtcPlayer uuid={uuid} timecode={timecode} config={config}>
+          {tc}
+        </WithLtcPlayer>
+      </AudioPlaybackContextProvider>
+    );
+  }
+
+  return tc;
 };
 
 export type OutputSectionProps = {
@@ -740,39 +748,17 @@ export const OutputsSection: FC<OutputSectionProps> = ({
             min-[900px]:grid-cols-3
           "
         >
-          {Object.entries(config.outputs).map(([uuid, output]) =>
-            output.definition.type === 'ltc' ? (
-              <AudioPlaybackContextProvider key={uuid} id={['output', uuid]}>
-                <WithLtcPlayer
-                  key={uuid}
-                  uuid={uuid}
-                  config={output}
-                  timecodeDisplay={({ ltc, errors }) => (
-                    <OutputDisplay
-                      uuid={uuid}
-                      config={output}
-                      setDialogMode={setDialogMode}
-                      assignToOutput={assignToOutput}
-                      setAssignToOutput={setAssignToOutput}
-                      ltc={ltc}
-                      additionalErrors={errors}
-                    />
-                  )}
-                />
-              </AudioPlaybackContextProvider>
-            ) : (
-              <OutputDisplay
-                key={uuid}
-                uuid={uuid}
-                config={output}
-                setDialogMode={setDialogMode}
-                assignToOutput={assignToOutput}
-                setAssignToOutput={setAssignToOutput}
-                ltc={null}
-                additionalErrors={[]}
-              />
-            ),
-          )}
+          {Object.entries(config.outputs).map(([uuid, output]) => (
+            <OutputDisplay
+              key={uuid}
+              uuid={uuid}
+              config={output}
+              setDialogMode={setDialogMode}
+              assignToOutput={assignToOutput}
+              setAssignToOutput={setAssignToOutput}
+              additionalErrors={[]}
+            />
+          ))}
         </div>
       )}
     </PrimaryToolboxSection>
