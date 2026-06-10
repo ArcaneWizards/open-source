@@ -700,7 +700,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
 }) => {
   const { openNewWidow } = useBrowserContext();
 
-  const { openOutputDeviceDialog, currentVolume, outputDevice } =
+  const { openOutputDeviceDialog, currentVolume, outputDevice, outputChannel } =
     useContext(AudioPlaybackContext);
 
   const openInNewWindow = useCallback(() => {
@@ -754,11 +754,14 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   const allLabels = useMemo(
     () => [
       ...labels,
+      ...(outputChannel !== null
+        ? [{ text: STRINGS.audio.outputChannel(outputChannel) }]
+        : []),
       ...(outputDevice
         ? [{ text: STRINGS.audio.outputDevice(outputDevice) }]
         : []),
     ],
-    [labels, outputDevice],
+    [labels, outputDevice, outputChannel],
   );
 
   name =
@@ -1220,7 +1223,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
           />
         </AudioPlaybackContextProvider>
       ) : ltcOutputConfig ? (
-        <AudioPlaybackContextProvider id={id}>
+        <AudioPlaybackContextProvider id={id} singleChannel>
           <WithLtcPlayer
             uuid={id[1]}
             config={ltcOutputConfig}

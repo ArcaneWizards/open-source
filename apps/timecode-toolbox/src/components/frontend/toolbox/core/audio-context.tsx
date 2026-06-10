@@ -170,6 +170,7 @@ export type AudioPlaybackContextData = {
    * Selected output device, or null to indicate the default output device.
    */
   outputDevice: string | null;
+  outputChannel: number | null;
   /**
    * Get the current audio context,
    *
@@ -191,6 +192,7 @@ export const AudioPlaybackContext = createContext<AudioPlaybackContextData>({
   currentVolume: 1,
   openOutputDeviceDialog: null,
   outputDevice: null,
+  outputChannel: null,
   ctx: () => {
     throw new Error('No AudioPlaybackContext provider found.');
   },
@@ -200,6 +202,7 @@ export const AudioPlaybackContext = createContext<AudioPlaybackContextData>({
 type AudioPlaybackContextProviderProps = {
   id: TimecodeInstanceId;
   children: ReactNode;
+  singleChannel?: boolean;
 };
 
 const TIMECODE_PREFERENCES = z.object({
@@ -210,6 +213,8 @@ const TIMECODE_PREFERENCES = z.object({
       label: z.string(),
     })
     .nullable(),
+  /** Only used in singleChannel mode, indicates the channel to use */
+  channel: z.number(),
 });
 
 type TimecodePreferences = z.infer<typeof TIMECODE_PREFERENCES>;
@@ -223,6 +228,7 @@ type AudioPlaybackPreferences = z.infer<typeof AUDIO_PLAYBACK_PREFERENCES_TYPE>;
 const DEFAULT_TIMECODE_PREFERENCES: TimecodePreferences = {
   volume: 1,
   device: null,
+  channel: 0,
 };
 
 const AUDIO_PLAYBACK_PREFERENCES: BrowserPreferencesDefinition<AudioPlaybackPreferences> =
@@ -242,26 +248,86 @@ type SelectedDevice = MediaDeviceInfo | 'default' | 'loading' | 'not-found';
 
 export const AudioPlaybackContextProvider: FC<
   AudioPlaybackContextProviderProps
-> = ({ id, children }) => {
+> = ({ id, children, singleChannel }) => {
   const prefKey = `${id[0]}:${id[1]}`;
 
   const { preferences, updateBrowserPrefs } = useBrowserPreferences();
 
-  const { volume, device: wantedDevice } =
-    preferences.timecodes[prefKey] ?? DEFAULT_TIMECODE_PREFERENCES;
+  const {
+    volume,
+    device: wantedDevice,
+    channel,
+  } = preferences.timecodes[prefKey] ?? DEFAULT_TIMECODE_PREFERENCES;
 
   const [currentSink] = useState<string | null>(null);
 
   const [dialogSettingsOpen, setDialogSettingsOpen] = useState(false);
+  const [channelCount, setChannelCount] = useState<number | null>(null);
 
-  const [errors, setErrors] = useState<string[]>([]);
+  const [channelError, setChannelError] = useState<string | null>(null);
+  const [outputDeviceError, setOutputDeviceError] = useState<string | null>(
+    null,
+  );
 
   const ctx = useMemo(() => {
     const ctx = new AudioContext();
     const masterGain = ctx.createGain();
-    masterGain.connect(ctx.destination);
     return { ctx, masterGain };
   }, []);
+
+  useEffect(() => {
+    const { ctx: context, masterGain } = ctx;
+
+    const { maxChannelCount } = context.destination;
+
+    if (channelCount === null) {
+      // Not yet initialized, return
+      return;
+    }
+
+    // We need to use channelCount on destination,
+    // so that we reconfigure masterGain and destination when user changes to an
+    // output device with a different number of channels.
+    if (channelCount !== maxChannelCount) {
+      setChannelError('Internal error with channel count sync');
+      return () => {
+        masterGain.disconnect();
+      };
+    }
+
+    //  Disconnect master gain from any previous connections
+    masterGain.disconnect();
+
+    if (!singleChannel) {
+      // We can just connect the master gain directly to the destination
+      // Switch to stereo/mono mode
+      const outputChannels = Math.max(2, maxChannelCount);
+      context.destination.channelCount = outputChannels;
+      masterGain.channelCount = outputChannels;
+      masterGain.connect(context.destination);
+      setChannelError(null);
+      return;
+    }
+
+    if (channel >= maxChannelCount) {
+      setChannelError(
+        `Selected channel ${channel + 1} exceeds maximum channel count of output device (${maxChannelCount})`,
+      );
+      return;
+    }
+
+    context.destination.channelCount = maxChannelCount;
+    masterGain.channelCount = maxChannelCount;
+    const channelMerger = context.createChannelMerger(maxChannelCount);
+    masterGain.connect(channelMerger, 0, channel);
+    channelMerger.connect(context.destination);
+    setChannelError(null);
+
+    return () => {
+      masterGain.disconnect();
+      channelMerger.disconnect();
+    };
+  }, [ctx, singleChannel, channelCount, channel]);
 
   const { audioDevices, refreshAudioDevices } = useContext(
     AudioDevicesQueryContext,
@@ -336,21 +402,27 @@ export const AudioPlaybackContextProvider: FC<
       return;
     }
     if (!('setSinkId' in AudioContext.prototype)) {
-      setErrors(['Output device selection is not supported in this browser.']);
+      setOutputDeviceError(
+        'Output device selection is not supported in this browser.',
+      );
       return;
     }
     const c = ctx.ctx as AudioContext & {
       setSinkId: (id: string | { type: 'none' }) => Promise<void>;
     };
 
-    c.setSinkId(
-      selectedDevice === 'default' ? '' : selectedDevice.deviceId,
-    ).catch((cause) => {
-      const errorMessage = `Error setting audio output device: ${cause.message}`;
-      // eslint-disable-next-line no-console
-      console.error(new Error(errorMessage, { cause }));
-      setErrors([errorMessage]);
-    });
+    c.setSinkId(selectedDevice === 'default' ? '' : selectedDevice.deviceId)
+      .then(() => {
+        // Configure
+        setChannelCount(c.destination.maxChannelCount);
+        setOutputDeviceError(null);
+      })
+      .catch((cause) => {
+        const errorMessage = `Error setting audio output device: ${cause.message}`;
+        // eslint-disable-next-line no-console
+        console.error(new Error(errorMessage, { cause }));
+        setOutputDeviceError(errorMessage);
+      });
   }, [selectedDevice, ctx.ctx]);
 
   const closeOutputDeviceDialog = useCallback(() => {
@@ -394,17 +466,39 @@ export const AudioPlaybackContextProvider: FC<
     [preferences.timecodes, prefKey, updateBrowserPrefs],
   );
 
+  const errors = useMemo(() => {
+    const errs: string[] = [];
+    if (channelError) {
+      errs.push(channelError);
+    }
+    if (outputDeviceError) {
+      errs.push(outputDeviceError);
+    }
+    return errs;
+  }, [channelError, outputDeviceError]);
+
+  const outputChannel = singleChannel ? channel : null;
+
   const data: AudioPlaybackContextData = useMemo(
     () => ({
       currentSink,
       currentVolume: volume,
       outputDevice:
         typeof selectedDevice === 'object' ? selectedDevice.label : null,
+      outputChannel,
       openOutputDeviceDialog,
       ctx: () => ctx,
       errors,
     }),
-    [currentSink, volume, selectedDevice, openOutputDeviceDialog, ctx, errors],
+    [
+      currentSink,
+      volume,
+      selectedDevice,
+      outputChannel,
+      openOutputDeviceDialog,
+      ctx,
+      errors,
+    ],
   );
 
   return (
@@ -479,13 +573,35 @@ export const AudioPlaybackContextProvider: FC<
                     deviceId: selected.deviceId,
                   },
                 }));
-              } else {
-                setErrors([`Selected audio device not found: ${dev}`]);
               }
             }}
             position="second"
             variant="large"
           />
+          {singleChannel && (
+            <>
+              <ControlLabel>Output Channel</ControlLabel>
+              <ControlSelect
+                value={channel.toString()}
+                options={Array.from({ length: channelCount ?? 0 }, (_, i) => ({
+                  label: `Channel ${i + 1}`,
+                  value: i.toString(),
+                }))}
+                onChange={(value) => {
+                  const channel = parseInt(value);
+                  if (isNaN(channel)) {
+                    return;
+                  }
+                  updateTimecodePreferences((current) => ({
+                    ...current,
+                    channel,
+                  }));
+                }}
+                position="both"
+                variant="large"
+              />
+            </>
+          )}
           <ControlParagraph position="row">
             The options here only affect this device, and not other remotely
             connected devices.

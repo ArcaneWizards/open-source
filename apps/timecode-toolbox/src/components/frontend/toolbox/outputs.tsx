@@ -682,7 +682,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
 
   if (config.definition.type === 'ltc') {
     return (
-      <AudioPlaybackContextProvider id={['output', uuid]}>
+      <AudioPlaybackContextProvider id={['output', uuid]} singleChannel>
         <WithLtcPlayer uuid={uuid} timecode={timecode} config={config}>
           {tc}
         </WithLtcPlayer>

@@ -150,6 +150,7 @@ export const STRINGS = {
     disconnectPlayer: 'Disconnect LTC Player',
   },
   audio: {
+    outputChannel: (channel: number) => `CH ${channel + 1}`,
     outputDevice: (device: string) => `Device: ${device}`,
   },
   midi: {
