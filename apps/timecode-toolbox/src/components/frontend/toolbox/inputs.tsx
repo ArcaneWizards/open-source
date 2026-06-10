@@ -17,6 +17,7 @@ import {
   InputConfig,
   InputDefinition,
   InputLtcDefinition,
+  isLtcInput,
   MidiTargetConfig,
   TimecodeInstanceId,
 } from '../../proto';
@@ -37,7 +38,7 @@ import { MidiTargetSettings } from './core/midi';
 import { useNetworkInterfaces } from './hooks';
 import { DelayConfig } from './core/delay';
 import { AudioRecordingContextProvider } from './core/audio-context';
-import { WithLtcRecorder } from './core/ltc-recorder';
+import { WithLtcRecorder } from './core/ltc/recorder';
 
 const DmxConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   data,
@@ -542,7 +543,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
     />
   );
 
-  if (config.definition.type === 'ltc') {
+  if (isLtcInput(config)) {
     return (
       <AudioRecordingContextProvider id={['input', uuid]}>
         <WithLtcRecorder uuid={uuid} config={config}>

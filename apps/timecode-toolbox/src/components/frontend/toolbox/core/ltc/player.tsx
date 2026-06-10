@@ -1,44 +1,19 @@
-import {
-  createContext,
-  FC,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-} from 'react';
+import { FC, useCallback, useContext, useEffect, useMemo } from 'react';
 import {
   isPlaying,
   isStopped,
   OutputConfig,
   TimecodeInstance,
-} from '../../../proto';
-import { AudioPlaybackContext, RootAudioContext } from './audio-context';
+} from '../../../../proto';
+import { AudioPlaybackContext, RootAudioContext } from '../audio-context';
 import { StageContext } from '@arcanejs/toolkit-frontend';
-import { useApplicationState } from '../context';
+import { useApplicationState } from '../../context';
 import { createLTCWriter } from '@arcanewizards/ltc';
 import {
   BrowserCloseListener,
   useBrowserContext,
 } from '@arcanewizards/sigil/frontend';
-
-export type LtcState = 'here' | 'elsewhere' | null;
-
-export type LtcContextData = {
-  /**
-   * Is this LTC timecode currently connected to an audio input/output?
-   * And if so where...
-   *
-   * To keep things simple,
-   * we require that only one window / client is playing/receiving a
-   * specific LTC output/input at a time.
-   */
-  state: LtcState;
-  startLtcPlayback: () => void;
-  release: () => void;
-  errors: string[];
-} | null;
-
-export const LtcContext = createContext<LtcContextData>(null);
+import { LtcContext, LtcContextData, LtcState } from './shared';
 
 type WithLtcPlayerProps = {
   uuid: string;
@@ -62,7 +37,7 @@ export const WithLtcPlayer: FC<WithLtcPlayerProps> = ({
 
   const { addCloseListener, removeCloseListener } = useBrowserContext();
 
-  const startLtcPlayback = useCallback(() => {
+  const startLtcConnection = useCallback(() => {
     // Claim control of the output to trigger playback
     updateOutputState(uuid, true, { status: 'connecting', errors: [] });
   }, [updateOutputState, uuid]);
@@ -164,16 +139,18 @@ export const WithLtcPlayer: FC<WithLtcPlayerProps> = ({
   const ltcData: LtcContextData = useMemo(
     () => ({
       state,
-      startLtcPlayback,
+      startLtcConnection,
       release,
       /**
        * Pass along audio context errors directly,
        * as we report errors here using updateOutputState so it appears on all
        * connected clients.
+       *
+       * TODO: pass all errors into server state and remove this arg.
        */
       errors: audioContextErrors,
     }),
-    [state, startLtcPlayback, release, audioContextErrors],
+    [state, startLtcConnection, release, audioContextErrors],
   );
 
   return <LtcContext.Provider value={ltcData}>{children}</LtcContext.Provider>;

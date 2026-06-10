@@ -22,6 +22,7 @@ import {
   ToolboxRootGetTimezoneInfoReturn,
   TimecodeInstanceId,
   ToolboxRootUpdateOutputState,
+  ToolboxRootUpdateInputState,
 } from '../proto';
 import {
   AnyClientComponentCall,
@@ -38,6 +39,10 @@ export type Events = {
   downloadAudioFile: (
     call: TimecodeToolboxComponentCallDownload,
   ) => Promise<ReturnType<CallDownloadResponse>>;
+  updateInputState: (
+    call: ToolboxRootUpdateInputState,
+    connection: ToolkitConnection,
+  ) => void;
   updatePlayerState: (
     call: ToolboxRootUpdatePlayerState,
     connection: ToolkitConnection,
@@ -60,6 +65,7 @@ export type AppRootProps = Pick<
   onUpdateConfig?: Events['updateConfig'];
   onCallHandler?: Events['callHandler'];
   onDownloadAudioFile?: Events['downloadAudioFile'];
+  onUpdateInputState?: Events['updateInputState'];
   onUpdatePlayerState?: Events['updatePlayerState'];
   onUpdateOutputState?: Events['updateOutputState'];
   onReleaseControl?: Events['releaseControl'];
@@ -101,6 +107,7 @@ export class ToolboxRoot
             onUpdateConfig: 'updateConfig',
             onCallHandler: 'callHandler',
             onDownloadAudioFile: 'downloadAudioFile',
+            onUpdateInputState: 'updateInputState',
             onUpdatePlayerState: 'updatePlayerState',
             onUpdateOutputState: 'updateOutputState',
             onReleaseControl: 'releaseControl',
@@ -137,6 +144,8 @@ export class ToolboxRoot
     if (isTimecodeToolboxComponentMessage(message, 'toolbox-root')) {
       if (message.action === 'update-config') {
         this.events.emit('updateConfig', message.diff);
+      } else if (message.action === 'update-input-state') {
+        this.events.emit('updateInputState', message, connection);
       } else if (message.action === 'update-player-state') {
         this.events.emit('updatePlayerState', message, connection);
       } else if (message.action === 'update-output-state') {

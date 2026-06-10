@@ -271,6 +271,11 @@ export const hasDefinition = <
 ): config is UniversalConfigWithDefinition<T> =>
   !!config?.definition && guard(config.definition);
 
+export const isLtcInput = (
+  config: UniversalConfig | null | undefined,
+): config is InputConfig & UniversalConfigWithDefinition<InputLtcDefinition> =>
+  hasDefinition(config, (d): d is InputLtcDefinition => d.type === 'ltc');
+
 export const isAudioPlayerGenerator = (
   config: UniversalConfig | null | undefined,
 ): config is UniversalConfigWithDefinition<GeneratorPlayerDefinition> =>
@@ -383,6 +388,11 @@ export type TimecodePlayStateUnloaded = {
   state: 'unloaded';
 };
 
+export type TimecodePlayStateAnalysing = {
+  state: 'analysing';
+  message: string;
+};
+
 export type TimecodePlayStateStopped = {
   state: 'stopped';
   positionMillis: number;
@@ -400,6 +410,7 @@ export type TimecodePlayStatePlayingOrLagging = {
 export type TimecodePlayState =
   | TimecodePlayStateNone
   | TimecodePlayStateUnloaded
+  | TimecodePlayStateAnalysing
   | TimecodePlayStateStopped
   | TimecodePlayStatePlayingOrLagging;
 
@@ -679,6 +690,19 @@ export type ToolboxLicenseGateAcceptLicense =
     hash: string;
   };
 
+export type ToolboxRootUpdateInputState =
+  BaseClientComponentMessage<Namespace> & {
+    component: 'toolbox-root';
+    action: 'update-input-state';
+    inputUuid: string;
+    /**
+     * True if this connection should claim control of the input if it
+     * is not already controlled by this connection.
+     */
+    claim: boolean;
+    state: Omit<InputState, 'controlledBy'>;
+  };
+
 export type ToolboxRootUpdatePlayerState =
   BaseClientComponentMessage<Namespace> & {
     component: 'toolbox-root';
@@ -716,6 +740,7 @@ export type ToolboxRootReleaseControl =
 export type TimecodeToolboxComponentMessage =
   | ToolboxRootConfigUpdate
   | ToolboxLicenseGateAcceptLicense
+  | ToolboxRootUpdateInputState
   | ToolboxRootUpdatePlayerState
   | ToolboxRootUpdateOutputState
   | ToolboxRootReleaseControl;

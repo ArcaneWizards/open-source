@@ -25,6 +25,11 @@ import {
   GeneratorPlayerDefinition,
   UniversalConfigWithDefinition,
   isAudioPlayerGenerator,
+  isLtcInput,
+  InputLtcDefinition,
+  InputConfig,
+  isPlaying,
+  isStopped,
 } from '../../../proto';
 import { displayMillis } from '../util';
 import { StageContext } from '@arcanejs/toolkit-frontend';
@@ -63,8 +68,11 @@ import {
   AudioPlaybackContext,
   AudioPlaybackContextProvider,
   AudioRecordingContext,
+  AudioRecordingContextProvider,
 } from './audio-context';
-import { LtcContext, WithLtcPlayer } from './ltc-player';
+import { WithLtcPlayer } from './ltc/player';
+import { LtcContext } from './ltc/shared';
+import { WithLtcRecorder } from './ltc/recorder';
 
 type ActiveTimecodeTextProps = {
   effectiveStartTimeMillis: number;
@@ -112,7 +120,7 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
   const { timeDifferenceMs } = useContext(StageContext);
 
   useEffect(() => {
-    if (state.state === 'none' || state.state === 'unloaded') {
+    if (!isPlaying(state) && !isStopped(state)) {
       setMillis(0);
       return;
     }
@@ -280,7 +288,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
     } else if (state.state === 'unloaded' && startPlayer) {
       return startPlayer;
     } else if (!disabled && ltc?.state === null && ltc) {
-      return ltc.startLtcPlayback;
+      return ltc.startLtcConnection;
     }
   }, [hooks, play, pause, state.state, loadFile, startPlayer, disabled, ltc]);
 
@@ -406,6 +414,8 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
                 ) : (
                   displayMillis(null)
                 )
+              ) : state.state === 'analysing' ? (
+                <Icon icon="hourglass" className="text-timecode-adaptive" />
               ) : state.state === 'stopped' ? (
                 displayMillis(state.positionMillis)
               ) : (
@@ -1110,6 +1120,18 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     return undefined;
   }, [id, config]);
 
+  const ltcInputConfig:
+    | (InputConfig & UniversalConfigWithDefinition<InputLtcDefinition>)
+    | null = useMemo(() => {
+    if (isInputInstanceId(id)) {
+      const c = config.inputs[id[1]];
+      if (isLtcInput(c)) {
+        return c;
+      }
+    }
+    return null;
+  }, [id, config.inputs]);
+
   const audioConfig: UniversalConfigWithDefinition<GeneratorPlayerDefinition> | null =
     useMemo(() => {
       if (isGeneratorInstanceId(id)) {
@@ -1209,6 +1231,21 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
     );
   }
 
+  const tcChild = (
+    <TimecodeTreeDisplay
+      id={id}
+      timecode={instanceConfig.disabled ? 'disabled' : timecode}
+      rootState={rootState}
+      assignToOutput={null}
+      buttons={null}
+      labels={labels}
+      link={linkedSourceInfo}
+      loadFile={null}
+      startPlayer={null}
+      {...instanceConfig}
+    />
+  );
+
   return (
     <div
       className="
@@ -1240,6 +1277,12 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
             )}
           />
         </AudioPlaybackContextProvider>
+      ) : ltcInputConfig ? (
+        <AudioRecordingContextProvider id={id}>
+          <WithLtcRecorder uuid={id[1]} config={ltcInputConfig}>
+            {tcChild}
+          </WithLtcRecorder>
+        </AudioRecordingContextProvider>
       ) : ltcOutputConfig ? (
         <AudioPlaybackContextProvider id={id} singleChannel>
           <WithLtcPlayer
@@ -1247,33 +1290,11 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
             config={ltcOutputConfig}
             timecode={instanceConfig.disabled ? null : timecode}
           >
-            <TimecodeTreeDisplay
-              id={id}
-              timecode={instanceConfig.disabled ? 'disabled' : timecode}
-              rootState={rootState}
-              assignToOutput={null}
-              buttons={null}
-              labels={labels}
-              link={linkedSourceInfo}
-              loadFile={null}
-              startPlayer={null}
-              {...instanceConfig}
-            />
+            {tcChild}
           </WithLtcPlayer>
         </AudioPlaybackContextProvider>
       ) : (
-        <TimecodeTreeDisplay
-          id={id}
-          timecode={instanceConfig.disabled ? 'disabled' : timecode}
-          rootState={rootState}
-          assignToOutput={null}
-          buttons={null}
-          labels={labels}
-          link={linkedSourceInfo}
-          loadFile={null}
-          startPlayer={null}
-          {...instanceConfig}
-        />
+        tcChild
       )}
     </div>
   );

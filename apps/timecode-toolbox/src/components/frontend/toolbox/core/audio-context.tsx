@@ -21,6 +21,7 @@ import {
 } from '@arcanewizards/sigil/frontend/controls';
 import {
   GeneratorState,
+  InputState,
   OutputState,
   TimecodeInstanceId,
 } from '../../../proto';
@@ -35,6 +36,11 @@ export type RootAudioContextData = {
   downloadAudioFile: (
     generatorUuid: string,
   ) => Promise<ReadableStream<Uint8Array<ArrayBuffer>>>;
+  updateInputState: (
+    inputUuid: string,
+    claim: boolean,
+    state: Omit<InputState, 'controlledBy'>,
+  ) => void;
   updatePlayerState: (
     generatorUuid: string,
     claim: boolean,
@@ -50,6 +56,9 @@ export type RootAudioContextData = {
 
 export const RootAudioContext = createContext<RootAudioContextData>({
   downloadAudioFile: async () => {
+    throw new Error('RootAudioContext not initialized');
+  },
+  updateInputState: () => {
     throw new Error('RootAudioContext not initialized');
   },
   updatePlayerState: () => {

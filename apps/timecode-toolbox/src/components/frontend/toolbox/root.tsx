@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {
   GeneratorState,
+  InputState,
   OutputState,
   TIMECODE_INSTANCE_ID,
   TimecodeInstanceId,
@@ -18,6 +19,7 @@ import {
   ToolboxRootComponent,
   ToolboxRootConfigUpdate,
   ToolboxRootReleaseControl,
+  ToolboxRootUpdateInputState,
   ToolboxRootUpdateOutputState,
   ToolboxRootUpdatePlayerState,
 } from '../../proto';
@@ -335,6 +337,31 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       [download, info.key],
     );
 
+  const updateInputState: RootAudioContextData['updateInputState'] =
+    useCallback(
+      async (
+        inputUuid: string,
+        claim: boolean,
+        state: Omit<InputState, 'controlledBy'>,
+      ) => {
+        if (!sendMessage) {
+          throw new Error('No sendMessage function available');
+        }
+
+        sendMessage?.<ToolboxRootUpdateInputState>({
+          type: 'component-message',
+          namespace: 'timecode-toolbox',
+          component: 'toolbox-root',
+          componentKey: info.key,
+          action: 'update-input-state',
+          inputUuid,
+          claim,
+          state,
+        });
+      },
+      [sendMessage, info.key],
+    );
+
   const updatePlayerState: RootAudioContextData['updatePlayerState'] =
     useCallback(
       async (
@@ -407,11 +434,18 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
   const audioContextValue: RootAudioContextData = useMemo(
     () => ({
       downloadAudioFile,
+      updateInputState,
       updatePlayerState,
       updateOutputState,
       releaseControl,
     }),
-    [downloadAudioFile, updatePlayerState, updateOutputState, releaseControl],
+    [
+      downloadAudioFile,
+      updateInputState,
+      updatePlayerState,
+      updateOutputState,
+      releaseControl,
+    ],
   );
 
   const windowedTimecodeId = useMemo(

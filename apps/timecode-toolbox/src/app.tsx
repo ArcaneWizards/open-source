@@ -29,6 +29,7 @@ import {
   TimecodeToolboxControlPlaybackRequest,
   ToolboxConfig,
   ToolboxRootCallHandler,
+  ToolboxRootUpdateInputState,
   ToolboxRootUpdateOutputState,
   ToolboxRootUpdatePlayerState,
   UpdateCheckResult,
@@ -290,6 +291,33 @@ export const App = ({
     [],
   );
 
+  const updateInputState: AppRootProps['onUpdateInputState'] = useCallback(
+    (
+      { inputUuid, claim, state }: ToolboxRootUpdateInputState,
+      connection: ToolkitConnection,
+    ) => {
+      setState((current) => {
+        const existing = current.inputs?.[inputUuid];
+        if (!claim && existing?.controlledBy?.uuid !== connection.uuid) {
+          // Connection does not have control, ignore update
+          return current;
+        }
+
+        return {
+          ...current,
+          inputs: {
+            ...current.inputs,
+            [inputUuid]: {
+              ...state,
+              controlledBy: { uuid: connection.uuid },
+            },
+          },
+        };
+      });
+    },
+    [],
+  );
+
   const updatePlayerState: AppRootProps['onUpdatePlayerState'] = useCallback(
     (
       { generatorUuid, claim, state }: ToolboxRootUpdatePlayerState,
@@ -407,6 +435,7 @@ export const App = ({
           onUpdateConfig={onUpdateConfig}
           onCallHandler={callHandler}
           onDownloadAudioFile={downloadAudioFile}
+          onUpdateInputState={updateInputState}
           onUpdatePlayerState={updatePlayerState}
           onUpdateOutputState={updateOutputState}
           onReleaseControl={releaseControl}

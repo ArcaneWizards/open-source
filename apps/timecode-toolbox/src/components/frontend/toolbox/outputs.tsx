@@ -57,7 +57,7 @@ import { NoToolboxChildren } from './content';
 import { MidiTargetSettings } from './core/midi';
 import { useNetworkInterfaces } from './hooks';
 import { DelayConfig } from './core/delay';
-import { WithLtcPlayer } from './core/ltc-player';
+import { WithLtcPlayer } from './core/ltc/player';
 import { AudioPlaybackContextProvider } from './core/audio-context';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
