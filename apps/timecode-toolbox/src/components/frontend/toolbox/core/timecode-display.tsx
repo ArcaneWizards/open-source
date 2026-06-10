@@ -69,6 +69,7 @@ import {
   AudioPlaybackContextProvider,
   AudioRecordingContext,
   AudioRecordingContextProvider,
+  GeneralAudioContext,
 } from './audio-context';
 import { WithLtcPlayer } from './ltc/player';
 import { LtcContext } from './ltc/shared';
@@ -106,6 +107,63 @@ const ActiveTimecodeText: FC<ActiveTimecodeTextProps> = ({
   }, [effectiveStartTimeMillis, speed, timeDifferenceMs]);
 
   return displayMillis(millis);
+};
+
+const AudioVisualizer: FC<{ ctx: GeneralAudioContext['ctx'] }> = ({ ctx }) => {
+  const { ctx: context, masterGain } = ctx();
+
+  const [amplitude, setAmplitude] = useState(0);
+
+  useEffect(() => {
+    let animationFrame: number | null = null;
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 2048;
+    const buffer = new Float32Array(analyser.fftSize);
+    masterGain.connect(analyser);
+
+    const updateAmplitude = () => {
+      setAmplitude((current) => {
+        analyser.getFloatTimeDomainData(buffer);
+        let sumSquares = 0;
+
+        for (let i = 0; i < buffer.length; i++) {
+          sumSquares += buffer[i]! * buffer[i]!;
+        }
+        const fftAmplitude = Math.sqrt(sumSquares / buffer.length) * 2;
+
+        const newAmplitude = Math.max(
+          0,
+          Math.min(1, Math.max(fftAmplitude, current - 0.1)),
+        );
+        return newAmplitude;
+      });
+      animationFrame = requestAnimationFrame(updateAmplitude);
+    };
+    updateAmplitude();
+
+    return () => {
+      if (animationFrame !== null) {
+        cancelAnimationFrame(animationFrame);
+      }
+      masterGain.disconnect(analyser);
+    };
+  }, [context, masterGain]);
+
+  return (
+    <div
+      className="
+        relative h-[60%] w-2 self-center overflow-hidden border
+        border-timecode-usage-foreground
+      "
+    >
+      <div
+        className="
+          absolute inset-x-0 bottom-0 bg-timecode-usage-foreground opacity-50
+        "
+        style={{ height: `${amplitude * 100}%` }}
+      />
+    </div>
+  );
 };
 
 type TimelineProps = {
@@ -363,70 +421,76 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         {headerComponents && (
           <div className="flex gap-0.25">{headerComponents}</div>
         )}
-        <SizeAwareDiv
-          className="relative min-h-timecode-min-height grow"
-          onClick={clickAction}
-        >
-          <div
-            className={cn(
-              'group absolute inset-0 flex items-center justify-center',
-              cnd(state?.state === 'stopped', 'opacity-50'),
-              cnd(
-                clickAction,
-                `
-                  cursor-pointer
-                  hover:opacity-100
-                `,
-              ),
-              cnd(
-                state.state === 'none' && dropEvents && !isDroppingFile,
-                'opacity-50',
-              ),
-              cnd(ltc?.state === null && ltc, 'opacity-50'),
-              cnd(isDroppingFile, 'opacity-100'),
-            )}
-            {...dropEvents}
+        <div className="flex min-h-timecode-min-height grow">
+          {ltc?.state === 'here' && <AudioVisualizer ctx={ltc.ctx} />}
+          <SizeAwareDiv
+            className="relative min-h-timecode-min-height grow"
+            onClick={clickAction}
           >
-            {dropEvents && draggingFileIntoWindow && (
-              <div
-                className={cn(
+            <div
+              className={cn(
+                'group absolute inset-0 flex items-center justify-center',
+                cnd(state?.state === 'stopped', 'opacity-50'),
+                cnd(
+                  clickAction,
                   `
-                    absolute inset-1 z-10 border-4 border-dotted
-                    border-timecode-usage-border
+                    cursor-pointer
+                    hover:opacity-100
                   `,
-                )}
-              />
-            )}
-            <span className="font-mono text-timecode-adaptive">
-              {disabled ? (
-                <Icon icon="pause" className="text-timecode-adaptive" />
-              ) : ltc?.state === null && ltc ? (
-                <Icon icon="cable" className="text-timecode-adaptive" />
-              ) : state.state === 'none' ? (
-                loadFile ? (
-                  <Icon icon="file_open" className="text-timecode-adaptive" />
-                ) : (
-                  displayMillis(null)
-                )
-              ) : state.state === 'unloaded' ? (
-                startPlayer ? (
-                  <Icon icon="play_arrow" className="text-timecode-adaptive" />
-                ) : (
-                  displayMillis(null)
-                )
-              ) : state.state === 'analysing' ? (
-                <Icon icon="hourglass" className="text-timecode-adaptive" />
-              ) : state.state === 'stopped' ? (
-                displayMillis(state.positionMillis)
-              ) : (
-                <ActiveTimecodeText
-                  effectiveStartTimeMillis={state.effectiveStartTimeMillis}
-                  speed={state.speed}
+                ),
+                cnd(
+                  state.state === 'none' && dropEvents && !isDroppingFile,
+                  'opacity-50',
+                ),
+                cnd(ltc?.state === null && ltc, 'opacity-50'),
+                cnd(isDroppingFile, 'opacity-100'),
+              )}
+              {...dropEvents}
+            >
+              {dropEvents && draggingFileIntoWindow && (
+                <div
+                  className={cn(
+                    `
+                      absolute inset-1 z-10 border-4 border-dotted
+                      border-timecode-usage-border
+                    `,
+                  )}
                 />
               )}
-            </span>
-          </div>
-        </SizeAwareDiv>
+              <span className="font-mono text-timecode-adaptive">
+                {disabled ? (
+                  <Icon icon="pause" className="text-timecode-adaptive" />
+                ) : ltc?.state === null && ltc ? (
+                  <Icon icon="cable" className="text-timecode-adaptive" />
+                ) : state.state === 'none' ? (
+                  loadFile ? (
+                    <Icon icon="file_open" className="text-timecode-adaptive" />
+                  ) : (
+                    displayMillis(null)
+                  )
+                ) : state.state === 'unloaded' ? (
+                  startPlayer ? (
+                    <Icon
+                      icon="play_arrow"
+                      className="text-timecode-adaptive"
+                    />
+                  ) : (
+                    displayMillis(null)
+                  )
+                ) : state.state === 'analysing' ? (
+                  <Icon icon="hourglass" className="text-timecode-adaptive" />
+                ) : state.state === 'stopped' ? (
+                  displayMillis(state.positionMillis)
+                ) : (
+                  <ActiveTimecodeText
+                    effectiveStartTimeMillis={state.effectiveStartTimeMillis}
+                    speed={state.speed}
+                  />
+                )}
+              </span>
+            </div>
+          </SizeAwareDiv>
+        </div>
         {hooks?.pause || hooks?.play ? (
           <div className="flex justify-center gap-px">
             {hooks.beginning && (

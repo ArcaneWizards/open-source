@@ -149,8 +149,9 @@ export const WithLtcPlayer: FC<WithLtcPlayerProps> = ({
        * TODO: pass all errors into server state and remove this arg.
        */
       errors: audioContextErrors,
+      ctx,
     }),
-    [state, startLtcConnection, release, audioContextErrors],
+    [state, startLtcConnection, release, audioContextErrors, ctx],
   );
 
   return <LtcContext.Provider value={ltcData}>{children}</LtcContext.Provider>;

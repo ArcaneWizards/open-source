@@ -158,7 +158,7 @@ export const AudioDevicesQueryProvider: FC<{ children: ReactNode }> = ({
   );
 };
 
-type GeneralAudioContext = {
+export type GeneralAudioContext = {
   /**
    * The current volume level, from 0 to 1, where 0 is muted and 1 is full volume.
    */
@@ -634,19 +634,6 @@ export type AudioPlaybackContextData = GeneralAudioContext & {
    */
   outputDevice: string | null;
   outputChannel: number | null;
-  /**
-   * Get the current audio context,
-   *
-   * if there is no context provider, this will throw an error when called.
-   */
-  ctx: () => {
-    ctx: AudioContext;
-    /**
-     * Main destination node for audio to be sent,
-     * volume is controlled internally by this provider.
-     */
-    masterGain: AudioNode;
-  };
 };
 
 export const AudioPlaybackContext = createContext<AudioPlaybackContextData>({

@@ -1,4 +1,5 @@
 import { createContext } from 'react';
+import { GeneralAudioContext } from '../audio-context';
 
 export type LtcState = 'here' | 'elsewhere' | null;
 
@@ -18,6 +19,7 @@ export type LtcContextData = {
    * @deprecated TODO: pass all errors into server state and remove this arg.
    */
   errors: string[];
+  ctx: GeneralAudioContext['ctx'];
 } | null;
 
 export const LtcContext = createContext<LtcContextData>(null);

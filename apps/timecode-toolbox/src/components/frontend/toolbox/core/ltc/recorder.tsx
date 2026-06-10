@@ -121,27 +121,6 @@ export const WithLtcRecorder: React.FC<WithLtcRecorderProps> = ({
     releaseControl(['input', uuid], true);
   }, [releaseControl, uuid]);
 
-  useEffect(() => {
-    // Analyse and print out the volume periodically
-    let lastValue = 0;
-    const analyser = context.createAnalyser();
-    masterGain.connect(analyser);
-    const interval = setInterval(() => {
-      const data = new Uint8Array(analyser.fftSize);
-      analyser.getByteTimeDomainData(data);
-      const value = data.reduce((sum, v) => sum + Math.abs(v - 128), 0);
-      if (Math.abs(value - lastValue) > 10) {
-        lastValue = value;
-        // eslint-disable-next-line no-console
-        console.log('Input volume:', value);
-      }
-    }, 100);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [context, masterGain]);
-
   const { delayMs } = config;
 
   useEffect(() => {
@@ -198,9 +177,10 @@ export const WithLtcRecorder: React.FC<WithLtcRecorderProps> = ({
       state,
       startLtcConnection,
       release,
+      ctx,
       errors: [],
     }),
-    [state, startLtcConnection, release],
+    [state, startLtcConnection, release, ctx],
   );
 
   return <LtcContext.Provider value={ltcData}>{children}</LtcContext.Provider>;
