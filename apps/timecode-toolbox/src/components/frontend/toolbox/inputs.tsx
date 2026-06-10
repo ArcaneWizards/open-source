@@ -9,17 +9,19 @@ import {
   ControlDialogButtons,
   ControlInput,
   ControlLabel,
+  ControlParagraph,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
 import { AssignToOutputCallback, DialogMode, SettingsProps } from './types';
 import {
   InputConfig,
   InputDefinition,
+  InputLtcDefinition,
   MidiTargetConfig,
   TimecodeInstanceId,
 } from '../../proto';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import { ARTNET_PORT } from '@arcanewizards/artnet/constants';
+import { ARTNET_PORT, TimecodeMode } from '@arcanewizards/artnet/constants';
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@arcanejs/toolkit-frontend/util';
 import {
@@ -34,6 +36,8 @@ import { NoToolboxChildren } from './content';
 import { MidiTargetSettings } from './core/midi';
 import { useNetworkInterfaces } from './hooks';
 import { DelayConfig } from './core/delay';
+import { AudioRecordingContextProvider } from './core/audio-context';
+import { WithLtcRecorder } from './core/ltc-recorder';
 
 const DmxConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   data,
@@ -181,10 +185,87 @@ const MIDIConnectionSettings: FC<
   );
 };
 
+const LTCConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
+  data,
+  updateSettings,
+}) => {
+  const updateLtcSettings = useCallback(
+    (change: (current: InputLtcDefinition) => InputLtcDefinition) => {
+      updateSettings((current) =>
+        current.type === 'ltc' ? change(current) : current,
+      );
+    },
+    [updateSettings],
+  );
+
+  if (data.type !== 'ltc') {
+    return null;
+  }
+
+  return (
+    <>
+      <ControlLabel>FPS</ControlLabel>
+      <ControlSelect<TimecodeMode | 'AUTO'>
+        position="both"
+        variant="large"
+        value={data.mode}
+        options={[
+          { label: 'Auto Detect Framerate', value: 'AUTO' },
+          ...(
+            Object.entries(STRINGS.smtpeModeOptions) as [TimecodeMode, string][]
+          ).map(([mode, label]) => ({
+            label,
+            value: mode,
+          })),
+        ]}
+        onChange={(mode) => {
+          updateLtcSettings((current) => ({ ...current, mode }));
+        }}
+      />
+      {data.mode === 'AUTO' && (
+        <ControlParagraph mode="warning" className="max-w-[500px]">
+          {STRINGS.ltc.autoDetectWarning}
+        </ControlParagraph>
+      )}
+    </>
+  );
+};
+
 type InputSettingsDialogProps = {
   target: DialogMode['target'];
   input: InputDefinition['type'];
   setDialogMode: (mode: DialogMode | null) => void;
+};
+
+const getDefaultInputConfigDefinition = (
+  type: InputDefinition['type'],
+): InputConfig['definition'] => {
+  switch (type) {
+    case 'artnet':
+      return {
+        type: 'artnet',
+        iface: '',
+        port: undefined,
+      };
+    case 'tcnet':
+      return {
+        type: 'tcnet',
+        iface: '',
+      };
+    case 'midi':
+      return {
+        type: 'midi',
+        target: {
+          type: 'port',
+          deviceName: '',
+        },
+      };
+    case 'ltc':
+      return {
+        type: 'ltc',
+        mode: 'AUTO',
+      };
+  }
 };
 
 export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
@@ -196,25 +277,7 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
   const [newData, setNewData] = useState<InputConfig>({
     name: '',
     enabled: true,
-    definition:
-      input === 'artnet'
-        ? {
-            type: 'artnet',
-            iface: '',
-            port: undefined,
-          }
-        : input === 'tcnet'
-          ? {
-              type: 'tcnet',
-              iface: '',
-            }
-          : {
-              type: 'midi',
-              target: {
-                type: 'port',
-                deviceName: '',
-              },
-            },
+    definition: getDefaultInputConfigDefinition(input),
   });
 
   const close = useCallback(() => setDialogMode(null), [setDialogMode]);
@@ -343,6 +406,11 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
             data={data.definition}
             updateSettings={updateDefinition}
           />
+        ) : data.definition.type === 'ltc' ? (
+          <LTCConnectionSettings
+            data={data.definition}
+            updateSettings={updateDefinition}
+          />
         ) : null}
 
         <DelayConfig
@@ -434,7 +502,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
   const id: TimecodeInstanceId = useMemo(() => ['input', uuid], [uuid]);
   const labels = useTimecodeLabels(id);
 
-  return (
+  const tc = (
     <TimecodeTreeDisplay
       id={id}
       config={{ delayMs: config.delayMs ?? null }}
@@ -473,6 +541,18 @@ export const InputDisplay: FC<InputDisplayProps> = ({
       assignToOutput={assignToOutput}
     />
   );
+
+  if (config.definition.type === 'ltc') {
+    return (
+      <AudioRecordingContextProvider id={['input', uuid]}>
+        <WithLtcRecorder uuid={uuid} config={config}>
+          {tc}
+        </WithLtcRecorder>
+      </AudioRecordingContextProvider>
+    );
+  }
+
+  return tc;
 };
 
 export type InputSectionProps = {
@@ -491,7 +571,7 @@ export const InputsSection: FC<InputSectionProps> = ({
       title={STRINGS.inputs.title}
       buttons={
         <>
-          {(['artnet', 'tcnet', 'midi'] as const).map((type) => (
+          {(['artnet', 'tcnet', 'midi', 'ltc'] as const).map((type) => (
             <ControlButton
               key={type}
               onClick={() =>
@@ -504,6 +584,16 @@ export const InputsSection: FC<InputSectionProps> = ({
               icon="add"
             >
               {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
+              {type === 'ltc' && (
+                <span
+                  className="
+                    ml-1 rounded-md bg-sigil-foreground px-1 py-0.3
+                    text-sigil-control text-sigil-bg-dark
+                  "
+                >
+                  BETA
+                </span>
+              )}
             </ControlButton>
           ))}
         </>

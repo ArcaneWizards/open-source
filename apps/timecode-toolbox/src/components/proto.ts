@@ -123,6 +123,17 @@ export const isOutputMidiDefinition = (
 
 // LTC Config
 
+const INPUT_LTC_DEFINITION = z.object({
+  type: z.literal('ltc'),
+  mode: z.enum(['AUTO', 'FILM', 'EBU', 'DF', 'SMPTE']),
+});
+
+export type InputLtcDefinition = z.infer<typeof INPUT_LTC_DEFINITION>;
+
+export const isInputLtcDefinition = (
+  definition: InputDefinition,
+): definition is InputLtcDefinition => definition.type === 'ltc';
+
 const OUTPUT_LTC_DEFINITION = z.object({
   type: z.literal('ltc'),
   mode: z.enum(['FILM', 'EBU', 'DF', 'SMPTE']),
@@ -193,6 +204,7 @@ const INPUT_DEFINITION = z.union([
   INPUT_ARTNET_DEFINITION,
   INPUT_OR_OUTPUT_TCNET_DEFINITION,
   INPUT_MIDI_DEFINITION,
+  INPUT_LTC_DEFINITION,
 ]);
 
 export type InputDefinition = z.infer<typeof INPUT_DEFINITION>;

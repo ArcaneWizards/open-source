@@ -62,6 +62,7 @@ import { useNetworkInterfaceInfo } from '../hooks';
 import {
   AudioPlaybackContext,
   AudioPlaybackContextProvider,
+  AudioRecordingContext,
 } from './audio-context';
 import { LtcContext, WithLtcPlayer } from './ltc-player';
 
@@ -700,8 +701,16 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
 }) => {
   const { openNewWidow } = useBrowserContext();
 
-  const { openOutputDeviceDialog, currentVolume, outputDevice, outputChannel } =
-    useContext(AudioPlaybackContext);
+  const {
+    openOutputDeviceDialog,
+    currentVolume: currentOutputVolume,
+    outputDevice,
+    outputChannel,
+  } = useContext(AudioPlaybackContext);
+
+  const { openInputDeviceDialog, inputDevice, inputChannel } = useContext(
+    AudioRecordingContext,
+  );
 
   const openInNewWindow = useCallback(() => {
     if (id) {
@@ -751,17 +760,18 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
     };
   }, [timecode, ltc, loadFile, callHandler, id, hooks]);
 
+  const audioChannel = outputChannel ?? inputChannel;
+  const audioDevice = outputDevice ?? inputDevice;
+
   const allLabels = useMemo(
     () => [
       ...labels,
-      ...(outputChannel !== null
-        ? [{ text: STRINGS.audio.outputChannel(outputChannel) }]
+      ...(audioChannel !== null
+        ? [{ text: STRINGS.audio.channel(audioChannel) }]
         : []),
-      ...(outputDevice
-        ? [{ text: STRINGS.audio.outputDevice(outputDevice) }]
-        : []),
+      ...(audioDevice ? [{ text: STRINGS.audio.device(audioDevice) }] : []),
     ],
-    [labels, outputDevice, outputChannel],
+    [labels, audioDevice, audioChannel],
   );
 
   name =
@@ -908,11 +918,19 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
                 <ControlButton
                   variant="toolbar"
                   icon="volume_up"
-                  title={STRINGS.audioOutputSettings}
+                  title={STRINGS.audio.outputSettings}
                   onClick={openOutputDeviceDialog}
                 >
-                  {`${Math.round(currentVolume * 100)}%`}
+                  {`${Math.round(currentOutputVolume * 100)}%`}
                 </ControlButton>
+              )}
+              {openInputDeviceDialog && (
+                <ControlButton
+                  variant="toolbar"
+                  icon="mic"
+                  title={STRINGS.audio.inputSettings}
+                  onClick={openInputDeviceDialog}
+                />
               )}
               {closeOrClear && (
                 <ControlButton

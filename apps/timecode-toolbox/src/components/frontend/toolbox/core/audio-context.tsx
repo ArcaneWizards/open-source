@@ -24,11 +24,12 @@ import {
   OutputState,
   TimecodeInstanceId,
 } from '../../../proto';
-import z from 'zod';
 import {
-  BrowserPreferencesDefinition,
-  createBrowserPreferencesHook,
-} from '@arcanewizards/sigil/frontend/preferences';
+  DEFAULT_TIMECODE_PREFERENCES,
+  TimecodePreferences,
+  useBrowserPlaybackPreferences,
+  useBrowserRecordingPreferences,
+} from './audio-context/preferences';
 
 export type RootAudioContextData = {
   downloadAudioFile: (
@@ -148,17 +149,470 @@ export const AudioDevicesQueryProvider: FC<{ children: ReactNode }> = ({
   );
 };
 
-export type AudioPlaybackContextData = {
-  /**
-   * The device label of the currently selected audio output sink.
-   *
-   * `null` if default is being used.
-   */
-  currentSink: string | null;
+type GeneralAudioContext = {
   /**
    * The current volume level, from 0 to 1, where 0 is muted and 1 is full volume.
    */
   currentVolume: number;
+  errors: string[];
+  ctx: () => {
+    ctx: AudioContext;
+    /**
+     * Main destination node for audio to be sent,
+     * or source node for recorded audio to be received from.
+     * Volume is controlled internally by this provider.
+     */
+    masterGain: AudioNode;
+  };
+};
+
+const useContextAndGain = (volume: number) => {
+  const ctx = useMemo(() => {
+    const ctx = new AudioContext();
+    const masterGain = ctx.createGain();
+    return { ctx, masterGain };
+  }, []);
+
+  useEffect(() => {
+    ctx.masterGain.gain.value = Math.max(0, Math.min(1, volume));
+  }, [volume, ctx.masterGain]);
+
+  return ctx;
+};
+
+const useDeviceDialog = () => {
+  const [dialogSettingsOpen, setDialogSettingsOpen] = useState(false);
+
+  const closeDeviceDialog = useCallback(() => {
+    setDialogSettingsOpen(false);
+  }, []);
+
+  const openDeviceDialog = useCallback(() => {
+    setDialogSettingsOpen(true);
+  }, []);
+
+  return {
+    dialogSettingsOpen,
+    closeDeviceDialog,
+    openDeviceDialog,
+  };
+};
+
+const useDeviceSelectionAndOptions = (
+  type: 'inputs' | 'outputs',
+  wantedDevice: TimecodePreferences['device'],
+  dialogSettingsOpen: boolean,
+  onDeviceSelected: (device: TimecodePreferences['device']) => void,
+) => {
+  const { audioDevices, refreshAudioDevices } = useContext(
+    AudioDevicesQueryContext,
+  );
+
+  const selectedDevice: SelectedDevice = useMemo(() => {
+    if (!wantedDevice) {
+      return 'default' as const;
+    }
+
+    if (audioDevices?.state !== 'ready') {
+      return 'loading' as const;
+    }
+
+    const deviceById = audioDevices.devices[type].find(
+      (device) => device.deviceId === wantedDevice.deviceId,
+    );
+
+    if (deviceById) {
+      return deviceById;
+    }
+
+    const deviceByLabel = audioDevices.devices[type].find(
+      (device) => device.label === wantedDevice.label,
+    );
+
+    if (deviceByLabel) {
+      return deviceByLabel;
+    }
+
+    return 'not-found' as const;
+  }, [type, wantedDevice, audioDevices]);
+
+  const deviceSelectionOptions: SelectOption<string>[] = useMemo(() => {
+    const options: SelectOption<string>[] = [
+      {
+        label: 'Default Device',
+        value: 'default',
+      },
+    ];
+
+    if (selectedDevice === 'loading') {
+      options.push({
+        label: 'Loading devices...',
+        value: 'loading',
+      });
+    } else if (selectedDevice === 'not-found') {
+      options.push({
+        label: 'Previous device not found',
+        value: 'not-found',
+      });
+    }
+
+    if (audioDevices?.state === 'ready') {
+      options.push(
+        ...audioDevices.devices[type].map((device) => ({
+          label: device.label || `Device ${device.deviceId}`,
+          value: device.deviceId,
+        })),
+      );
+    }
+
+    return options;
+  }, [type, audioDevices, selectedDevice]);
+
+  useEffect(() => {
+    // Effect for automatically loading audio devices
+    if (audioDevices) {
+      return;
+    }
+    if (dialogSettingsOpen) {
+      // Automatically refresh / load audio devices
+      // when the dialog is opened
+      refreshAudioDevices();
+    }
+    if (wantedDevice) {
+      // If a specific device is wanted
+      // we should try to load the devices immediately
+      // so we can correctly configure the context
+      refreshAudioDevices();
+    }
+  }, [audioDevices, dialogSettingsOpen, wantedDevice, refreshAudioDevices]);
+
+  const onSelectedDeviceChange = useCallback(
+    (dev: string) => {
+      if (
+        audioDevices?.state !== 'ready' ||
+        dev === 'loading' ||
+        dev === 'not-found'
+      ) {
+        return;
+      }
+      if (dev === 'default') {
+        onDeviceSelected(null);
+        return;
+      }
+      const selected = audioDevices.devices[type].find(
+        (device) => device.deviceId === dev,
+      );
+      if (selected) {
+        onDeviceSelected({
+          label: selected.label,
+          deviceId: selected.deviceId,
+        });
+      }
+    },
+    [type, audioDevices, onDeviceSelected],
+  );
+
+  return {
+    selectedDevice,
+    deviceSelectionOptions,
+    refreshAudioDevices,
+    onSelectedDeviceChange,
+  };
+};
+
+// Recording
+
+export type AudioRecordingContextData = GeneralAudioContext & {
+  openInputDeviceDialog: (() => void) | null;
+  /** Set to true to start recording data and sending it to the masterGain */
+  setRecordInput: (record: boolean) => void;
+  inputDevice: string | null;
+  inputChannel: number | null;
+};
+
+export const AudioRecordingContext = createContext<AudioRecordingContextData>({
+  currentVolume: 1,
+  openInputDeviceDialog: null,
+  setRecordInput: () => {
+    throw new Error('AudioRecordingContext not initialized');
+  },
+  ctx: () => {
+    throw new Error('No AudioPlaybackContext provider found.');
+  },
+  inputDevice: null,
+  inputChannel: null,
+  errors: [],
+});
+
+type AudioRecordingContextProviderProps = {
+  id: TimecodeInstanceId;
+  children: ReactNode;
+};
+
+export const AudioRecordingContextProvider: FC<
+  AudioRecordingContextProviderProps
+> = ({ id, children }) => {
+  const prefKey = `${id[0]}:${id[1]}`;
+
+  const { preferences, updateBrowserPrefs } = useBrowserRecordingPreferences();
+
+  const {
+    volume,
+    device: wantedDevice,
+    channel,
+  } = preferences.timecodes[prefKey] ?? DEFAULT_TIMECODE_PREFERENCES;
+
+  const [recordInput, setRecordInput] = useState(false);
+
+  const { dialogSettingsOpen, openDeviceDialog, closeDeviceDialog } =
+    useDeviceDialog();
+
+  const [deviceChannelCount, setDeviceChannelCount] = useState<{
+    device: SelectedDevice;
+    channelCount: number;
+  } | null>(null);
+
+  const ctx = useContextAndGain(volume);
+
+  const updateTimecodePreferences = useCallback(
+    (updater: (current: TimecodePreferences) => TimecodePreferences) => {
+      updateBrowserPrefs((prev) => ({
+        ...prev,
+        timecodes: {
+          ...prev.timecodes,
+          [prefKey]: updater(
+            preferences.timecodes[prefKey] ?? DEFAULT_TIMECODE_PREFERENCES,
+          ),
+        },
+      }));
+    },
+    [preferences.timecodes, prefKey, updateBrowserPrefs],
+  );
+
+  const onDeviceSelected = useCallback(
+    (device: TimecodePreferences['device']) =>
+      updateTimecodePreferences((current) => ({
+        ...current,
+        device,
+      })),
+    [updateTimecodePreferences],
+  );
+
+  const {
+    selectedDevice,
+    deviceSelectionOptions,
+    refreshAudioDevices,
+    onSelectedDeviceChange,
+  } = useDeviceSelectionAndOptions(
+    'inputs',
+    wantedDevice,
+    dialogSettingsOpen,
+    onDeviceSelected,
+  );
+
+  const [inputNode, setInputNode] = useState<AudioNode | null>(null);
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const [channelError, setChannelError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedDevice === 'loading' || selectedDevice === 'not-found') {
+      return;
+    }
+
+    let track: MediaStreamTrack | null = null;
+    let mounted = true;
+
+    navigator.mediaDevices
+      .getUserMedia({
+        audio: {
+          deviceId:
+            selectedDevice === 'default'
+              ? undefined
+              : { exact: selectedDevice.deviceId },
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          // Capture all channels
+          channelCount: 0,
+        },
+      })
+      .then((mediaStream) => {
+        if (!mounted) {
+          // No longer relevant
+          return;
+        }
+
+        const tracks = mediaStream.getAudioTracks();
+        track = tracks[0] ?? null;
+        if (tracks.length !== 1 || !track) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          throw new Error(
+            `Expected exactly 1 audio track, but got ${tracks.length}`,
+          );
+        }
+
+        // Get channel count for the selected device
+        const channelCount =
+          track.getCapabilities().channelCount?.max ??
+          track.getSettings().channelCount;
+        if (typeof channelCount !== 'number') {
+          throw new Error(
+            'Could not get channel count from audio track settings',
+          );
+        }
+        setDeviceChannelCount({ device: selectedDevice, channelCount });
+
+        if (recordInput) {
+          const sourceNode = ctx.ctx.createMediaStreamSource(mediaStream);
+          // Set to maximum available channel count
+          sourceNode.channelCount = channelCount;
+          setInputNode(sourceNode);
+        } else {
+          track.stop();
+        }
+      })
+      .catch((cause) => {
+        const errorMessage = `Error accessing audio input device: ${cause.message}`;
+        const error = new Error(errorMessage, { cause });
+        // eslint-disable-next-line no-console
+        console.error(error);
+        setStreamError(errorMessage);
+      });
+
+    return () => {
+      mounted = false;
+      if (track) {
+        track.stop();
+      }
+    };
+  }, [ctx, selectedDevice, recordInput]);
+
+  useEffect(() => {
+    if (!inputNode) {
+      setChannelError(null);
+      return;
+    }
+
+    if (channel >= inputNode.channelCount) {
+      setChannelError(
+        `Selected channel ${channel + 1} exceeds maximum channel count of output device (${inputNode.channelCount})`,
+      );
+    }
+
+    // Connect the specific channel from the input node to the master gain
+    const channelSplitter = ctx.ctx.createChannelSplitter(
+      inputNode.channelCount,
+    );
+    inputNode.connect(channelSplitter);
+    channelSplitter.connect(ctx.masterGain, channel);
+
+    return () => {
+      inputNode.disconnect();
+    };
+  }, [inputNode, channel, ctx.ctx, ctx.masterGain]);
+
+  const channelSelectionOptions: SelectOption<string>[] = useMemo(
+    () =>
+      deviceChannelCount
+        ? Array.from({ length: deviceChannelCount.channelCount }, (_, i) => ({
+            label: `Channel ${i + 1}`,
+            value: i.toString(),
+          }))
+        : [
+            {
+              label: 'Loading channels...',
+              value: 'loading',
+            },
+          ],
+    [deviceChannelCount],
+  );
+
+  const errors = useMemo(
+    () => [
+      ...(channelError ? [channelError] : []),
+      ...(streamError ? [streamError] : []),
+    ],
+    [channelError, streamError],
+  );
+
+  const data: AudioRecordingContextData = useMemo(
+    () => ({
+      currentVolume: 1,
+      openInputDeviceDialog: openDeviceDialog,
+      setRecordInput,
+      inputDevice:
+        typeof selectedDevice === 'object' ? selectedDevice.label : null,
+      inputChannel: channel,
+      ctx: () => ctx,
+      errors,
+    }),
+    [ctx, setRecordInput, openDeviceDialog, errors, selectedDevice, channel],
+  );
+
+  return (
+    <AudioRecordingContext.Provider value={data}>
+      {dialogSettingsOpen && (
+        <ControlDialog
+          dialogClosed={closeDeviceDialog}
+          title={STRINGS.audio.inputSettings}
+        >
+          <ControlLabel>Input Device</ControlLabel>
+          <ControlButton
+            onClick={refreshAudioDevices}
+            title="Refresh Audio Devices"
+            position="first"
+            variant="large"
+            icon="refresh"
+          />
+          <ControlSelect
+            value={
+              typeof selectedDevice === 'string'
+                ? selectedDevice
+                : selectedDevice.deviceId
+            }
+            options={deviceSelectionOptions}
+            onChange={onSelectedDeviceChange}
+            position="second"
+            variant="large"
+          />
+          <ControlLabel>Input Channel</ControlLabel>
+          <ControlSelect
+            value={deviceChannelCount ? channel.toString() : 'loading'}
+            options={channelSelectionOptions}
+            onChange={(value) => {
+              const channel = parseInt(value);
+              if (isNaN(channel)) {
+                return;
+              }
+              updateTimecodePreferences((current) => ({
+                ...current,
+                channel,
+              }));
+            }}
+            position="both"
+            variant="large"
+          />
+          <ControlParagraph position="row" mode="warning">
+            Note, only 2 input channels are supported at this time.
+          </ControlParagraph>
+          <ControlParagraph position="row">
+            The options here only affect this device, and not other remotely
+            connected devices.
+          </ControlParagraph>
+          <ControlParagraph position="row">
+            If you are currently using another device to play audio, the volume
+            and audio output will need to be changed directly on that device.
+          </ControlParagraph>
+        </ControlDialog>
+      )}
+      {children}
+    </AudioRecordingContext.Provider>
+  );
+};
+
+// Playback
+
+export type AudioPlaybackContextData = GeneralAudioContext & {
   /**
    * Open a dialog box allowing the user to configure an output device
    * for this context.
@@ -184,11 +638,9 @@ export type AudioPlaybackContextData = {
      */
     masterGain: AudioNode;
   };
-  errors: string[];
 };
 
 export const AudioPlaybackContext = createContext<AudioPlaybackContextData>({
-  currentSink: null,
   currentVolume: 1,
   openOutputDeviceDialog: null,
   outputDevice: null,
@@ -205,45 +657,6 @@ type AudioPlaybackContextProviderProps = {
   singleChannel?: boolean;
 };
 
-const TIMECODE_PREFERENCES = z.object({
-  volume: z.number(),
-  device: z
-    .object({
-      deviceId: z.string(),
-      label: z.string(),
-    })
-    .nullable(),
-  /** Only used in singleChannel mode, indicates the channel to use */
-  channel: z.number(),
-});
-
-type TimecodePreferences = z.infer<typeof TIMECODE_PREFERENCES>;
-
-const AUDIO_PLAYBACK_PREFERENCES_TYPE = z.object({
-  timecodes: z.record(TIMECODE_PREFERENCES),
-});
-
-type AudioPlaybackPreferences = z.infer<typeof AUDIO_PLAYBACK_PREFERENCES_TYPE>;
-
-const DEFAULT_TIMECODE_PREFERENCES: TimecodePreferences = {
-  volume: 1,
-  device: null,
-  channel: 0,
-};
-
-const AUDIO_PLAYBACK_PREFERENCES: BrowserPreferencesDefinition<AudioPlaybackPreferences> =
-  {
-    key: 'timecode-toolbox-audio-playback-preferences',
-    zodType: AUDIO_PLAYBACK_PREFERENCES_TYPE,
-    defaultValue: {
-      timecodes: {},
-    },
-  };
-
-export const useBrowserPreferences = createBrowserPreferencesHook(
-  AUDIO_PLAYBACK_PREFERENCES,
-);
-
 type SelectedDevice = MediaDeviceInfo | 'default' | 'loading' | 'not-found';
 
 export const AudioPlaybackContextProvider: FC<
@@ -251,7 +664,7 @@ export const AudioPlaybackContextProvider: FC<
 > = ({ id, children, singleChannel }) => {
   const prefKey = `${id[0]}:${id[1]}`;
 
-  const { preferences, updateBrowserPrefs } = useBrowserPreferences();
+  const { preferences, updateBrowserPrefs } = useBrowserPlaybackPreferences();
 
   const {
     volume,
@@ -259,9 +672,9 @@ export const AudioPlaybackContextProvider: FC<
     channel,
   } = preferences.timecodes[prefKey] ?? DEFAULT_TIMECODE_PREFERENCES;
 
-  const [currentSink] = useState<string | null>(null);
+  const { dialogSettingsOpen, openDeviceDialog, closeDeviceDialog } =
+    useDeviceDialog();
 
-  const [dialogSettingsOpen, setDialogSettingsOpen] = useState(false);
   const [channelCount, setChannelCount] = useState<number | null>(null);
 
   const [channelError, setChannelError] = useState<string | null>(null);
@@ -269,11 +682,7 @@ export const AudioPlaybackContextProvider: FC<
     null,
   );
 
-  const ctx = useMemo(() => {
-    const ctx = new AudioContext();
-    const masterGain = ctx.createGain();
-    return { ctx, masterGain };
-  }, []);
+  const ctx = useContextAndGain(volume);
 
   useEffect(() => {
     const { ctx: context, masterGain } = ctx;
@@ -329,73 +738,41 @@ export const AudioPlaybackContextProvider: FC<
     };
   }, [ctx, singleChannel, channelCount, channel]);
 
-  const { audioDevices, refreshAudioDevices } = useContext(
-    AudioDevicesQueryContext,
+  const updateTimecodePreferences = useCallback(
+    (updater: (current: TimecodePreferences) => TimecodePreferences) => {
+      updateBrowserPrefs((prev) => ({
+        ...prev,
+        timecodes: {
+          ...prev.timecodes,
+          [prefKey]: updater(
+            preferences.timecodes[prefKey] ?? DEFAULT_TIMECODE_PREFERENCES,
+          ),
+        },
+      }));
+    },
+    [preferences.timecodes, prefKey, updateBrowserPrefs],
   );
 
-  const selectedDevice: SelectedDevice = useMemo(() => {
-    if (!wantedDevice) {
-      return 'default' as const;
-    }
+  const onDeviceSelected = useCallback(
+    (device: TimecodePreferences['device']) =>
+      updateTimecodePreferences((current) => ({
+        ...current,
+        device,
+      })),
+    [updateTimecodePreferences],
+  );
 
-    if (audioDevices?.state !== 'ready') {
-      return 'loading' as const;
-    }
-
-    const deviceById = audioDevices.devices.outputs.find(
-      (device) => device.deviceId === wantedDevice.deviceId,
-    );
-
-    if (deviceById) {
-      return deviceById;
-    }
-
-    const deviceByLabel = audioDevices.devices.outputs.find(
-      (device) => device.label === wantedDevice.label,
-    );
-
-    if (deviceByLabel) {
-      return deviceByLabel;
-    }
-
-    return 'not-found' as const;
-  }, [wantedDevice, audioDevices]);
-
-  const deviceSelectionOptions: SelectOption<string>[] = useMemo(() => {
-    const options: SelectOption<string>[] = [
-      {
-        label: 'Default Device',
-        value: 'default',
-      },
-    ];
-
-    if (selectedDevice === 'loading') {
-      options.push({
-        label: 'Loading devices...',
-        value: 'loading',
-      });
-    } else if (selectedDevice === 'not-found') {
-      options.push({
-        label: 'Previous device not found',
-        value: 'not-found',
-      });
-    }
-
-    if (audioDevices?.state === 'ready') {
-      options.push(
-        ...audioDevices.devices.outputs.map((device) => ({
-          label: device.label || `Device ${device.deviceId}`,
-          value: device.deviceId,
-        })),
-      );
-    }
-
-    return options;
-  }, [audioDevices, selectedDevice]);
-
-  useEffect(() => {
-    ctx.masterGain.gain.value = Math.max(0, Math.min(1, volume));
-  }, [volume, ctx.masterGain]);
+  const {
+    selectedDevice,
+    deviceSelectionOptions,
+    refreshAudioDevices,
+    onSelectedDeviceChange,
+  } = useDeviceSelectionAndOptions(
+    'outputs',
+    wantedDevice,
+    dialogSettingsOpen,
+    onDeviceSelected,
+  );
 
   useEffect(() => {
     if (selectedDevice === 'loading' || selectedDevice === 'not-found') {
@@ -425,88 +802,44 @@ export const AudioPlaybackContextProvider: FC<
       });
   }, [selectedDevice, ctx.ctx]);
 
-  const closeOutputDeviceDialog = useCallback(() => {
-    setDialogSettingsOpen(false);
-  }, []);
-
-  const openOutputDeviceDialog = useCallback(() => {
-    setDialogSettingsOpen(true);
-  }, []);
-
-  useEffect(() => {
-    // Effect for automatically loading audio devices
-    if (audioDevices) {
-      return;
-    }
-    if (dialogSettingsOpen) {
-      // Automatically refresh / load audio devices
-      // when the dialog is opened
-      refreshAudioDevices();
-    }
-    if (wantedDevice) {
-      // If a specific device is wanted
-      // we should try to load the devices immediately
-      // so we can correctly configure the context
-      refreshAudioDevices();
-    }
-  }, [audioDevices, dialogSettingsOpen, wantedDevice, refreshAudioDevices]);
-
-  const updateTimecodePreferences = useCallback(
-    (updater: (current: TimecodePreferences) => TimecodePreferences) => {
-      updateBrowserPrefs((prev) => ({
-        ...prev,
-        timecodes: {
-          ...prev.timecodes,
-          [prefKey]: updater(
-            preferences.timecodes[prefKey] ?? DEFAULT_TIMECODE_PREFERENCES,
-          ),
-        },
-      }));
-    },
-    [preferences.timecodes, prefKey, updateBrowserPrefs],
+  const errors = useMemo(
+    () => [
+      ...(channelError ? [channelError] : []),
+      ...(outputDeviceError ? [outputDeviceError] : []),
+    ],
+    [channelError, outputDeviceError],
   );
-
-  const errors = useMemo(() => {
-    const errs: string[] = [];
-    if (channelError) {
-      errs.push(channelError);
-    }
-    if (outputDeviceError) {
-      errs.push(outputDeviceError);
-    }
-    return errs;
-  }, [channelError, outputDeviceError]);
 
   const outputChannel = singleChannel ? channel : null;
 
+  const channelSelectionOptions: SelectOption<string>[] = useMemo(
+    () =>
+      Array.from({ length: channelCount ?? 0 }, (_, i) => ({
+        label: `Channel ${i + 1}`,
+        value: i.toString(),
+      })),
+    [channelCount],
+  );
+
   const data: AudioPlaybackContextData = useMemo(
     () => ({
-      currentSink,
       currentVolume: volume,
       outputDevice:
         typeof selectedDevice === 'object' ? selectedDevice.label : null,
       outputChannel,
-      openOutputDeviceDialog,
+      openOutputDeviceDialog: openDeviceDialog,
       ctx: () => ctx,
       errors,
     }),
-    [
-      currentSink,
-      volume,
-      selectedDevice,
-      outputChannel,
-      openOutputDeviceDialog,
-      ctx,
-      errors,
-    ],
+    [volume, selectedDevice, outputChannel, openDeviceDialog, ctx, errors],
   );
 
   return (
     <AudioPlaybackContext.Provider value={data}>
       {dialogSettingsOpen && (
         <ControlDialog
-          dialogClosed={closeOutputDeviceDialog}
-          title={STRINGS.audioOutputSettings}
+          dialogClosed={closeDeviceDialog}
+          title={STRINGS.audio.outputSettings}
         >
           <ControlLabel>Volume</ControlLabel>
           {/* TODO: replace this with a slider */}
@@ -528,7 +861,7 @@ export const AudioPlaybackContextProvider: FC<
               }
               updateTimecodePreferences((current) => ({ ...current, volume }));
               if (enterPressed) {
-                closeOutputDeviceDialog();
+                closeDeviceDialog();
               }
             }}
           />
@@ -547,34 +880,7 @@ export const AudioPlaybackContextProvider: FC<
                 : selectedDevice.deviceId
             }
             options={deviceSelectionOptions}
-            onChange={(dev) => {
-              if (
-                audioDevices?.state !== 'ready' ||
-                dev === 'loading' ||
-                dev === 'not-found'
-              ) {
-                return;
-              }
-              if (dev === 'default') {
-                updateTimecodePreferences((current) => ({
-                  ...current,
-                  device: null,
-                }));
-                return;
-              }
-              const selected = audioDevices.devices.outputs.find(
-                (device) => device.deviceId === dev,
-              );
-              if (selected) {
-                updateTimecodePreferences((current) => ({
-                  ...current,
-                  device: {
-                    label: selected.label,
-                    deviceId: selected.deviceId,
-                  },
-                }));
-              }
-            }}
+            onChange={onSelectedDeviceChange}
             position="second"
             variant="large"
           />
@@ -583,10 +889,7 @@ export const AudioPlaybackContextProvider: FC<
               <ControlLabel>Output Channel</ControlLabel>
               <ControlSelect
                 value={channel.toString()}
-                options={Array.from({ length: channelCount ?? 0 }, (_, i) => ({
-                  label: `Channel ${i + 1}`,
-                  value: i.toString(),
-                }))}
+                options={channelSelectionOptions}
                 onChange={(value) => {
                   const channel = parseInt(value);
                   if (isNaN(channel)) {
