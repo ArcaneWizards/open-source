@@ -51,6 +51,7 @@
     "@arcanewizards/apis": "workspace:^",
     "@arcanewizards/artnet": "workspace:^",
     "@arcanewizards/eslint-config": "workspace:^",
+    "@arcanewizards/ltc": "workspace:^",
     "@arcanewizards/midi-timecode": "workspace:^",
     "@arcanewizards/net-utils": "workspace:^",
     "@arcanewizards/sigil": "workspace:^",

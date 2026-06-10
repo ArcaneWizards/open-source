@@ -20,7 +20,6 @@ export const STRINGS = {
   toggle: (text: string) => `Toggle ${text}`,
   close: (text: string) => `Close ${text}`,
   clearFile: 'Clear loaded file',
-  audioOutputSettings: 'Audio Output Settings',
   license: 'License & About',
   acceptLicense: 'Accept License',
   licensePrompt: 'Please review and accept the license to use Timecode Toolbox',
@@ -38,6 +37,10 @@ export const STRINGS = {
     midi: {
       short: 'MTC',
       long: 'MIDI Timecode (MTC)',
+    },
+    ltc: {
+      short: 'LTC (BETA)',
+      long: 'Linear Timecode (LTC)',
     },
   },
   inputs: {
@@ -141,8 +144,17 @@ export const STRINGS = {
   errors: {
     unknownTimecodeID: 'Unknown timecode ID, please close the window',
   },
+  ltc: {
+    autoDetectWarning:
+      'Note: when auto-detecting framerate, there will be a delay of several seconds before playback starts while the framerate is being detected. If you know the framerate of your LTC source, it is recommended to set it manually for more responsive playback.',
+    linkPlayer: 'Play LTC from this window',
+    disconnectPlayer: 'Disconnect LTC Player',
+  },
   audio: {
-    outputDevice: (device: string) => `Device: ${device}`,
+    outputSettings: 'Audio Output Settings',
+    inputSettings: 'Audio Input Settings',
+    channel: (channel: number) => `CH ${channel + 1}`,
+    device: (device: string) => `Device: ${device}`,
   },
   midi: {
     deviceLabelForPort: (device: string) => `Device: ${device}`,

@@ -19,6 +19,56 @@ export type SMPTETimecodeFrameWithMillis = SMPTETimecodeFrame & {
   timeMillis: number;
 };
 
+export type SMPTETimecodePlayState =
+  | {
+      state: 'playing';
+      effectiveStartTime: number;
+      /**
+       * 1.0 means normal speed, 2.0 means double speed, etc.
+       * Can be negative for reverse playback,
+       *
+       * in which case effectiveStartTime represents the time when the track will reach 0:00.
+       */
+      speed: number;
+      smpteMode: SMPTETimecodeMode;
+    }
+  | {
+      state: 'stopped';
+      currentTimeMillis: number;
+    };
+
+const getDisplayFrameCount = (mode: SMPTETimecodeMode): number => {
+  return mode === 'DF' ? 30 : SMPTE_TIMECODE_FPS[mode];
+};
+
+export const isValidTimecode = (timecode: SMPTETimecodeFrame): boolean => {
+  const displayFrameCount = getDisplayFrameCount(timecode.mode);
+
+  if (
+    timecode.hours < 0 ||
+    timecode.hours > 23 ||
+    timecode.minutes < 0 ||
+    timecode.minutes > 59 ||
+    timecode.seconds < 0 ||
+    timecode.seconds > 59 ||
+    timecode.frame < 0 ||
+    timecode.frame >= displayFrameCount
+  ) {
+    return false;
+  }
+
+  if (
+    timecode.mode === 'DF' &&
+    timecode.seconds === 0 &&
+    timecode.frame < 2 &&
+    timecode.minutes % 10 !== 0
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
 const DROP_FRAME_NUMERATOR = 30_000;
 const DROP_FRAME_DENOMINATOR = 1_001;
 const DROP_FRAME_COUNT = 2;

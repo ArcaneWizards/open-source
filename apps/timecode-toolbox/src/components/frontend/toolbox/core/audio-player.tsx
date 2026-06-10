@@ -1,5 +1,4 @@
 import {
-  createContext,
   FC,
   useCallback,
   useContext,
@@ -12,7 +11,6 @@ import {
   GeneratorConfig,
   GeneratorInstanceId,
   GeneratorPlayerDefinition,
-  GeneratorState,
   isPlaying,
   isTimecodeToolboxControlPlaybackRequest,
   TimecodeMetadata,
@@ -32,33 +30,9 @@ import {
   BrowserCloseListener,
   useBrowserContext,
 } from '@arcanewizards/sigil/frontend';
-import { AudioPlaybackContext } from './audio-context';
+import { AudioPlaybackContext, RootAudioContext } from './audio-context';
 
 export type LoadFileCallback = (file: File | null) => void;
-
-export type RootAudioContextData = {
-  downloadAudioFile: (
-    generatorUuid: string,
-  ) => Promise<ReadableStream<Uint8Array<ArrayBuffer>>>;
-  updatePlayerState: (
-    generatorUuid: string,
-    claim: boolean,
-    state: Omit<GeneratorState, 'controlledBy'>,
-  ) => void;
-  releasePlayerControl: (generatorUuid: string) => void;
-};
-
-export const RootAudioContext = createContext<RootAudioContextData>({
-  downloadAudioFile: async () => {
-    throw new Error('RootAudioContext not initialized');
-  },
-  updatePlayerState: () => {
-    throw new Error('RootAudioContext not initialized');
-  },
-  releasePlayerControl: () => {
-    throw new Error('RootAudioContext not initialized');
-  },
-});
 
 type WithAudioPlayerProps = {
   uuid: string;
@@ -105,7 +79,7 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
   timecodeDisplay,
 }) => {
   const { updateConfig } = useContext(ConfigContext);
-  const { downloadAudioFile, updatePlayerState, releasePlayerControl } =
+  const { downloadAudioFile, updatePlayerState, releaseControl } =
     useContext(RootAudioContext);
   const resolveFile = useFileResolver();
 
@@ -578,9 +552,9 @@ export const WithAudioPlayer: FC<WithAudioPlayerProps> = ({
     // Release control when the component is unmounted
     // (e.g. switched to different screen)
     return () => {
-      releasePlayerControl(uuid);
+      releaseControl(['generator', uuid]);
     };
-  }, [releasePlayerControl, uuid]);
+  }, [releaseControl, uuid]);
 
   const compositeErrors = useMemo(
     () => [...errors, ...audioContextErrors],

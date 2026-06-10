@@ -24,6 +24,7 @@ import {
   OutputArtnetDefinition,
   OutputConfig,
   OutputDefinition,
+  OutputLtcDefinition,
   OutputMidiDefinition,
   TimecodeInstance,
   TimecodeInstanceId,
@@ -56,6 +57,8 @@ import { NoToolboxChildren } from './content';
 import { MidiTargetSettings } from './core/midi';
 import { useNetworkInterfaces } from './hooks';
 import { DelayConfig } from './core/delay';
+import { WithLtcPlayer } from './core/ltc/player';
+import { AudioPlaybackContextProvider } from './core/audio-context';
 
 const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   data,
@@ -259,6 +262,44 @@ const MidiConnectionSettings: FC<
   );
 };
 
+const LtcConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
+  data,
+  updateSettings,
+}) => {
+  const updateLtcSettings = useCallback(
+    (change: (current: OutputLtcDefinition) => OutputLtcDefinition) => {
+      updateSettings((current) =>
+        current.type === 'ltc' ? change(current) : current,
+      );
+    },
+    [updateSettings],
+  );
+
+  if (data.type !== 'ltc') {
+    return null;
+  }
+
+  return (
+    <>
+      <ControlLabel>FPS</ControlLabel>
+      <ControlSelect<TimecodeMode>
+        position="both"
+        variant="large"
+        value={data.mode}
+        options={(
+          Object.entries(STRINGS.smtpeModeOptions) as [TimecodeMode, string][]
+        ).map(([mode, label]) => ({
+          label,
+          value: mode,
+        }))}
+        onChange={(mode) => {
+          updateLtcSettings((current) => ({ ...current, mode }));
+        }}
+      />
+    </>
+  );
+};
+
 type OutputSettingsDialogProps = {
   target: DialogMode['target'];
   output: OutputDefinition['type'];
@@ -284,14 +325,19 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
             },
             mode: 'SMPTE',
           }
-        : {
-            type: 'midi',
-            target: {
-              type: 'port',
-              deviceName: '',
+        : output === 'midi'
+          ? {
+              type: 'midi',
+              target: {
+                type: 'port',
+                deviceName: '',
+              },
+              mode: 'SMPTE',
+            }
+          : {
+              type: 'ltc',
+              mode: 'SMPTE',
             },
-            mode: 'SMPTE',
-          },
     link: null,
   });
 
@@ -418,7 +464,12 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
             updateSettings={updateDefinition}
           />
         ) : null}
-
+        {data.definition.type === 'ltc' ? (
+          <LtcConnectionSettings
+            data={data.definition}
+            updateSettings={updateDefinition}
+          />
+        ) : null}
         <DelayConfig
           delayMs={data.delayMs}
           commitChanges={commitChanges}
@@ -469,6 +520,7 @@ type OutputDisplayProps = {
   setDialogMode: (mode: DialogMode | null) => void;
   assignToOutput: string | null;
   setAssignToOutput: Dispatch<SetStateAction<string | null>>;
+  additionalErrors: string[];
 };
 
 const OutputDisplay: FC<OutputDisplayProps> = ({
@@ -477,6 +529,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
   setDialogMode,
   assignToOutput,
   setAssignToOutput,
+  additionalErrors,
 }) => {
   const applicationState = useApplicationState();
   const { config: allConfig, updateConfig } = useContext(ConfigContext);
@@ -537,16 +590,19 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
 
   const rootState = useMemo(
     () => ({
-      errors: applicationState.outputs[uuid]?.errors ?? [],
+      errors: [
+        ...(applicationState.outputs[uuid]?.errors ?? []),
+        ...additionalErrors,
+      ],
       warnings: applicationState.outputs[uuid]?.warnings ?? [],
     }),
-    [applicationState.outputs, uuid],
+    [applicationState.outputs, uuid, additionalErrors],
   );
 
   const id: TimecodeInstanceId = useMemo(() => ['output', uuid], [uuid]);
   const labels = useTimecodeLabels(id);
 
-  return (
+  const tc = (
     <div
       className="relative flex flex-col"
       style={
@@ -623,6 +679,18 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
       )}
     </div>
   );
+
+  if (config.definition.type === 'ltc') {
+    return (
+      <AudioPlaybackContextProvider id={['output', uuid]} singleChannel>
+        <WithLtcPlayer uuid={uuid} timecode={timecode} config={config}>
+          {tc}
+        </WithLtcPlayer>
+      </AudioPlaybackContextProvider>
+    );
+  }
+
+  return tc;
 };
 
 export type OutputSectionProps = {
@@ -642,7 +710,7 @@ export const OutputsSection: FC<OutputSectionProps> = ({
       title={STRINGS.outputs.title}
       buttons={
         <>
-          {(['artnet', 'midi'] as const).map((type) => (
+          {(['artnet', 'midi', 'ltc'] as const).map((type) => (
             <ControlButton
               key={type}
               onClick={() =>
@@ -655,6 +723,16 @@ export const OutputsSection: FC<OutputSectionProps> = ({
               icon="add"
             >
               {STRINGS.outputs.addButton(STRINGS.protocols[type].long)}
+              {type === 'ltc' && (
+                <span
+                  className="
+                    ml-1 rounded-md bg-sigil-foreground px-1 py-0.3
+                    text-sigil-control text-sigil-bg-dark
+                  "
+                >
+                  BETA
+                </span>
+              )}
             </ControlButton>
           ))}
         </>
@@ -666,8 +744,8 @@ export const OutputsSection: FC<OutputSectionProps> = ({
         <div
           className="
             grid grow grid-cols-1 gap-px
-            min-[600px]:grid-cols-2
-            min-[900px]:grid-cols-3
+            min-[800px]:grid-cols-2
+            min-[1200px]:grid-cols-3
           "
         >
           {Object.entries(config.outputs).map(([uuid, output]) => (
@@ -678,6 +756,7 @@ export const OutputsSection: FC<OutputSectionProps> = ({
               setDialogMode={setDialogMode}
               assignToOutput={assignToOutput}
               setAssignToOutput={setAssignToOutput}
+              additionalErrors={[]}
             />
           ))}
         </div>

@@ -38,6 +38,7 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
     if (target.type === 'interface' && target.interface.trim() === '') {
       setOutputState({
         status: 'disabled',
+        controlledBy: null,
         warnings: ['No network interface selected'],
       });
       return;
@@ -45,11 +46,12 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
     if (target.type === 'host' && target.host.trim() === '') {
       setOutputState({
         status: 'disabled',
+        controlledBy: null,
         warnings: ['No hostname / IP address specified'],
       });
       return;
     }
-    setOutputState({ status: 'connecting' });
+    setOutputState({ status: 'connecting', controlledBy: null });
     const created = createArtnet({
       mode: 'send',
       ...target,
@@ -60,6 +62,7 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
       log.error(error);
       setOutputState({
         status: 'error',
+        controlledBy: null,
         errors: [`${err}`],
       });
     });
@@ -69,7 +72,7 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
         artnet = created;
         setArtnetInstance(created);
         log.info(`ArtNet Timecode output initialized`);
-        setOutputState({ status: 'active' });
+        setOutputState({ status: 'active', controlledBy: null });
       })
       .catch((err) => {
         const error = new Error('Failed to start ArtNet Timecode output');
@@ -77,6 +80,7 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
         log.error(error);
         setOutputState({
           status: 'error',
+          controlledBy: null,
           errors: [`${err}`],
         });
       });

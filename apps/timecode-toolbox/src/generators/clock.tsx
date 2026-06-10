@@ -88,7 +88,7 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
         return;
       }
       setLocalState((current) => {
-        if (current.state === 'none' || current.state === 'unloaded') {
+        if (!isPlaying(current) && !isStopped(current)) {
           return current;
         }
         const now = Date.now();
@@ -182,11 +182,7 @@ export const ClockGenerator: FC<ClockGeneratorProps> = ({
     } else {
       const { speed } = generator;
       setLocalState((current) => {
-        if (
-          current.state === 'none' ||
-          current.state === 'unloaded' ||
-          current.state === 'stopped'
-        ) {
+        if (!isPlaying(current)) {
           return current;
         }
         const now = Date.now();

@@ -23,11 +23,14 @@ import {
   GeneratorInstanceId,
   NAMESPACE,
   TimecodeHandlerMethods,
+  TimecodeInstanceId,
   TimecodeMetadata,
   TimecodeState,
   TimecodeToolboxControlPlaybackRequest,
   ToolboxConfig,
   ToolboxRootCallHandler,
+  ToolboxRootUpdateInputState,
+  ToolboxRootUpdateOutputState,
   ToolboxRootUpdatePlayerState,
   UpdateCheckResult,
 } from './components/proto';
@@ -63,6 +66,19 @@ export type TimecodeToolboxAppProps = {
 };
 
 export type AppProps = SigilRuntimeAppProps<AppApi, TimecodeToolboxAppProps>;
+
+const appStateGroupFromId = (
+  type: TimecodeInstanceId[0],
+): Exclude<keyof ApplicationState, 'updates'> => {
+  switch (type) {
+    case 'generator':
+      return 'generators';
+    case 'input':
+      return 'inputs';
+    case 'output':
+      return 'outputs';
+  }
+};
 
 export const App = ({
   title,
@@ -250,24 +266,57 @@ export const App = ({
       'control-playback',
     );
 
-  const releasePlayerControl: AppRootProps['onReleasePlayerControl'] =
-    useCallback((generatorUuid: string, connection: ToolkitConnection) => {
+  const releaseControl: AppRootProps['onReleaseControl'] = useCallback(
+    (
+      [type, uuid]: TimecodeInstanceId,
+      force: boolean,
+      connection: ToolkitConnection,
+    ) => {
       setState((current) => {
-        const existing = current.generators?.[generatorUuid];
-        if (existing?.controlledBy?.uuid !== connection.uuid) {
+        const group = appStateGroupFromId(type);
+        const existing = current[group]?.[uuid];
+        if (!force && existing?.controlledBy?.uuid !== connection.uuid) {
           // Connection does not have control, ignore release
           return current;
         }
 
-        const { [generatorUuid]: _, ...remainingGenerators } =
-          current.generators ?? {};
+        const { [uuid]: _, ...remainingGenerators } = current[group] ?? {};
 
         return {
           ...current,
-          generators: remainingGenerators,
+          [group]: remainingGenerators,
         };
       });
-    }, []);
+    },
+    [],
+  );
+
+  const updateInputState: AppRootProps['onUpdateInputState'] = useCallback(
+    (
+      { inputUuid, claim, state }: ToolboxRootUpdateInputState,
+      connection: ToolkitConnection,
+    ) => {
+      setState((current) => {
+        const existing = current.inputs?.[inputUuid];
+        if (!claim && existing?.controlledBy?.uuid !== connection.uuid) {
+          // Connection does not have control, ignore update
+          return current;
+        }
+
+        return {
+          ...current,
+          inputs: {
+            ...current.inputs,
+            [inputUuid]: {
+              ...state,
+              controlledBy: { uuid: connection.uuid },
+            },
+          },
+        };
+      });
+    },
+    [],
+  );
 
   const updatePlayerState: AppRootProps['onUpdatePlayerState'] = useCallback(
     (
@@ -323,7 +372,7 @@ export const App = ({
                   type: 'pause',
                 });
                 // And release control immediately
-                releasePlayerControl(generatorUuid, connection);
+                releaseControl(['generator', generatorUuid], false, connection);
               },
             }),
           );
@@ -341,7 +390,34 @@ export const App = ({
         };
       });
     },
-    [sendNotification, releasePlayerControl],
+    [sendNotification, releaseControl],
+  );
+
+  const updateOutputState: AppRootProps['onUpdateOutputState'] = useCallback(
+    (
+      { outputUuid, claim, state }: ToolboxRootUpdateOutputState,
+      connection: ToolkitConnection,
+    ) => {
+      setState((current) => {
+        const existing = current.outputs?.[outputUuid];
+        if (!claim && existing?.controlledBy?.uuid !== connection.uuid) {
+          // Connection does not have control, ignore update
+          return current;
+        }
+
+        return {
+          ...current,
+          outputs: {
+            ...current.outputs,
+            [outputUuid]: {
+              ...state,
+              controlledBy: { uuid: connection.uuid },
+            },
+          },
+        };
+      });
+    },
+    [],
   );
 
   if (!license) {
@@ -359,8 +435,10 @@ export const App = ({
           onUpdateConfig={onUpdateConfig}
           onCallHandler={callHandler}
           onDownloadAudioFile={downloadAudioFile}
+          onUpdateInputState={updateInputState}
           onUpdatePlayerState={updatePlayerState}
-          onReleasePlayerControl={releasePlayerControl}
+          onUpdateOutputState={updateOutputState}
+          onReleaseControl={releaseControl}
           license={license.text}
           network={{
             envPort: env.PORT,
