@@ -1,5 +1,47 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.4.0
+
+### Minor Changes
+
+- 3acf75c: Add support for LTC Inputs & Outputs
+
+  You can now select audio devices & specific channels to input / output
+  Linear Timecode from/to, with the usual Frame-Rate & Delay/Offset options,
+  and taking into account playback speed.
+
+  For now, Input is limited to 2 channels (due to chromium / electron limitations),
+  however some users may be able to get round this
+  (e.g. if using Firefox and connecting to the remote port).
+
+### Patch Changes
+
+- 4e80657: Allow Audio Player Volume Changes
+
+  Allow users to adjust the playback volume for Audio Player generators.
+  This control is a per-device setting that will only reflect configuration for
+  local playback, but will be synchronized across all windows for a particular
+  device, regardless as to whether they're accessed remotely or via the
+  application windows.
+
+- 8c81e94: Allow for Audio Output Device Selection
+
+  Allow for users to configure audio players to go to specific audio output devices,
+  this allows for multiple players to go to different outputs on the same device.
+
+  This configuration option is like audio volume,
+  and only affects the current device being interacted with.
+
+- 4e80657: Allow Audio Player generator speed changes
+
+  Audio Players can now be configured with specific speeds,
+  which is a configuration option that applies to any device that may be playing
+  the audio.
+
+  For example if the audio is being played remotely,
+  and speed is configured from the local device,
+  the remote device will immediately change playback speed.
+
 ## 0.3.1
 
 ### Patch Changes
