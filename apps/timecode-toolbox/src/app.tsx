@@ -266,11 +266,15 @@ export const App = ({
     );
 
   const releaseControl: AppRootProps['onReleaseControl'] = useCallback(
-    ([type, uuid]: TimecodeInstanceId, connection: ToolkitConnection) => {
+    (
+      [type, uuid]: TimecodeInstanceId,
+      force: boolean,
+      connection: ToolkitConnection,
+    ) => {
       setState((current) => {
         const group = appStateGroupFromId(type);
         const existing = current[group]?.[uuid];
-        if (existing?.controlledBy?.uuid !== connection.uuid) {
+        if (!force && existing?.controlledBy?.uuid !== connection.uuid) {
           // Connection does not have control, ignore release
           return current;
         }
@@ -340,7 +344,7 @@ export const App = ({
                   type: 'pause',
                 });
                 // And release control immediately
-                releaseControl(['generator', generatorUuid], connection);
+                releaseControl(['generator', generatorUuid], false, connection);
               },
             }),
           );

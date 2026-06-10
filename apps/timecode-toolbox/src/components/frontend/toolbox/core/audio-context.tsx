@@ -44,7 +44,7 @@ export type RootAudioContextData = {
     claim: boolean,
     state: Omit<OutputState, 'controlledBy'>,
   ) => void;
-  releaseControl: (id: TimecodeInstanceId) => void;
+  releaseControl: (id: TimecodeInstanceId, force?: boolean) => void;
 };
 
 export const RootAudioContext = createContext<RootAudioContextData>({

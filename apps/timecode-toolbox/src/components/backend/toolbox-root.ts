@@ -48,6 +48,7 @@ export type Events = {
   ) => void;
   releaseControl: (
     id: TimecodeInstanceId,
+    force: boolean,
     connection: ToolkitConnection,
   ) => void;
 };
@@ -141,7 +142,12 @@ export class ToolboxRoot
       } else if (message.action === 'update-output-state') {
         this.events.emit('updateOutputState', message, connection);
       } else if (message.action === 'release-control') {
-        this.events.emit('releaseControl', message.id, connection);
+        this.events.emit(
+          'releaseControl',
+          message.id,
+          message.force,
+          connection,
+        );
       }
     }
   };

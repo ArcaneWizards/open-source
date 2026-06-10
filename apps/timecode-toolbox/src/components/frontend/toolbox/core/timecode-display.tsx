@@ -715,7 +715,19 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
   const { handlers, callHandler } = useApplicationHandlers();
   const hooks = id && getTreeValue(handlers, id);
 
-  const clearFile = useMemo(() => {
+  const ltc = useContext(LtcContext);
+
+  const closeOrClear = useMemo(() => {
+    // LTC
+    if (ltc?.state) {
+      return {
+        tooltip: STRINGS.ltc.disconnectPlayer,
+        call: () => {
+          ltc.release();
+        },
+      };
+    }
+    // Music Player
     if (timecode === 'disabled' || !loadFile || !isTimecodeInstance(timecode)) {
       return null;
     }
@@ -724,14 +736,30 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
       return null;
     }
     if (hooks?.clear) {
-      return () => {
-        callHandler({ handler: 'clear', path: id, args: [] });
+      return {
+        tooltip: STRINGS.clearFile,
+        call: () => {
+          callHandler({ handler: 'clear', path: id, args: [] });
+        },
       };
     }
-    return () => {
-      loadFile(null);
+    return {
+      tooltip: STRINGS.clearFile,
+      call: () => {
+        loadFile(null);
+      },
     };
-  }, [timecode, loadFile, callHandler, id, hooks]);
+  }, [timecode, ltc, loadFile, callHandler, id, hooks]);
+
+  const allLabels = useMemo(
+    () => [
+      ...labels,
+      ...(outputDevice
+        ? [{ text: STRINGS.audio.outputDevice(outputDevice) }]
+        : []),
+    ],
+    [labels, outputDevice],
+  );
 
   name =
     timecode !== 'disabled' && timecode?.name ? [...name, timecode.name] : name;
@@ -759,13 +787,6 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
       />
     ));
   }
-
-  const allLabels = [
-    ...labels,
-    ...(outputDevice
-      ? [{ text: STRINGS.audio.outputDevice(outputDevice) }]
-      : []),
-  ];
 
   return (
     <div
@@ -890,12 +911,12 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
                   {`${Math.round(currentVolume * 100)}%`}
                 </ControlButton>
               )}
-              {clearFile && (
+              {closeOrClear && (
                 <ControlButton
                   variant="toolbar"
                   icon="close"
-                  title={STRINGS.clearFile}
-                  onClick={clearFile}
+                  title={closeOrClear.tooltip}
+                  onClick={closeOrClear.call}
                 />
               )}
               <ControlButton

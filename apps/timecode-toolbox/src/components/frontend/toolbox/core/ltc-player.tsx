@@ -34,6 +34,7 @@ export type LtcContextData = {
    */
   state: LtcState;
   startLtcPlayback: () => void;
+  release: () => void;
   errors: string[];
 } | null;
 
@@ -144,18 +145,27 @@ export const WithLtcPlayer: FC<WithLtcPlayerProps> = ({
     }
   }, [ltcWriter, timecode, timeDifferenceMs]);
 
+  const release = useCallback(() => {
+    // We use force here as it's called by both this provider,
+    // and when the user presses the disconnect button
+    releaseControl(['output', uuid], true);
+  }, [releaseControl, uuid]);
+
   useEffect(() => {
     // Release control when the component is unmounted
     // (e.g. switched to different screen)
-    return () => {
-      releaseControl(['output', uuid]);
-    };
-  }, [releaseControl, uuid]);
+    if (haveControl) {
+      return () => {
+        release();
+      };
+    }
+  }, [release, haveControl, uuid]);
 
   const ltcData: LtcContextData = useMemo(
     () => ({
       state,
       startLtcPlayback,
+      release,
       /**
        * Pass along audio context errors directly,
        * as we report errors here using updateOutputState so it appears on all
@@ -163,7 +173,7 @@ export const WithLtcPlayer: FC<WithLtcPlayerProps> = ({
        */
       errors: audioContextErrors,
     }),
-    [state, startLtcPlayback, audioContextErrors],
+    [state, startLtcPlayback, release, audioContextErrors],
   );
 
   return <LtcContext.Provider value={ltcData}>{children}</LtcContext.Provider>;

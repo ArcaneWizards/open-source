@@ -386,7 +386,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
     );
 
   const releaseControl: RootAudioContextData['releaseControl'] = useCallback(
-    async (id: TimecodeInstanceId) => {
+    async (id: TimecodeInstanceId, force: boolean = false) => {
       if (!sendMessage) {
         throw new Error('No sendMessage function available');
       }
@@ -398,6 +398,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
         componentKey: info.key,
         action: 'release-control',
         id,
+        force,
       });
     },
     [sendMessage, info.key],

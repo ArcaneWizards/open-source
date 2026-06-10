@@ -145,6 +145,10 @@ export const STRINGS = {
   errors: {
     unknownTimecodeID: 'Unknown timecode ID, please close the window',
   },
+  ltc: {
+    linkPlayer: 'Play LTC from this window',
+    disconnectPlayer: 'Disconnect LTC Player',
+  },
   audio: {
     outputDevice: (device: string) => `Device: ${device}`,
   },

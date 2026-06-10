@@ -744,8 +744,8 @@ export const OutputsSection: FC<OutputSectionProps> = ({
         <div
           className="
             grid grow grid-cols-1 gap-px
-            min-[600px]:grid-cols-2
-            min-[900px]:grid-cols-3
+            min-[800px]:grid-cols-2
+            min-[1200px]:grid-cols-3
           "
         >
           {Object.entries(config.outputs).map(([uuid, output]) => (

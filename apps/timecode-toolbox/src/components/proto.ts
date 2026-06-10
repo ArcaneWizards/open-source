@@ -698,6 +698,7 @@ export type ToolboxRootReleaseControl =
     component: 'toolbox-root';
     action: 'release-control';
     id: TimecodeInstanceId;
+    force: boolean;
   };
 
 export type TimecodeToolboxComponentMessage =
