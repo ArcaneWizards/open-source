@@ -1,5 +1,11 @@
 # @arcanewizards/smpte
 
+## 0.1.1
+
+### Patch Changes
+
+- 3acf75c: Define generic timecode type within SMPTE package
+
 ## 0.1.0
 
 ### Minor Changes
