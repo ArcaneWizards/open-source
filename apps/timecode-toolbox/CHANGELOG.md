@@ -1,5 +1,29 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.4.1
+
+### Patch Changes
+
+- 9e8d4c6: Address react render errors/warnings
+
+  Address some warnings and errors that were printed directly to the stdout
+  in the timecode toolbox process, mostly related to missing keys and
+  invalid calls to setState within render methods.
+
+- 9e8d4c6: Better handling of native module loading errors
+
+  When there are issues loading the native `midi` module,
+  catch the errors and log appropriately,
+  and display an error on the relevant inputs and outputs.
+
+- 9e8d4c6: Fix MIDI usage in Intel Macs
+
+  An issue with the native MIDI module meant that the app crashed when MIDI
+  inputs or outputs were created, this should now be addressed.
+
+- Updated dependencies [9e8d4c6]
+  - @arcanewizards/midi@0.1.1
+
 ## 0.4.0
 
 ### Minor Changes
