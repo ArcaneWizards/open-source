@@ -56,11 +56,13 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
     } catch (cause) {
       const error = new Error('Failed to initialize MIDI', { cause });
       log.error(error);
-      setInputState({
-        status: 'error',
-        controlledBy: null,
-        errors: [`${error}`],
-      });
+      setImmediate(() =>
+        setInputState({
+          status: 'error',
+          controlledBy: null,
+          errors: [`${error}`],
+        }),
+      );
       return null;
     }
   }, [log]);

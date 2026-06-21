@@ -63,20 +63,22 @@ export const PlayerStateManager: FC<PlayerMetadataFetchersProps> = ({
       {Object.entries(generators)
         .filter(([_, gen]) => gen.definition.type === 'player')
         .map(([uuid]) => (
-          <>
-            <PlayerCleanup
-              key={`${uuid}-cleanup`}
-              uuid={uuid}
-              state={state}
-              setState={setState}
-              setHandlers={setHandlers}
-            />
-            <PlayerMetadataFetcher
-              key={uuid}
-              uuid={uuid}
-              setPlayerState={setPlayerState}
-            />
-          </>
+          <PlayerCleanup
+            key={`${uuid}-cleanup`}
+            uuid={uuid}
+            state={state}
+            setState={setState}
+            setHandlers={setHandlers}
+          />
+        ))}
+      {Object.entries(generators)
+        .filter(([_, gen]) => gen.definition.type === 'player')
+        .map(([uuid]) => (
+          <PlayerMetadataFetcher
+            key={uuid}
+            uuid={uuid}
+            setPlayerState={setPlayerState}
+          />
         ))}
     </>
   );
