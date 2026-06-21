@@ -12,7 +12,7 @@ const STATUS_POLL_INTERVAL = 5000;
 
 export const useMidiDeviceWatcher = (
   log: Logger,
-  m: MIDIInterface,
+  m: MIDIInterface | null,
   type: 'inputs' | 'outputs',
   target: MidiTargetConfig,
 ): 'loading' | MidiEndpointInfo | null => {
@@ -26,6 +26,11 @@ export const useMidiDeviceWatcher = (
 
     let listener: MIDIEventListener<MIDIEndpointsChangedEvent> | null = null;
     let interval: NodeJS.Timeout | null = null;
+
+    if (!m) {
+      setAvailableDevices(null);
+      return;
+    }
 
     m.getSupportInfo()
       .then((supportInfo) => {
