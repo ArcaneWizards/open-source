@@ -431,7 +431,7 @@ const getNativeModule = () => {
 
   const resolvedPaths = new Set(
     packageRootCandidates.map((packageRoot) =>
-      join(packageRoot, 'native', 'out', 'midi-macos.node'),
+      join(packageRoot, 'native', 'out', `midi-macos.${process.arch}.node`),
     ),
   );
 

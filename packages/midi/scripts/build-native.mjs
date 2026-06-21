@@ -223,6 +223,45 @@ const findVcvarsBat = async () => {
   return null;
 };
 
+const macOSTargets = [
+  { clangArch: 'arm64', nodeArch: 'arm64' },
+  { clangArch: 'x86_64', nodeArch: 'x64' },
+];
+
+const buildMacOSNativeModule = async ({ clangArch, nodeArch }, nodeIncludeDir) => {
+  const outputDir = join(root, 'native', 'out');
+
+  await execFilePromise(
+    'clang++',
+    [
+      '-std=c++17',
+      '-ObjC++',
+      '-fvisibility=hidden',
+      '-DNAPI_VERSION=9',
+      '-mmacosx-version-min=10.15',
+      '-arch',
+      clangArch,
+      '-bundle',
+      '-undefined',
+      'dynamic_lookup',
+      '-I',
+      nodeIncludeDir,
+      join(root, 'native', 'midi-macos.mm'),
+      '-framework',
+      'CoreMIDI',
+      '-framework',
+      'CoreFoundation',
+      '-framework',
+      'Foundation',
+      '-o',
+      join(outputDir, `midi-macos.${nodeArch}.node`),
+    ],
+    {
+      stdio: 'inherit',
+    },
+  );
+};
+
 const build = async () => {
   const nodeIncludeDir = await findNodeIncludeDir();
   const outputDir = join(root, 'native', 'out');
@@ -280,33 +319,11 @@ const build = async () => {
     return;
   }
 
-  await execFilePromise(
-    'clang++',
-    [
-      '-std=c++17',
-      '-ObjC++',
-      '-fvisibility=hidden',
-      '-DNAPI_VERSION=9',
-      '-mmacosx-version-min=10.15',
-      '-bundle',
-      '-undefined',
-      'dynamic_lookup',
-      '-I',
-      nodeIncludeDir,
-      join(root, 'native', 'midi-macos.mm'),
-      '-framework',
-      'CoreMIDI',
-      '-framework',
-      'CoreFoundation',
-      '-framework',
-      'Foundation',
-      '-o',
-      join(outputDir, 'midi-macos.node'),
-    ],
-    {
-      stdio: 'inherit',
-    },
-  );
+  await rm(join(outputDir, 'midi-macos.node'), { force: true });
+
+  for (const target of macOSTargets) {
+    await buildMacOSNativeModule(target, nodeIncludeDir);
+  }
 };
 
 build().catch((error) => {
