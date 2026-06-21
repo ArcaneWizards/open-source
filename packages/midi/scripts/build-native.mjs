@@ -279,7 +279,7 @@ const build = async () => {
     const clArgs = [
       '/nologo',
       '/EHsc',
-      '/std:c++17',
+      '/std:c++20',
       '/LD',
       '/DNAPI_VERSION=9',
       `/I${nodeIncludeDir}`,
