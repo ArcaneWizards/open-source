@@ -42,11 +42,7 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
 
   const [midiInstance, setMidiInstance] = useState<MIDIOutput | null>(null);
 
-  const m = useMemo(() => midi(), []);
-
   const name = target.type === 'virtual' ? config.name : target.deviceName;
-
-  const outputInfo = useMidiDeviceWatcher(log, m, 'outputs', target);
 
   const setOutputState = useCallback(
     (outputState: OutputState) =>
@@ -60,7 +56,30 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
     [setState, uuid],
   );
 
+  const m = useMemo(() => {
+    try {
+      return midi();
+    } catch (cause) {
+      const error = new Error('Failed to initialize MIDI', { cause });
+      log.error(error);
+      setImmediate(() =>
+        setOutputState({
+          status: 'error',
+          controlledBy: null,
+          errors: [`${error}`],
+        }),
+      );
+      return null;
+    }
+  }, [log, setOutputState]);
+
+  const outputInfo = useMidiDeviceWatcher(log, m, 'outputs', target);
+
   useEffect(() => {
+    if (!m) {
+      return;
+    }
+
     let output: MIDIOutput | null = null;
     if (!name?.trim()) {
       setOutputState({

@@ -16,14 +16,12 @@ export const LtcInputsStateManager: FC<StateSensitiveComponentProps> = ({
       {Object.entries(inputs)
         .filter(([_, input]) => input.definition.type === 'ltc')
         .map(([uuid]) => (
-          <>
-            <LtcInputCleanup
-              key={`${uuid}-cleanup`}
-              uuid={uuid}
-              state={state}
-              setState={setState}
-            />
-          </>
+          <LtcInputCleanup
+            key={`${uuid}-cleanup`}
+            uuid={uuid}
+            state={state}
+            setState={setState}
+          />
         ))}
     </>
   );

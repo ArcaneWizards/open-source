@@ -38,12 +38,6 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
 
   const [midiInstance, setMidiInstance] = useState<MIDIInput | null>(null);
 
-  const m = useMemo(() => midi(), []);
-
-  const name = target.type === 'virtual' ? config.name : target.deviceName;
-
-  const inputInfo = useMidiDeviceWatcher(log, m, 'inputs', target);
-
   const [midiPlayState, setMidiPlayState] =
     useState<MIDITimecodePlayState | null>(null);
 
@@ -55,6 +49,27 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
   });
 
   const { delayMs } = config;
+
+  const m = useMemo(() => {
+    try {
+      return midi();
+    } catch (cause) {
+      const error = new Error('Failed to initialize MIDI', { cause });
+      log.error(error);
+      setImmediate(() =>
+        setInputState({
+          status: 'error',
+          controlledBy: null,
+          errors: [`${error}`],
+        }),
+      );
+      return null;
+    }
+  }, [log]);
+
+  const name = target.type === 'virtual' ? config.name : target.deviceName;
+
+  const inputInfo = useMidiDeviceWatcher(log, m, 'inputs', target);
 
   useEffect(
     () =>
@@ -99,6 +114,10 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
   );
 
   useEffect(() => {
+    if (!m) {
+      return;
+    }
+
     // Reset timecode state when config changes
     setMidiPlayState(null);
 
