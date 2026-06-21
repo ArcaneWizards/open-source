@@ -1,5 +1,11 @@
 # @arcanewizards/midi
 
+## 0.1.2
+
+### Patch Changes
+
+- d6ec3c1: Fix windows native build
+
 ## 0.1.1
 
 ### Patch Changes

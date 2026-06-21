@@ -1,5 +1,13 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.4.2
+
+### Patch Changes
+
+- Fix windows build
+- Updated dependencies [d6ec3c1]
+  - @arcanewizards/midi@0.1.2
+
 ## 0.4.1
 
 ### Patch Changes
