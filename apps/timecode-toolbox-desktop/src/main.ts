@@ -122,7 +122,14 @@ const unregisterMediaSession = (window: BrowserWindow) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-if (require('electron-squirrel-startup')) app.quit();
+const isSquirrelStartup = require('electron-squirrel-startup');
+const hasSingleInstanceLock =
+  isSquirrelStartup || app.requestSingleInstanceLock();
+const shouldStartApp = !isSquirrelStartup && hasSingleInstanceLock;
+
+if (!shouldStartApp) {
+  app.quit();
+}
 
 app.setAppUserModelId('com.arcanewizards.timecode-toolbox-desktop');
 
@@ -205,6 +212,33 @@ const createWindow = (
 let server: SigilAppInstance<AppApi> | null = null;
 let windowUrl: URL | null = null;
 
+const focusWindow = (win: BrowserWindow) => {
+  if (win.isMinimized()) {
+    win.restore();
+  }
+  win.show();
+  win.focus();
+};
+
+const focusOrCreateMainWindow = () => {
+  if (windowUrl === null) {
+    const [win] = BrowserWindow.getAllWindows();
+    if (win) {
+      focusWindow(win);
+    }
+    return;
+  }
+
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.webContents.getURL() === windowUrl.toString()) {
+      focusWindow(win);
+      return;
+    }
+  }
+
+  createWindow(windowUrl);
+};
+
 const confirmIfUserWantsToQuit = async () => {
   if (!server) {
     app.quit();
@@ -231,118 +265,101 @@ const confirmIfUserWantsToQuit = async () => {
   }
 };
 
-app.whenReady().then(async () => {
-  startMediaService();
+if (shouldStartApp) {
+  app.whenReady().then(async () => {
+    startMediaService();
 
-  ipcMain.on('media-update', (event, media: MediaMetadata) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (!win) return;
-    if (!media) {
-      unregisterMediaSession(win);
-    } else {
-      registerMediaSession(win, media);
-    }
-  });
-
-  ipcMain.on('open-url', (event, url: string) => {
-    shell.openExternal(url);
-  });
-  ipcMain.on('open-window', (event, url: string, options: NewWindowOptions) => {
-    if (options?.canUseExisting) {
-      for (const win of BrowserWindow.getAllWindows()) {
-        if (win.webContents.getURL() === url) {
-          win.focus();
-          return;
-        }
+    ipcMain.on('media-update', (event, media: MediaMetadata) => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win) return;
+      if (!media) {
+        unregisterMediaSession(win);
+      } else {
+        registerMediaSession(win, media);
       }
-    }
-    createWindow(
-      url,
-      isWindowMode(options.mode) ? WINDOW_MODES[options.mode] : undefined,
-    );
-  });
-  ipcMain.on('confirm-close', (event, message: string) => {
-    dialog
-      .showMessageBox({
-        type: 'warning',
-        buttons: ['Close', 'Cancel'],
-        title: 'Confirm Close',
-        message,
-      })
-      .then((response) => {
-        if (response.response === 0) {
-          const win = BrowserWindow.fromWebContents(event.sender);
-          const activeWindow = win ? activeWindows.get(win) : null;
-          if (activeWindow) {
-            activeWindow.shouldPreventClose = false;
-          }
-          if (win) {
-            win.destroy();
+    });
+
+    ipcMain.on('open-url', (event, url: string) => {
+      shell.openExternal(url);
+    });
+    ipcMain.on(
+      'open-window',
+      (event, url: string, options: NewWindowOptions) => {
+        if (options?.canUseExisting) {
+          for (const win of BrowserWindow.getAllWindows()) {
+            if (win.webContents.getURL() === url) {
+              win.focus();
+              return;
+            }
           }
         }
-      });
-  });
-
-  ipcMain.handle('select-directory', async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openDirectory', 'createDirectory'],
-    });
-    if (result.canceled || result.filePaths.length === 0) {
-      return null;
-    }
-    return result.filePaths[0];
-  });
-
-  ipcMain.handle('open-dev-tools', async () => {
-    // Open dev tools for every window
-    BrowserWindow.getAllWindows().forEach((win) => {
-      win.webContents.openDevTools({ mode: 'bottom' });
-    });
-  });
-
-  // Create a tray icon
-  // TODO: Add color icons for windows and linux
-  let icon: Electron.NativeImage;
-  if (process.platform === 'darwin') {
-    icon = nativeImage.createFromPath(
-      path.join(assetsPath, 'TrayIconTemplate.png'),
+        createWindow(
+          url,
+          isWindowMode(options.mode) ? WINDOW_MODES[options.mode] : undefined,
+        );
+      },
     );
-    icon.setTemplateImage(true);
-  } else {
-    icon = nativeImage.createFromPath(path.join(assetsPath, 'TrayIcon.png'));
-  }
-  const tray = new Tray(icon);
+    ipcMain.on('confirm-close', (event, message: string) => {
+      dialog
+        .showMessageBox({
+          type: 'warning',
+          buttons: ['Close', 'Cancel'],
+          title: 'Confirm Close',
+          message,
+        })
+        .then((response) => {
+          if (response.response === 0) {
+            const win = BrowserWindow.fromWebContents(event.sender);
+            const activeWindow = win ? activeWindows.get(win) : null;
+            if (activeWindow) {
+              activeWindow.shouldPreventClose = false;
+            }
+            if (win) {
+              win.destroy();
+            }
+          }
+        });
+    });
 
-  const url = () => {
-    if (!windowUrl) {
-      throw new Error('Window URL not set yet');
+    ipcMain.handle('select-directory', async () => {
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return null;
+      }
+      return result.filePaths[0];
+    });
+
+    ipcMain.handle('open-dev-tools', async () => {
+      // Open dev tools for every window
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.openDevTools({ mode: 'bottom' });
+      });
+    });
+
+    // Create a tray icon
+    // TODO: Add color icons for windows and linux
+    let icon: Electron.NativeImage;
+    if (process.platform === 'darwin') {
+      icon = nativeImage.createFromPath(
+        path.join(assetsPath, 'TrayIconTemplate.png'),
+      );
+      icon.setTemplateImage(true);
+    } else {
+      icon = nativeImage.createFromPath(path.join(assetsPath, 'TrayIcon.png'));
     }
-    return windowUrl;
-  };
+    const tray = new Tray(icon);
 
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      {
-        label: 'New Window',
-        accelerator: 'CmdOrCtrl+N',
-        click: () => void createWindow(url()),
-      },
-      {
-        label: 'Quit',
-        accelerator: 'CmdOrCtrl+Q',
-        click: confirmIfUserWantsToQuit,
-      },
-    ]),
-  );
+    const url = () => {
+      if (!windowUrl) {
+        throw new Error('Window URL not set yet');
+      }
+      return windowUrl;
+    };
 
-  const APP_MENU = Menu.buildFromTemplate([
-    {
-      label: 'File',
-      submenu: [
-        {
-          label: 'About',
-          role: 'about',
-        },
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
         {
           label: 'New Window',
           accelerator: 'CmdOrCtrl+N',
@@ -353,90 +370,103 @@ app.whenReady().then(async () => {
           accelerator: 'CmdOrCtrl+Q',
           click: confirmIfUserWantsToQuit,
         },
-      ],
-    },
-    {
-      role: 'editMenu',
-    },
-    {
-      label: 'Window',
-      submenu: [
-        {
-          role: 'resetZoom',
-        },
-        {
-          role: 'zoomIn',
-        },
-        {
-          role: 'zoomOut',
-        },
-      ],
-    },
-  ]);
+      ]),
+    );
 
-  Menu.setApplicationMenu(APP_MENU);
+    const APP_MENU = Menu.buildFromTemplate([
+      {
+        label: 'File',
+        submenu: [
+          {
+            label: 'About',
+            role: 'about',
+          },
+          {
+            label: 'New Window',
+            accelerator: 'CmdOrCtrl+N',
+            click: () => void createWindow(url()),
+          },
+          {
+            label: 'Quit',
+            accelerator: 'CmdOrCtrl+Q',
+            click: confirmIfUserWantsToQuit,
+          },
+        ],
+      },
+      {
+        role: 'editMenu',
+      },
+      {
+        label: 'Window',
+        submenu: [
+          {
+            role: 'resetZoom',
+          },
+          {
+            role: 'zoomIn',
+          },
+          {
+            role: 'zoomOut',
+          },
+        ],
+      },
+    ]);
 
-  const dataDir = app.getPath('userData');
+    Menu.setApplicationMenu(APP_MENU);
 
-  const arcane = runTimecodeToolboxServer({
-    logger,
-    appProps: {
-      dataDirectory: dataDir,
-    },
-    toolkitOptions: {
-      entrypointJsFile: path.resolve(__dirname, './frontend.js'),
-    },
-    title: 'Timecode Toolbox Desktop',
-    edition: 'desktop',
-  });
-  server = arcane;
+    const dataDir = app.getPath('userData');
 
-  let hasOpenedFirstWindow = false;
+    const arcane = runTimecodeToolboxServer({
+      logger,
+      appProps: {
+        dataDirectory: dataDir,
+      },
+      toolkitOptions: {
+        entrypointJsFile: path.resolve(__dirname, './frontend.js'),
+      },
+      title: 'Timecode Toolbox Desktop',
+      edition: 'desktop',
+    });
+    server = arcane;
 
-  arcane.addEventListener('windowUrlChange', (u) => {
-    windowUrl = u;
-    if (!hasOpenedFirstWindow) {
-      hasOpenedFirstWindow = true;
-      createWindow(url());
-    }
-    for (const win of BrowserWindow.getAllWindows()) {
-      try {
-        const winUrl = new URL(win.webContents.getURL());
-        if (winUrl.hostname !== u.hostname || winUrl.port !== u.port) {
-          const newUrl = new URL(winUrl);
-          newUrl.port = u.port;
-          newUrl.hostname = u.hostname;
-          logger.info(`Updating URL for window: ${winUrl} -> ${newUrl}`);
-          win.loadURL(newUrl.toString());
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars,unused-imports/no-unused-vars
-      } catch (_err) {
-        // Ignore windows that don't have a valid URL
+    let hasOpenedFirstWindow = false;
+
+    arcane.addEventListener('windowUrlChange', (u) => {
+      windowUrl = u;
+      if (!hasOpenedFirstWindow) {
+        hasOpenedFirstWindow = true;
+        createWindow(url());
       }
-    }
+      for (const win of BrowserWindow.getAllWindows()) {
+        try {
+          const winUrl = new URL(win.webContents.getURL());
+          if (winUrl.hostname !== u.hostname || winUrl.port !== u.port) {
+            const newUrl = new URL(winUrl);
+            newUrl.port = u.port;
+            newUrl.hostname = u.hostname;
+            logger.info(`Updating URL for window: ${winUrl} -> ${newUrl}`);
+            win.loadURL(newUrl.toString());
+          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars,unused-imports/no-unused-vars
+        } catch (_err) {
+          // Ignore windows that don't have a valid URL
+        }
+      }
+    });
   });
-});
 
-app.on('activate', () => {
-  if (windowUrl === null) {
-    return;
-  }
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (win.webContents.getURL() === windowUrl.toString()) {
-      // Window is full window, just focus it
-      win.focus();
-      return;
-    }
-  }
+  app.on('activate', () => {
+    focusOrCreateMainWindow();
+  });
 
-  createWindow(windowUrl);
-});
+  app.on('second-instance', focusOrCreateMainWindow);
 
-app.on('window-all-closed', () => {
-  // Subscribing to this event prevents the app from quitting
-  // when all windows are closed
-  // which is the behavior we want for a tray app
-});
+  app.on('window-all-closed', () => {
+    // Subscribing to this event prevents the app from quitting
+    // when all windows are closed
+    // which is the behavior we want for a tray app
+  });
+}
 
 // Catch uncaught exceptions
 process.on('uncaughtException', (err) => {
