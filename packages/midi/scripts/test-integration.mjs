@@ -7,11 +7,15 @@ import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
-const jestBin = join(dirname(require.resolve('jest/package.json')), 'bin', 'jest.js');
+const jestBin = join(
+  dirname(require.resolve('jest/package.json')),
+  'bin',
+  'jest.js',
+);
 
 const loadMidi = async () => {
   const { midi } = await import('../dist/index.js');
-  return midi();
+  return midi(console);
 };
 
 const listEndpoints = (label, endpoints) => {
@@ -32,7 +36,9 @@ const getWindowsPhysicalPortNumber = (endpoint, label) => {
   }
 
   const prefix = label === 'input' ? 'MIDIIN' : 'MIDIOUT';
-  const explicitMatch = endpoint.name.match(new RegExp(`^${prefix}(\\d+)\\b`, 'i'));
+  const explicitMatch = endpoint.name.match(
+    new RegExp(`^${prefix}(\\d+)\\b`, 'i'),
+  );
   if (explicitMatch) {
     return Number.parseInt(explicitMatch[1], 10);
   }
@@ -140,18 +146,14 @@ const runJest = ({ env = {}, testNamePattern } = {}) => {
     args.push('--testNamePattern', testNamePattern);
   }
 
-  const child = spawn(
-    process.execPath,
-    args,
-    {
-      cwd: packageRoot,
-      env: {
-        ...process.env,
-        ...env,
-      },
-      stdio: 'inherit',
+  const child = spawn(process.execPath, args, {
+    cwd: packageRoot,
+    env: {
+      ...process.env,
+      ...env,
     },
-  );
+    stdio: 'inherit',
+  });
 
   child.on('exit', (code, signal) => {
     if (signal) {
@@ -186,9 +188,14 @@ const run = async ([outputSelector, inputSelector]) => {
   const midi = await loadMidi();
   await assertSupported(midi);
 
-  const output = findEndpoint(outputSelector, await midi.getOutputs(), 'output', {
-    preferPhysicalPort: true,
-  });
+  const output = findEndpoint(
+    outputSelector,
+    await midi.getOutputs(),
+    'output',
+    {
+      preferPhysicalPort: true,
+    },
+  );
   const input = findEndpoint(inputSelector, await midi.getInputs(), 'input', {
     preferPhysicalPort: true,
   });

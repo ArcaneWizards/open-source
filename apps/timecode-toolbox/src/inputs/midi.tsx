@@ -1,5 +1,5 @@
 import { useDataFileData } from '@arcanejs/react-toolkit/data';
-import { FC, ReactNode, useEffect, useMemo, useState } from 'react';
+import { FC, ReactNode, useCallback, useEffect, useState } from 'react';
 import { ToolboxConfigData } from '../config';
 import {
   InputConfig,
@@ -8,10 +8,9 @@ import {
   isInputMidiDefinition,
   TimecodeInstance,
 } from '../components/proto';
-import { useLogger } from '@arcanewizards/sigil';
-import { StateSensitiveComponentProps } from '../types';
-import {
-  midi,
+import { useLogger, useShutdownHandler } from '@arcanewizards/sigil';
+import { StateSensitiveComponentPropsWithMidi } from '../types';
+import type {
   MIDIEventListener,
   MIDIInput,
   MIDIMessageEvent,
@@ -22,13 +21,14 @@ import {
   MIDITimecodePlayState,
 } from '@arcanewizards/midi-timecode';
 
-type MidiInputConnectionProps = StateSensitiveComponentProps & {
+type MidiInputConnectionProps = StateSensitiveComponentPropsWithMidi & {
   uuid: string;
   config: InputConfig;
   connection: InputMidiDefinition;
 };
 
 const MidiInputConnection: FC<MidiInputConnectionProps> = ({
+  midi,
   uuid,
   config,
   connection: { target },
@@ -50,26 +50,9 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
 
   const { delayMs } = config;
 
-  const m = useMemo(() => {
-    try {
-      return midi();
-    } catch (cause) {
-      const error = new Error('Failed to initialize MIDI', { cause });
-      log.error(error);
-      setImmediate(() =>
-        setInputState({
-          status: 'error',
-          controlledBy: null,
-          errors: [`${error}`],
-        }),
-      );
-      return null;
-    }
-  }, [log]);
-
   const name = target.type === 'virtual' ? config.name : target.deviceName;
 
-  const inputInfo = useMidiDeviceWatcher(log, m, 'inputs', target);
+  const inputInfo = useMidiDeviceWatcher(log, midi, 'inputs', target);
 
   useEffect(
     () =>
@@ -114,12 +97,17 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
   );
 
   useEffect(() => {
-    if (!m) {
-      return;
-    }
-
     // Reset timecode state when config changes
     setMidiPlayState(null);
+
+    if (!midi) {
+      setInputState({
+        status: 'error',
+        controlledBy: null,
+        errors: ['MIDI interface not available'],
+      });
+      return;
+    }
 
     let input: MIDIInput | null = null;
     if (!name?.trim()) {
@@ -142,14 +130,14 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
 
     const inputPromise =
       target.type === 'virtual'
-        ? m.createVirtualInput(name)
+        ? midi.createVirtualInput(name)
         : Promise.resolve(inputInfo).then((found) => {
             if (!found) {
               throw new Error(
                 `MIDI input device "${target.deviceName}" not found`,
               );
             }
-            return midi().openInput(found);
+            return midi.openInput(found);
           });
 
     inputPromise
@@ -177,7 +165,7 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
       }
       setMidiInstance((current) => (input === current ? null : current));
     };
-  }, [setInputState, name, uuid, target, log, m, inputInfo]);
+  }, [setInputState, name, uuid, target, log, midi, inputInfo]);
 
   useEffect(() => {
     return () => {
@@ -212,10 +200,20 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
     };
   }, [midiInstance]);
 
+  const shutdownHandler = useCallback(async () => {
+    if (!midiInstance) {
+      return;
+    }
+
+    await midiInstance.close();
+  }, [midiInstance]);
+
+  useShutdownHandler(shutdownHandler);
+
   return null;
 };
 
-export const MidiInputConnections: FC<StateSensitiveComponentProps> = (
+export const MidiInputConnections: FC<StateSensitiveComponentPropsWithMidi> = (
   props,
 ) => {
   const { inputs } = useDataFileData(ToolboxConfigData);

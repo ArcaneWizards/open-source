@@ -1,7 +1,7 @@
 import { loadNativeModuleMacOS } from './midi-macos.js';
 import { loadNativeModuleWindows } from './midi-windows.js';
 import { MIDINotSupportedError } from './errors.js';
-import type { MIDIInterface } from './types.js';
+import type { Logger, MIDIInterface } from './types.js';
 
 export {
   MIDIEndpointClosedError,
@@ -77,12 +77,22 @@ const DEFAULT_MIDI_INTERFACE: MIDIInterface = {
   removeEventListener() {},
 };
 
-export const midi = () => {
-  if (process.platform === 'darwin') {
-    return loadNativeModuleMacOS();
+/**
+ * Ensure only a singleton instance exists.
+ */
+let midiInterface: MIDIInterface | null = null;
+
+export const midi = (log: Logger | null = null) => {
+  if (!midiInterface) {
+    if (process.platform === 'darwin') {
+      midiInterface = loadNativeModuleMacOS(log);
+    } else if (process.platform === 'win32') {
+      midiInterface = loadNativeModuleWindows();
+    } else {
+      midiInterface = DEFAULT_MIDI_INTERFACE;
+    }
   }
-  if (process.platform === 'win32') {
-    return loadNativeModuleWindows();
-  }
-  return DEFAULT_MIDI_INTERFACE;
+  return midiInterface;
 };
+
+export default midi;

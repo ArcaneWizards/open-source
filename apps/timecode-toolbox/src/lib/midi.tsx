@@ -1,12 +1,13 @@
 import { Logger } from '@arcanejs/protocol/logging';
 import { MidiTargetConfig } from '../components/proto';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   MidiEndpointInfo,
   MIDIEndpointsChangedEvent,
   MIDIEventListener,
   MIDIInterface,
 } from '@arcanewizards/midi';
+import { useShutdownHandler } from '@arcanewizards/sigil';
 
 const STATUS_POLL_INTERVAL = 5000;
 
@@ -20,11 +21,16 @@ export const useMidiDeviceWatcher = (
     MidiEndpointInfo[] | null
   >(null);
 
+  const listener: MIDIEventListener<MIDIEndpointsChangedEvent> = useCallback(
+    (e) => {
+      setAvailableDevices(e.endpoints[type]);
+    },
+    [type],
+  );
+
   useEffect(() => {
     // Keep track of available devices as state so that we can react to changes
     // in device availability
-
-    let listener: MIDIEventListener<MIDIEndpointsChangedEvent> | null = null;
     let interval: NodeJS.Timeout | null = null;
 
     if (!m) {
@@ -40,9 +46,6 @@ export const useMidiDeviceWatcher = (
         }
 
         if (supportInfo.notifications.supported) {
-          listener = (e) => {
-            setAvailableDevices(e.endpoints[type]);
-          };
           m.addEventListener('endpointschanged', listener);
           // Get the initial list of devices
           m.getEndpoints()
@@ -72,14 +75,12 @@ export const useMidiDeviceWatcher = (
       });
 
     return () => {
-      if (listener) {
-        m.removeEventListener('endpointschanged', listener);
-      }
+      m.removeEventListener('endpointschanged', listener);
       if (interval) {
         clearInterval(interval);
       }
     };
-  }, [m, log, type]);
+  }, [m, log, type, listener]);
 
   const deviceInfo = useMemo(() => {
     if (target.type === 'virtual') {
@@ -90,6 +91,12 @@ export const useMidiDeviceWatcher = (
     }
     return availableDevices.find((o) => o.name === target.deviceName) ?? null;
   }, [availableDevices, target]);
+
+  const shutdownHandler = useCallback(async () => {
+    m?.removeEventListener('endpointschanged', listener);
+  }, [m, listener]);
+
+  useShutdownHandler(shutdownHandler);
 
   return deviceInfo;
 };

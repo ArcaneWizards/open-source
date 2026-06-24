@@ -31,7 +31,7 @@ import {
 } from '@arcanejs/protocol';
 import { getNetworkInterfaces } from '@arcanewizards/net-utils';
 import { ToolkitConnection } from '@arcanejs/toolkit';
-import { midi } from '@arcanewizards/midi';
+import type { MIDIInterface } from '@arcanewizards/midi';
 
 export type Events = {
   updateConfig: (diff: Diff<ToolboxConfig>) => void;
@@ -62,6 +62,7 @@ export type AppRootProps = Pick<
   ToolboxRootComponent,
   'config' | 'state' | 'handlers' | 'license' | 'network'
 > & {
+  midi?: MIDIInterface;
   onUpdateConfig?: Events['updateConfig'];
   onCallHandler?: Events['callHandler'];
   onDownloadAudioFile?: Events['downloadAudioFile'];
@@ -173,7 +174,11 @@ export class ToolboxRoot
     } else if (
       isTimecodeToolboxComponentCall(call, 'toolbox-root-get-midi-devices')
     ) {
-      const m = midi();
+      const m = this.props.midi;
+
+      if (!m) {
+        throw new Error(`MIDI interface not available`);
+      }
 
       const [outputs, inputs] = await Promise.all([
         m.getOutputs(),
@@ -187,7 +192,12 @@ export class ToolboxRoot
     } else if (
       isTimecodeToolboxComponentCall(call, 'toolbox-root-get-midi-support-info')
     ) {
-      return midi().getSupportInfo();
+      const m = this.props.midi;
+
+      if (!m) {
+        throw new Error(`MIDI interface not available`);
+      }
+      return m.getSupportInfo();
     } else if (
       isTimecodeToolboxComponentCall(call, 'toolbox-root-get-timezone-info')
     ) {

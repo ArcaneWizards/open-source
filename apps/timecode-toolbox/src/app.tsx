@@ -56,6 +56,7 @@ import {
   useNotificationSender,
 } from '@arcanejs/react-toolkit/connections';
 import { ToolkitConnection } from '@arcanejs/toolkit';
+import { midi } from '@arcanewizards/midi';
 
 const DEFAULT_PORT: ListenerConfig['port'] = { from: 4100, to: 4200 };
 
@@ -420,6 +421,16 @@ export const App = ({
     [],
   );
 
+  const midiInterface = useMemo(() => {
+    try {
+      return midi(logger);
+    } catch (cause) {
+      const error = new Error('Failed to initialize MIDI', { cause });
+      logger.error(error);
+      return null;
+    }
+  }, [logger]);
+
   if (!license) {
     // Wait for license to load before starting the app.
     return;
@@ -444,8 +455,13 @@ export const App = ({
             envPort: env.PORT,
             defaultPort: DEFAULT_PORT,
           }}
+          midi={midiInterface ?? undefined}
         />
-        <InputConnections state={state} setState={setState} />
+        <InputConnections
+          midi={midiInterface}
+          state={state}
+          setState={setState}
+        />
         <PlayerStateManager
           state={state}
           setState={setState}
@@ -457,7 +473,11 @@ export const App = ({
           setState={setState}
           setHandlers={setHandlers}
         />
-        <OutputConnections state={state} setState={setState} />
+        <OutputConnections
+          midi={midiInterface}
+          state={state}
+          setState={setState}
+        />
       </>
     ) : (
       <C.LicenseGate
