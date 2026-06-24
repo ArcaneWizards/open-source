@@ -1,5 +1,20 @@
 # @arcanewizards/midi
 
+## 0.1.3
+
+### Patch Changes
+
+- 3974533: Add logging interface to midi module
+
+  Make it possible to provide a log interface (e.g. console) to the `midi`
+  initializer function, allowing for the module to log messages.
+
+- 3974533: Improve internal state management for MacOS
+
+  Keep better track of which endpoints and listeners are still in use,
+  and notify the native module when we no longer need to receive MIDI device
+  notifications.
+
 ## 0.1.2
 
 ### Patch Changes
