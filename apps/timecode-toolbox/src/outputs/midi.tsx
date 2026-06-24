@@ -17,12 +17,13 @@ import {
   isPlaying,
   isStopped,
 } from '../components/proto';
-import { adjustTimecodeForDelay, getTimecodeInstance } from '../util';
+import { getTimecodeInstance } from '../util';
 import { useLogger, useShutdownHandler } from '@arcanewizards/sigil';
 import { StateSensitiveComponentPropsWithMidi } from '../types';
 import type { MIDIOutput } from '@arcanewizards/midi';
 import { createMIDITimecodeSender } from '@arcanewizards/midi-timecode';
 import { useMidiDeviceWatcher } from '../lib/midi';
+import { useTimecodePlayStateForTransmission } from '../util.hooks';
 
 type MIDIOutputConnectionProps = StateSensitiveComponentPropsWithMidi & {
   uuid: string;
@@ -174,12 +175,10 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
     [state, config.link],
   );
 
-  const timecodeState = useMemo(
-    () =>
-      tcInstance?.state
-        ? adjustTimecodeForDelay(tcInstance.state, config.delayMs ?? 0)
-        : null,
-    [tcInstance?.state, config.delayMs],
+  const timecodeState = useTimecodePlayStateForTransmission(
+    tcInstance,
+    config.delayMs ?? 0,
+    true,
   );
 
   useEffect(() => {

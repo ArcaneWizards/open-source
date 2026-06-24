@@ -14,6 +14,7 @@ import {
   useBrowserContext,
 } from '@arcanewizards/sigil/frontend';
 import { LtcContext, LtcContextData, LtcState } from './shared';
+import { useTimecodePlayStateForTransmission } from '../../../../../util.hooks';
 
 type WithLtcPlayerProps = {
   uuid: string;
@@ -97,28 +98,38 @@ export const WithLtcPlayer: FC<WithLtcPlayerProps> = ({
     };
   }, [ltcWriter]);
 
+  /**
+   * Only apply time difference to the timecode if it's playing,
+   * because we don't want to apply the browser-server time difference
+   * when stopped, and the user-configured delay is already added.
+   */
+  const adjustedTimecode = useTimecodePlayStateForTransmission(
+    timecode,
+    -(timeDifferenceMs ?? 0),
+    false,
+  );
+
+  const useSmpteMode = config.definition.mode;
+
   useEffect(() => {
-    if (!ltcWriter || !timecode) {
+    if (!ltcWriter || !adjustedTimecode) {
       return;
     }
 
-    if (isPlaying(timecode.state) && timecode.state.smpteMode) {
+    if (isPlaying(adjustedTimecode) && useSmpteMode) {
       ltcWriter.setPlayState(0, {
         state: 'playing',
-        effectiveStartTime:
-          timecode.state.effectiveStartTimeMillis - (timeDifferenceMs ?? 0),
-        smpteMode: timecode.state.smpteMode,
-        speed: timecode.state.speed,
+        effectiveStartTime: adjustedTimecode.effectiveStartTimeMillis,
+        smpteMode: useSmpteMode,
+        speed: adjustedTimecode.speed,
       });
-    } else {
+    } else if (isStopped(adjustedTimecode)) {
       ltcWriter.setPlayState(0, {
         state: 'stopped',
-        currentTimeMillis: isStopped(timecode.state)
-          ? timecode.state.positionMillis
-          : 0,
+        currentTimeMillis: adjustedTimecode.positionMillis,
       });
     }
-  }, [ltcWriter, timecode, timeDifferenceMs]);
+  }, [ltcWriter, adjustedTimecode, useSmpteMode]);
 
   const release = useCallback(() => {
     // We use force here as it's called by both this provider,

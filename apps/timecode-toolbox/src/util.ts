@@ -39,6 +39,7 @@ export const getTimecodeInstance = (
 export const adjustTimecodeForDelay = (
   state: TimecodeState,
   delayMillis: number,
+  applyDelayToStopped: boolean,
 ): TimecodeState => {
   if (state.state === 'playing' || state.state === 'lagging') {
     return {
@@ -47,10 +48,11 @@ export const adjustTimecodeForDelay = (
       appliedDelayMillis: delayMillis + state.appliedDelayMillis,
     };
   } else if (state.state === 'stopped') {
+    const applyDelay = applyDelayToStopped ? delayMillis : 0;
     return {
       ...state,
-      positionMillis: state.positionMillis - delayMillis,
-      appliedDelayMillis: delayMillis + state.appliedDelayMillis,
+      positionMillis: state.positionMillis - applyDelay,
+      appliedDelayMillis: applyDelay + state.appliedDelayMillis,
     };
   }
   return state;
@@ -78,7 +80,7 @@ export const augmentUpstreamTimecodeWithOutputMetadata = (
     name: null,
     metadata: tc.metadata,
     state: {
-      ...adjustTimecodeForDelay(tc.state, config.delayMs ?? 0),
+      ...adjustTimecodeForDelay(tc.state, config.delayMs ?? 0, true),
       smpteMode: config.definition.mode,
     },
   };
