@@ -8,11 +8,12 @@ import {
   OutputState,
   isOutputArtnetDefinition,
 } from '../components/proto';
-import { adjustTimecodeForDelay, getTimecodeInstance } from '../util';
+import { getTimecodeInstance } from '../util';
 import { useLogger } from '@arcanewizards/sigil';
 import { ArtNet, createArtnet } from '@arcanewizards/artnet';
 import { StateSensitiveComponentProps } from '../types';
 import { getNetworkInterfaces } from '@arcanewizards/net-utils';
+import { useTimecodePlayStateForTransmission } from '../util.hooks';
 
 type ArtnetOutputConnectionProps = StateSensitiveComponentProps & {
   uuid: string;
@@ -166,12 +167,10 @@ const ArtnetOutputConnection: FC<ArtnetOutputConnectionProps> = ({
     [state, config.link],
   );
 
-  const timecodeState = useMemo(
-    () =>
-      tcInstance?.state
-        ? adjustTimecodeForDelay(tcInstance.state, config.delayMs ?? 0)
-        : null,
-    [tcInstance?.state, config.delayMs],
+  const timecodeState = useTimecodePlayStateForTransmission(
+    tcInstance,
+    config.delayMs ?? 0,
+    true,
   );
 
   useEffect(() => {
