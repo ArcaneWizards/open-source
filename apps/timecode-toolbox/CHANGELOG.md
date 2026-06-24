@@ -1,5 +1,40 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.4.3
+
+### Patch Changes
+
+- 1bee456: Fix bug in windows, prevent multiple simultaneous instances (#131)
+
+  Previously, it was possible to launch multiple instances of Timecode Toolbox on
+  windows, resulting in multiple icons in the system tray that would need to be
+  individually closed, and potentially resulting in interference on TC protocols,
+  or inability to listen to interfaces.
+
+  This is now prevented, and only one instance of Timecode Toolbox may be run at
+  any one time.
+
+  fixes #131
+
+- fd60072: bug: Fix retransmission of paused / stopped timecode states (#128)
+
+  Previously, all SMPTE outputs (ArtNet, MTC & LTC) would intermittently
+  re-transmit frame information for paused timecodes
+  (such as when internal timing information changed).
+
+  This bug has now been addressed, so that frames are only transmitted if the
+  information being transmitted has actually changed,
+  and not only related data that doesn't affect the timecode timing.
+
+- 3974533: Improve MacOS MIDI integration & Properly shut-down (#130)
+  - Properly tear-down the MIDI module during shutdown.
+  - Allow the MIDI module to produce log messages
+  - Only initialize a single instance using midi()
+
+- Updated dependencies [3974533]
+- Updated dependencies [3974533]
+  - @arcanewizards/midi@0.1.3
+
 ## 0.4.2
 
 ### Patch Changes
