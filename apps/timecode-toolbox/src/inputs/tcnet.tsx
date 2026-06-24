@@ -229,12 +229,14 @@ const TcnetInputConnection: FC<TcnetInputConnectionProps> = ({
     };
   }, [uuid, iface, nodeName, logger, appInformation, updateState]);
 
-  useShutdownHandler(async () => {
+  const shutdownHandler = useCallback(async () => {
     if (nodeRef.current) {
       logger.info(`Shutting down TCNet node ${name ?? uuid}...`);
       await nodeRef.current.destroy();
     }
-  });
+  }, [logger, name, uuid]);
+
+  useShutdownHandler(shutdownHandler);
 
   useEffect(() => {
     return () => {
