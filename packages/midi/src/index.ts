@@ -1,7 +1,7 @@
 import { loadNativeModuleMacOS } from './midi-macos.js';
 import { loadNativeModuleWindows } from './midi-windows.js';
 import { MIDINotSupportedError } from './errors.js';
-import type { MIDIInterface } from './types.js';
+import type { Logger, MIDIInterface } from './types.js';
 
 export {
   MIDIEndpointClosedError,
@@ -82,10 +82,10 @@ const DEFAULT_MIDI_INTERFACE: MIDIInterface = {
  */
 let midiInterface: MIDIInterface | null = null;
 
-export const midi = () => {
+export const midi = (log: Logger | null = null) => {
   if (!midiInterface) {
     if (process.platform === 'darwin') {
-      midiInterface = loadNativeModuleMacOS();
+      midiInterface = loadNativeModuleMacOS(log);
     } else if (process.platform === 'win32') {
       midiInterface = loadNativeModuleWindows();
     } else {
@@ -94,3 +94,5 @@ export const midi = () => {
   }
   return midiInterface;
 };
+
+export default midi;

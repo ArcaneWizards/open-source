@@ -12,6 +12,7 @@ import type {
   MIDIMessageEvent,
   MIDIEndpointClosedEvent,
   MIDIEndpointsChangedEvent,
+  Logger,
 } from './types.js';
 import { createMIDIEvent } from './types.js';
 import {
@@ -436,33 +437,28 @@ const hasEndpointChanges = (
   );
 };
 
+type EndpointHandle = {
+  type: keyof MIDIEndpoints;
+  endpoint: MIDIEndpointInfo;
+  closeFromEndpointRemoval(): void;
+};
+
 const createMacOSMIDIInterface = (
   nativeModule: NativeMIDIInterface,
+  log: Logger | null,
 ): MIDIInterface => {
   let midiDeviceState: MIDIState | null = null;
   let midiDeviceStateListenerConfigured = false;
-  const midiDeviceStateListeners = new Set<
-    (event: MIDIInterfaceEventMap['endpointschanged']) => void
-  >();
-  const openEndpointHandles = new Set<{
-    closeWhenRemovedFrom: keyof MIDIEndpoints;
-    endpoint: MIDIEndpointInfo;
-    closeFromEndpointRemoval(): void;
-  }>();
+  const openEndpointHandles = new Set<EndpointHandle>();
 
   const interfaceEvents = new EventEmitter();
-  const deviceStateListener = (
+  const emitEndpointsChanged = (
     event: MIDIInterfaceEventMap['endpointschanged'],
   ) => {
     interfaceEvents.emit('endpointschanged', event);
   };
 
-  midiDeviceStateListeners.add(deviceStateListener);
-
-  const createMacOSMIDIInput = (
-    nativeInput: NativeMIDIInput,
-    closeWhenRemovedFrom: keyof MIDIEndpoints,
-  ): MIDIInput => {
+  const createMacOSMIDIInput = (nativeInput: NativeMIDIInput): MIDIInput => {
     let closed = false;
     const events = new EventEmitter();
     const info = freezeEndpointInfo(
@@ -490,6 +486,7 @@ const createMacOSMIDIInterface = (
 
       closed = true;
       openEndpointHandles.delete(endpointHandle);
+      setupOrTearDownDeviceStateListener();
       callNative('input.setMessageCallback', () => {
         nativeInput.setMessageCallback(null);
       });
@@ -505,8 +502,8 @@ const createMacOSMIDIInterface = (
       );
       events.removeAllListeners();
     };
-    const endpointHandle = {
-      closeWhenRemovedFrom,
+    const endpointHandle: EndpointHandle = {
+      type: 'inputs',
       endpoint: info,
       closeFromEndpointRemoval: close,
     };
@@ -536,7 +533,6 @@ const createMacOSMIDIInterface = (
 
   const createMacOSMIDIOutput = (
     nativeOutput: NativeMIDIOutput,
-    closeWhenRemovedFrom: keyof MIDIEndpoints,
   ): MIDIOutput => {
     let closed = false;
     const events = new EventEmitter();
@@ -553,6 +549,7 @@ const createMacOSMIDIInterface = (
 
       closed = true;
       openEndpointHandles.delete(endpointHandle);
+      setupOrTearDownDeviceStateListener();
       callNative('output.close', () => {
         nativeOutput.close();
       });
@@ -565,8 +562,8 @@ const createMacOSMIDIInterface = (
       );
       events.removeAllListeners();
     };
-    const endpointHandle = {
-      closeWhenRemovedFrom,
+    const endpointHandle: EndpointHandle = {
+      type: 'outputs',
       endpoint: info,
       closeFromEndpointRemoval: close,
     };
@@ -618,11 +615,7 @@ const createMacOSMIDIInterface = (
     };
 
     for (const handle of [...openEndpointHandles]) {
-      if (
-        removedEndpointKeys[handle.closeWhenRemovedFrom].has(
-          endpointKey(handle.endpoint),
-        )
-      ) {
+      if (removedEndpointKeys[handle.type].has(endpointKey(handle.endpoint))) {
         handle.closeFromEndpointRemoval();
       }
     }
@@ -644,18 +637,30 @@ const createMacOSMIDIInterface = (
 
     closeRemovedEndpointHandles(event);
 
-    for (const listener of [...midiDeviceStateListeners]) {
-      listener(event);
-    }
+    emitEndpointsChanged(event);
   };
 
-  const getMidiDeviceState = (): MIDIState => {
-    if (!midiDeviceStateListenerConfigured) {
+  const setupOrTearDownDeviceStateListener = () => {
+    const requiresListeners =
+      interfaceEvents.listenerCount('endpointschanged') > 0 ||
+      openEndpointHandles.size > 0;
+    if (requiresListeners && !midiDeviceStateListenerConfigured) {
+      log?.info('[midi-macos] Configuring MIDI device state listener...');
       callNative('setNotificationCallback', () => {
         nativeModule.setNotificationCallback(onNotification);
       });
       midiDeviceStateListenerConfigured = true;
+    } else if (!requiresListeners && midiDeviceStateListenerConfigured) {
+      log?.info('[midi-macos] Removing MIDI device state listener...');
+      callNative('setNotificationCallback', () => {
+        nativeModule.setNotificationCallback(null);
+      });
+      midiDeviceStateListenerConfigured = false;
     }
+  };
+
+  const getMidiDeviceState = (): MIDIState => {
+    setupOrTearDownDeviceStateListener();
 
     if (midiDeviceState === null) {
       midiDeviceState = readMidiDeviceState(nativeModule, EMPTY_ENDPOINTS);
@@ -685,7 +690,6 @@ const createMacOSMIDIInterface = (
             nativeModule.connectSource(inputEndpoint),
           ),
         ),
-        'inputs',
       );
     },
     async openOutput(endpoint: MIDIEndpointInfo) {
@@ -696,7 +700,6 @@ const createMacOSMIDIInterface = (
             nativeModule.openDestination(outputEndpoint),
           ),
         ),
-        'outputs',
       );
     },
     async createVirtualInput(name: string, options?: VirtualPortOptions) {
@@ -707,7 +710,6 @@ const createMacOSMIDIInterface = (
             nativeModule.createVirtualDestination(portName, options),
           ),
         ),
-        'outputs',
       );
     },
     async createVirtualOutput(name: string, options?: VirtualPortOptions) {
@@ -718,13 +720,15 @@ const createMacOSMIDIInterface = (
             nativeModule.createVirtualSource(portName, options),
           ),
         ),
-        'inputs',
       );
     },
     addEventListener<Type extends keyof MIDIInterfaceEventMap>(
       type: Type,
       listener: (event: MIDIInterfaceEventMap[Type]) => void,
     ) {
+      log?.info(
+        `[midi-macos] Adding MIDI interface event listener for type: ${type}`,
+      );
       getMidiDeviceState();
       interfaceEvents.on(type, listener);
     },
@@ -732,13 +736,17 @@ const createMacOSMIDIInterface = (
       type: Type,
       listener: (event: MIDIInterfaceEventMap[Type]) => void,
     ) {
+      log?.info(
+        `[midi-macos] Removing MIDI interface event listener for type: ${type}`,
+      );
       interfaceEvents.off(type, listener);
+      setupOrTearDownDeviceStateListener();
     },
   };
 };
 
-export const loadNativeModuleMacOS = (): MIDIInterface => {
+export const loadNativeModuleMacOS = (log: Logger | null): MIDIInterface => {
   const nativeModule = assertNativeModule(getNativeModule());
 
-  return createMacOSMIDIInterface(nativeModule);
+  return createMacOSMIDIInterface(nativeModule, log);
 };
