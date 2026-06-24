@@ -77,12 +77,20 @@ const DEFAULT_MIDI_INTERFACE: MIDIInterface = {
   removeEventListener() {},
 };
 
+/**
+ * Ensure only a singleton instance exists.
+ */
+let midiInterface: MIDIInterface | null = null;
+
 export const midi = () => {
-  if (process.platform === 'darwin') {
-    return loadNativeModuleMacOS();
+  if (!midiInterface) {
+    if (process.platform === 'darwin') {
+      midiInterface = loadNativeModuleMacOS();
+    } else if (process.platform === 'win32') {
+      midiInterface = loadNativeModuleWindows();
+    } else {
+      midiInterface = DEFAULT_MIDI_INTERFACE;
+    }
   }
-  if (process.platform === 'win32') {
-    return loadNativeModuleWindows();
-  }
-  return DEFAULT_MIDI_INTERFACE;
+  return midiInterface;
 };
