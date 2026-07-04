@@ -549,10 +549,6 @@ export type TCNetMetadataDataPacket = TCNetDataPacket<'METADATA'> & {
   trackArtist: string;
   trackTitle: string;
   trackKey: number;
-  /**
-   * @deprecated Note that ShowKontrol seems to not consistently send the correct
-   * trackID here, and you need to rely on the trackID from the status packet instead.
-   */
   trackId: number;
 };
 

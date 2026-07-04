@@ -141,6 +141,11 @@ export const createTCNetTimecodeMonitor = (
 
   interface WeightedTrackInfo {
     /**
+     * True if the trackId was included in the METADATA packet,
+     * and so we can be sure this is correct and ignore other track infos.
+     */
+    definitive: boolean;
+    /**
      * How many times have we received this info for this track?
      * We use this to weight the results,
      * as the first result is often incorrect.
@@ -246,7 +251,13 @@ export const createTCNetTimecodeMonitor = (
     let bestMatch: WeightedTrackInfo | null = null;
     for (const info of trackInfoForTrack.values()) {
       const bestMatchCount = bestMatch?.matchCount ?? 0;
+      if (!bestMatch?.definitive && info.definitive) {
+        // We've already seen a definitive match, so we can ignore this one
+        continue;
+      }
       if (
+        // This is the only definitive match we've seen, so it's the best match
+        (info.definitive && !bestMatch?.definitive) ||
         // Best match if we've seen this track the most times
         info.matchCount > bestMatchCount ||
         // Or if we've seen it aa similar same amount of times,
@@ -373,13 +384,6 @@ export const createTCNetTimecodeMonitor = (
   tcNetNode.on('data', ({ packet, node }) => {
     const nodeState = getNodeState(node);
     if (packet.dataType === 'METADATA') {
-      if (packet.trackId) {
-        logger.warn(
-          new TCNetProtocolError(
-            `Received unexpected trackId in METADATA packet, implementation needs to be updated to handle this!`,
-          ),
-        );
-      }
       const info = {
         title: packet.trackTitle || null,
         artist: packet.trackArtist || null,
@@ -389,9 +393,9 @@ export const createTCNetTimecodeMonitor = (
         // quite common with ShowKontrol
         return;
       }
-      const trackID = nodeState.getLayerInfo(
-        layerDataIdToIndex(packet.layer),
-      )?.trackId;
+      const trackID =
+        packet.trackId ??
+        nodeState.getLayerInfo(layerDataIdToIndex(packet.layer))?.trackId;
       if (typeof trackID !== 'number') {
         return;
       }
@@ -402,6 +406,7 @@ export const createTCNetTimecodeMonitor = (
       }
       const key = `${info.artist} - ${info.title}`;
       const weightedInfo: WeightedTrackInfo = trackInfoForTrack.get(key) || {
+        definitive: !!packet.trackId,
         matchCount: 0,
         lastMatchTime: Date.now(),
         info,
