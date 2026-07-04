@@ -80,6 +80,25 @@ const bindSocket = (
   });
 };
 
+/**
+ * The interface we need to bind to to receive broadcast packets may be different
+ * depending on the platform.
+ *
+ * In particular, on macOS,
+ * we need to bind to the broadcast address to receive directed broadcast packets,
+ * and for windows we need to bind to the interface address.
+ */
+const getInterfaceReceiveBindAddress = (
+  networkInterface: NetworkInterface,
+): string => {
+  // macOS delivers directed broadcast packets to sockets bound to the broadcast
+  // address, not necessarily sockets bound to the interface host address.
+  if (networkInterface.internal || process.platform === 'win32') {
+    return networkInterface.address;
+  }
+  return networkInterface.broadcastAddress;
+};
+
 type TCNetConnectedNodeInternal = {
   info: TCNetNodeInfo;
   lastSeen: number;
@@ -519,7 +538,7 @@ export const createTCNetNode = (props: Props): TCNetNode => {
       // Send update for newly bound port
       sendPortStateChanged();
 
-      if (process.platform !== 'win32') {
+      if (iface.address !== getInterfaceReceiveBindAddress(iface)) {
         portInformation.broadcastRecv.status = 'connecting';
         const broadcastRecvPort = createSocket(
           {
@@ -534,7 +553,7 @@ export const createTCNetNode = (props: Props): TCNetNode => {
           await bindSocket(
             broadcastRecvPort,
             PORT_BROADCAST,
-            iface.broadcastAddress,
+            getInterfaceReceiveBindAddress(iface),
           );
         } catch (err) {
           const error = new TCNetInitializationError(
@@ -563,7 +582,11 @@ export const createTCNetNode = (props: Props): TCNetNode => {
       );
       sockets.time = timePort;
       try {
-        await bindSocket(timePort, PORT_TIME, iface.address);
+        await bindSocket(
+          timePort,
+          PORT_TIME,
+          getInterfaceReceiveBindAddress(iface),
+        );
       } catch (err) {
         const error = new TCNetInitializationError(
           `Failed to bind time port ${PORT_TIME} on interface ${props.networkInterface}`,
