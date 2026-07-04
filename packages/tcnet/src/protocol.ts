@@ -175,6 +175,32 @@ export const getTcNetDataPacketType = (id: number): TCNetDataPacketType => {
   return type;
 };
 
+const TCNET_DATA_FILE_PACKET_TYPE_IDS = Object.freeze({
+  LOW_RES_ARTWORK_FILE: 128,
+});
+
+export type TCNetDataFilePacketType =
+  keyof typeof TCNET_DATA_FILE_PACKET_TYPE_IDS;
+
+const TCNET_DATA_FILE_PACKET_TYPES = Object.freeze(
+  Object.fromEntries(
+    Object.entries(TCNET_DATA_FILE_PACKET_TYPE_IDS).map(([key, value]) => [
+      value,
+      key as unknown as TCNetDataFilePacketType,
+    ]),
+  ) as Record<number, TCNetDataFilePacketType>,
+);
+
+export const getTcNetDataFilePacketType = (
+  id: number,
+): TCNetDataFilePacketType => {
+  const type = TCNET_DATA_FILE_PACKET_TYPES[id];
+  if (!type) {
+    throw new TCNetProtocolError(`Unknown TCNet data file packet type: ${id}`);
+  }
+  return type;
+};
+
 const TCNET_NODE_TYPE_IDS = Object.freeze({
   AUTO: 0x1,
   MASTER: 0x2,
@@ -701,6 +727,46 @@ const parseDataPacket = (
   throw new TCNetError(`Library support for ${dataType} not implemented`);
 };
 
+export type TCNetDataFilePacket<D extends TCNetDataFilePacketType> =
+  TCNetBasePacket<'FILE'> & {
+    dataType: D;
+  };
+
+export type TCNetLowResArtworkFilePacket =
+  TCNetDataFilePacket<'LOW_RES_ARTWORK_FILE'> & {
+    layer: LayerDataId;
+    dataSize: number;
+  };
+
+const parseLowResArtworkFilePacket = (
+  header: TCNetManagementHeader,
+  buffer: Buffer,
+): TCNetLowResArtworkFilePacket => {
+  return {
+    header,
+    type: 'FILE',
+    dataType: 'LOW_RES_ARTWORK_FILE',
+    layer: buffer.readUInt8(25) as LayerDataId,
+    /** Total data size. Is total of all data send, including in extra packets */
+    dataSize: buffer.readUInt32LE(26),
+  };
+};
+
+export type AnyTCNetDataFilePacket = TCNetLowResArtworkFilePacket;
+
+const parseDataFilePacket = (
+  header: TCNetManagementHeader,
+  buffer: Buffer,
+): AnyTCNetDataFilePacket => {
+  const dataType = getTcNetDataFilePacketType(buffer.readUInt8(24));
+
+  if (dataType === 'LOW_RES_ARTWORK_FILE') {
+    return parseLowResArtworkFilePacket(header, buffer);
+  }
+
+  throw new TCNetError(`Library support for ${dataType} not implemented`);
+};
+
 /**
  * 24=24FPS (FILM)
  * 25=25FPS (EBU)
@@ -819,7 +885,8 @@ export type TCNetPacket =
   | TCNetStatusPacket
   | TCNetApplicationSpecificData1Packet
   | TCNetTimePacket
-  | AnyTCNetDataPacket;
+  | AnyTCNetDataPacket
+  | AnyTCNetDataFilePacket;
 
 export const parsePacket = (buffer: Buffer): TCNetPacket => {
   const header = parseManagementHeader(buffer);
@@ -837,6 +904,8 @@ export const parsePacket = (buffer: Buffer): TCNetPacket => {
       return parseApplicationSpecificData1Packet(header, buffer);
     case 'TIME':
       return parseTimePacket(header, buffer);
+    case 'FILE':
+      return parseDataFilePacket(header, buffer);
     default:
       throw new TCNetError(
         `Library support for ${header.messageType} not implemented`,

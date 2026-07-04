@@ -453,6 +453,8 @@ export const createTCNetNode = (props: Props): TCNetNode => {
       events.emit('node-status', { packet, port, node });
     } else if (packet.type === 'DATA') {
       events.emit('data', { packet, port, node });
+    } else if (packet.type === 'FILE') {
+      console.log('Received FILE packet', packet, rinfo);
     } else if (packet.type === 'APPLICATION_SPECIFIC_DATA_1') {
       // Ignore these packets
     } else {
