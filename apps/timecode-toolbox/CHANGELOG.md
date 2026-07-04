@@ -1,5 +1,17 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.4.4
+
+### Patch Changes
+
+- 0a5f769: Fix TCNet / Pioneer / ShowKontrol integration on MacOS
+
+  A previous change to attempt to fix TCNet binding in Windows inadvertently broke
+  the MacOS implementation.
+
+  A proper fix has now been implemented, and tested with real Pioneer equipment and
+  the most recent version of ShowKontrol (v26.5.12).
+
 ## 0.4.3
 
 ### Patch Changes
