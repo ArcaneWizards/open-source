@@ -141,7 +141,15 @@ export const createTCNetTimecodeMonitor = (
   interface WeightedTrackInfo {
     /**
      * True if the trackId was included in the METADATA packet,
-     * and so we can be sure this is correct and ignore other track infos.
+     * which allows us to ignore other METADATA packets that don't
+     * include this trackID.
+     *
+     * Unfortunately, it's not enough to rely on the trackID alone,
+     * as ShowKontrol has a tendancy to return METADATA packets with the new
+     * trackID (when a track is changed), but with the previous metadata.
+     *
+     * As such we still use the `matchCount` value below to pick the one that
+     * has appeared the most during a particular track being loaded.
      */
     definitive: boolean;
     /**
@@ -250,8 +258,8 @@ export const createTCNetTimecodeMonitor = (
     let bestMatch: WeightedTrackInfo | null = null;
     for (const info of trackInfoForTrack.values()) {
       const bestMatchCount = bestMatch?.matchCount ?? 0;
-      if (!bestMatch?.definitive && info.definitive) {
-        // We've already seen a definitive match, so we can ignore this one
+      if (!info.definitive && bestMatch?.definitive) {
+        // We've already seen a definitive match, so we can ignore non-definitive ones
         continue;
       }
       if (
@@ -392,20 +400,27 @@ export const createTCNetTimecodeMonitor = (
         // quite common with ShowKontrol
         return;
       }
-      const trackID =
-        packet.trackId ??
-        nodeState.getLayerInfo(layerDataIdToIndex(packet.layer))?.trackId;
-      if (typeof trackID !== 'number') {
+      const trackID = packet.trackId
+        ? {
+            definitive: true,
+            trackId: packet.trackId,
+          }
+        : {
+            definitive: false,
+            trackId: nodeState.getLayerInfo(layerDataIdToIndex(packet.layer))
+              ?.trackId,
+          };
+      if (typeof trackID.trackId !== 'number') {
         return;
       }
-      let trackInfoForTrack = nodeState.trackInfo.get(trackID);
+      let trackInfoForTrack = nodeState.trackInfo.get(trackID.trackId);
       if (!trackInfoForTrack) {
         trackInfoForTrack = new Map();
-        nodeState.trackInfo.set(trackID, trackInfoForTrack);
+        nodeState.trackInfo.set(trackID.trackId, trackInfoForTrack);
       }
       const key = `${info.artist} - ${info.title}`;
       const weightedInfo: WeightedTrackInfo = trackInfoForTrack.get(key) || {
-        definitive: !!packet.trackId,
+        definitive: trackID.definitive,
         matchCount: 0,
         lastMatchTime: Date.now(),
         info,
