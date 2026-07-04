@@ -83,6 +83,36 @@ export const getTcNetMixerType = (id: number): TCNetMixerType => {
   return type;
 };
 
+const TCNET_MIXER_CROSSFADER_ASSIGN_IDS = Object.freeze({
+  THRU: 0,
+  A: 1,
+  B: 2,
+});
+
+export type TCNetMixerCrossfaderAssign =
+  keyof typeof TCNET_MIXER_CROSSFADER_ASSIGN_IDS;
+
+const TCNET_MIXER_CROSSFADER_ASSIGNS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(TCNET_MIXER_CROSSFADER_ASSIGN_IDS).map(([key, value]) => [
+      value,
+      key as unknown as TCNetMixerCrossfaderAssign,
+    ]),
+  ) as Record<number, TCNetMixerCrossfaderAssign>,
+);
+
+export const getTcNetMixerCrossfaderAssign = (
+  id: number,
+): TCNetMixerCrossfaderAssign => {
+  const assign = TCNET_MIXER_CROSSFADER_ASSIGNS[id];
+  if (!assign) {
+    throw new TCNetProtocolError(
+      `Unknown TCNet mixer crossfader assign: ${id}`,
+    );
+  }
+  return assign;
+};
+
 const TCNET_MESSAGE_TYPE_IDS = Object.freeze({
   OPT_IN: 2,
   OPT_OUT: 3,
@@ -572,6 +602,12 @@ const parseMetadataDataPacket = (
   };
 };
 
+export type TCNetMixerDataPacketChannel = {
+  faderLevel: number;
+  trimLevel: number;
+  crossfaderAssign: TCNetMixerCrossfaderAssign;
+};
+
 export type TCNetMixerDataPacket = TCNetDataPacket<'MIXER_DATA'> & {
   mixerId: number;
   mixerType: TCNetMixerType;
@@ -580,6 +616,15 @@ export type TCNetMixerDataPacket = TCNetDataPacket<'MIXER_DATA'> & {
   micEqLow: number;
   masterAudioLevel: number;
   masterFaderLevel: number;
+  channels: [
+    TCNetMixerDataPacketChannel,
+    TCNetMixerDataPacketChannel,
+    TCNetMixerDataPacketChannel,
+    TCNetMixerDataPacketChannel,
+    TCNetMixerDataPacketChannel,
+    TCNetMixerDataPacketChannel,
+  ];
+
   // TODO: Implement the rest, however most of it does not seem to be
   // implemented by The Bridge or ShowKontrol
 };
@@ -599,6 +644,38 @@ const parseMixerDataPacket = (
     micEqLow: buffer.readUInt8(60),
     masterAudioLevel: buffer.readUInt8(61),
     masterFaderLevel: buffer.readUInt8(62),
+    channels: [
+      {
+        faderLevel: buffer.readUInt8(127),
+        trimLevel: buffer.readUInt8(128),
+        crossfaderAssign: getTcNetMixerCrossfaderAssign(buffer.readUInt8(138)),
+      },
+      {
+        faderLevel: buffer.readUInt8(151),
+        trimLevel: buffer.readUInt8(152),
+        crossfaderAssign: getTcNetMixerCrossfaderAssign(buffer.readUInt8(162)),
+      },
+      {
+        faderLevel: buffer.readUInt8(175),
+        trimLevel: buffer.readUInt8(176),
+        crossfaderAssign: getTcNetMixerCrossfaderAssign(buffer.readUInt8(186)),
+      },
+      {
+        faderLevel: buffer.readUInt8(199),
+        trimLevel: buffer.readUInt8(200),
+        crossfaderAssign: getTcNetMixerCrossfaderAssign(buffer.readUInt8(210)),
+      },
+      {
+        faderLevel: buffer.readUInt8(223),
+        trimLevel: buffer.readUInt8(224),
+        crossfaderAssign: getTcNetMixerCrossfaderAssign(buffer.readUInt8(234)),
+      },
+      {
+        faderLevel: buffer.readUInt8(247),
+        trimLevel: buffer.readUInt8(248),
+        crossfaderAssign: getTcNetMixerCrossfaderAssign(buffer.readUInt8(258)),
+      },
+    ],
   };
 };
 
