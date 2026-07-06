@@ -7,7 +7,6 @@ publicHoistPattern:
   - 'electron*'
 minimumReleaseAge: 10080 # 7 days
 minimumReleaseAgeStrict: true
-blockExoticSubdeps: false # TODO: https://github.com/ArcaneWizards/open-source/issues/73
 minimumReleaseAgeExclude:
   - '@arcanejs/diff@0.6.0'
   - '@arcanejs/protocol@0.9.0'
