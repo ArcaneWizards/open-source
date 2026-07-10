@@ -65,12 +65,6 @@
       "import": "./dist/frontend/styling.js",
       "require": "./dist/frontend/styling.cjs"
     },
-    "./frontend/updates": {
-      "@arcanewizards/source": "./src/frontend/updates.tsx",
-      "types": "./dist/frontend/updates.d.ts",
-      "import": "./dist/frontend/updates.js",
-      "require": "./dist/frontend/updates.cjs"
-    },
     "./frontend/styling.hooks": {
       "@arcanewizards/source": "./src/frontend/styling.hooks.ts",
       "types": "./dist/frontend/styling.hooks.d.ts",
@@ -88,6 +82,18 @@
       "types": "./dist/frontend/tooltip.d.ts",
       "import": "./dist/frontend/tooltip.js",
       "require": "./dist/frontend/tooltip.cjs"
+    },
+    "./frontend/updates": {
+      "@arcanewizards/source": "./src/frontend/updates.tsx",
+      "types": "./dist/frontend/updates.d.ts",
+      "import": "./dist/frontend/updates.js",
+      "require": "./dist/frontend/updates.cjs"
+    },
+    "./frontend/utils": {
+      "@arcanewizards/source": "./src/frontend/utils.tsx",
+      "types": "./dist/frontend/utils.d.ts",
+      "import": "./dist/frontend/utils.js",
+      "require": "./dist/frontend/utils.cjs"
     },
     "./frontend/styles/sigil.css": {
       "default": "./dist/frontend/styles/sigil.css"

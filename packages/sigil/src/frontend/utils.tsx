@@ -71,12 +71,8 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
         return (
           <ul
             className={cn(
-              'm-0 flex flex-col gap-2 py-0',
-              cnd(
-                content.listType === 'unstyled',
-                'list-none pl-0',
-                'list-disc pl-2',
-              ),
+              'm-0 flex flex-col gap-2 py-0 pl-2',
+              cnd(content.listType === 'unstyled', 'list-none', 'list-disc'),
             )}
           >
             {content.children.map((child, index) => (
