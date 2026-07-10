@@ -65,6 +65,12 @@
       "import": "./dist/frontend/styling.js",
       "require": "./dist/frontend/styling.cjs"
     },
+    "./frontend/updates": {
+      "@arcanewizards/source": "./src/frontend/updates.tsx",
+      "types": "./dist/frontend/updates.d.ts",
+      "import": "./dist/frontend/updates.js",
+      "require": "./dist/frontend/updates.cjs"
+    },
     "./frontend/styling.hooks": {
       "@arcanewizards/source": "./src/frontend/styling.hooks.ts",
       "types": "./dist/frontend/styling.hooks.d.ts",
@@ -118,6 +124,7 @@
     "@arcanejs/react-toolkit": "^0.16.0",
     "@arcanejs/toolkit": "^9.0.0",
     "@arcanejs/toolkit-frontend": "^0.12.0",
+    "@arcanewizards/apis": "workspace:^",
     "@arcanewizards/net-utils": "workspace:^",
     "@types/escape-html": "^1.0.4",
     "escape-html": "^1.0.3",

@@ -12,7 +12,6 @@ import { Diff } from '@arcanejs/diff';
 import { NetworkInterface } from '@arcanewizards/net-utils';
 import { TimecodeMode } from '@arcanewizards/artnet/constants';
 import { Tree } from '../tree';
-import { CheckForUpdatesResponse } from '@arcanewizards/apis';
 import {
   APP_LISTENER_CONFIG,
   ListenerConfig,
@@ -22,6 +21,7 @@ import type {
   MidiEndpointInfo,
   MIDISupportResponse,
 } from '@arcanewizards/midi';
+import { UpdateCheckResult } from '@arcanewizards/sigil/frontend/updates';
 
 /* Shared config & proto definitions */
 
@@ -525,25 +525,6 @@ export type OutputState = {
    */
   clients?: ConnectedClient[];
 };
-
-export type UpdateCheckResult =
-  | {
-      type: 'loading';
-    }
-  | {
-      type: 'updates-available';
-      response: CheckForUpdatesResponse;
-      lastCheckedMillis: number;
-    }
-  | {
-      type: 'up-to-date';
-      lastCheckedMillis: number;
-    }
-  | {
-      type: 'error';
-      error: string;
-      lastCheckedMillis: number;
-    };
 
 export type ApplicationState = {
   inputs: Record<string, InputState>;

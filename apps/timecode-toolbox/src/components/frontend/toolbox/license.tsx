@@ -91,8 +91,10 @@ export const LicenseGate: FC<LicenseGateProps> = ({ info }) => {
           child: () => (
             <Debugger title={STRINGS.debugger} className="size-full" />
           ),
-          icon: 'bug_report',
-          title: STRINGS.debugger,
+          button: {
+            icon: 'bug_report',
+            title: STRINGS.debugger,
+          },
         },
       }}
     >

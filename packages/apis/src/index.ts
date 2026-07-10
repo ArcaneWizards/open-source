@@ -12,6 +12,75 @@ export const APP_EDITION = z.enum(['desktop', 'cli']);
 
 export type AppEdition = z.infer<typeof APP_EDITION>;
 
+/**
+ * Wildcard for unknown content types,
+ * to allow for forward compatibility with new content types that may be
+ * added in the future.
+ *
+ * (must be last in zod union)
+ */
+const API_CONTENT_ITEM_UNKNOWN = z
+  .object({
+    type: z.string(),
+  })
+  .transform(() => ({
+    type: 'unknown' as const,
+  }));
+
+const API_CONTENT_ITEM = z.union([
+  z.object({
+    type: z.enum(['text', 'inlineCode']),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal('link'),
+    text: z.string(),
+    url: z.string(),
+  }),
+  API_CONTENT_ITEM_UNKNOWN,
+]);
+
+export type ApiContentItem = z.infer<typeof API_CONTENT_ITEM>;
+
+export type ApiContent =
+  | {
+      type: 'container';
+      children: ApiContent[];
+      mode: 'inline' | 'block' | 'paragraph';
+    }
+  | {
+      type: 'list';
+      children: ApiContent[];
+      listType: 'ordered' | 'unordered' | 'unstyled';
+    }
+  | {
+      type: 'header';
+      level: number;
+      children: ApiContent[];
+    }
+  | ApiContentItem;
+
+export const API_CONTENT: z.ZodType<ApiContent> = z.lazy(() =>
+  z.union([
+    z.object({
+      type: z.literal('container'),
+      children: z.array(API_CONTENT),
+      mode: z.enum(['inline', 'block', 'paragraph']),
+    }),
+    z.object({
+      type: z.literal('list'),
+      children: z.array(API_CONTENT),
+      listType: z.enum(['ordered', 'unordered', 'unstyled']),
+    }),
+    z.object({
+      type: z.literal('header'),
+      level: z.number().int().min(1).max(6),
+      children: z.array(API_CONTENT),
+    }),
+    API_CONTENT_ITEM as z.ZodType<ApiContentItem>,
+  ]),
+);
+
 export const CHECK_FOR_UPDATES_REQUEST = z.object({
   app: z.string(),
   edition: APP_EDITION,
@@ -24,7 +93,9 @@ export type CheckForUpdatesRequest = z.infer<typeof CHECK_FOR_UPDATES_REQUEST>;
 
 export const CHECK_FOR_UPDATES_VERSION = z.object({
   version: z.string(),
-  releaseNotes: z.string(),
+  /** @deprecated */
+  releaseNotes: z.literal(''),
+  notes: API_CONTENT.nullable(),
 });
 
 export type CheckForUpdatesVersion = z.infer<typeof CHECK_FOR_UPDATES_VERSION>;
