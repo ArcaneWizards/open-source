@@ -91,9 +91,9 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
       return (
         <code
           className="
-          rounded-sigil-control border border-sigil-border bg-sigil-bg-light
-          px-1 py-0.5 text-sigil-usage-hint-foreground
-        "
+            rounded-sigil-control border border-sigil-border bg-sigil-bg-light
+            px-1 py-0.5 text-sigil-usage-hint-foreground
+          "
         >
           {content.text}
         </code>
