@@ -22,6 +22,7 @@ import type {
   MidiEndpointInfo,
   MIDISupportResponse,
 } from '@arcanewizards/midi';
+import { UpdateCheckResult } from '@arcanewizards/sigil/frontend/updates';
 
 /* Shared config & proto definitions */
 
@@ -525,25 +526,6 @@ export type OutputState = {
    */
   clients?: ConnectedClient[];
 };
-
-export type UpdateCheckResult =
-  | {
-      type: 'loading';
-    }
-  | {
-      type: 'updates-available';
-      response: CheckForUpdatesResponse;
-      lastCheckedMillis: number;
-    }
-  | {
-      type: 'up-to-date';
-      lastCheckedMillis: number;
-    }
-  | {
-      type: 'error';
-      error: string;
-      lastCheckedMillis: number;
-    };
 
 export type ApplicationState = {
   inputs: Record<string, InputState>;

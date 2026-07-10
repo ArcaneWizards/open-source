@@ -523,6 +523,9 @@ importers:
       '@arcanejs/toolkit-frontend':
         specifier: ^0.12.0
         version: 0.12.0
+      '@arcanewizards/apis':
+        specifier: workspace:^
+        version: link:../apis
       '@arcanewizards/net-utils':
         specifier: workspace:^
         version: link:../net-utils

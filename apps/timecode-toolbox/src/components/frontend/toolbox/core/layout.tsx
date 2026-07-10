@@ -12,6 +12,8 @@ import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { StageContext } from '@arcanejs/toolkit-frontend';
 import { useBrowserPreferences } from '../preferences';
 import { useRootHintVariables } from '@arcanewizards/sigil/frontend/styling.hooks';
+import { UpdateBanner } from '@arcanewizards/sigil/frontend/updates';
+import { useApplicationState } from '../context';
 
 type WindowModeDef<WindowMode extends string> = {
   child: (
@@ -39,6 +41,8 @@ export const Layout = <WindowMode extends string>({
   const { connection, reconnect } = useContext(StageContext);
 
   const { preferences } = useBrowserPreferences();
+
+  const { updates } = useApplicationState();
 
   useRootHintVariables(preferences.color);
 
@@ -80,6 +84,7 @@ export const Layout = <WindowMode extends string>({
           )}
         </ToolbarRow>
       </ToolbarWrapper>
+      <UpdateBanner strings={STRINGS.updates} updates={updates} />
       <div className="relative flex h-0 grow flex-col">
         {connection.state !== 'connected' ? (
           <SizeAwareDiv

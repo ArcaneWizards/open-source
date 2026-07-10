@@ -52,7 +52,6 @@ import { getFragmentValue } from '../../../urls';
 import { FullscreenTimecodeDisplay } from './core/timecode-display';
 import { License } from './license';
 import { Layout } from './core/layout';
-import { UpdateBanner } from './core/updates';
 import {
   ControlDialog,
   ControlDialogButtons,
@@ -492,7 +491,6 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
             licenseMode="license"
           >
             <>
-              <UpdateBanner />
               <div
                 className="
                   flex h-0 grow flex-col gap-px overflow-y-auto bg-sigil-border

@@ -1,15 +1,39 @@
 import { FC, useCallback, useEffect, useState } from 'react';
-import { useApplicationState } from '../context';
-import { UpdateCheckResult } from '../../../proto';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import { STRINGS } from '../../constants';
-import {
-  useBrowserContext,
-  useSystemInformation,
-} from '@arcanewizards/sigil/frontend';
+import { useSystemInformation } from './context';
+import { useBrowserContext } from './browser-context';
+import type { CheckForUpdatesResponse } from '@arcanewizards/apis';
 
-export const UpdateBanner: FC = () => {
-  const { updates } = useApplicationState();
+type Strings = {
+  download: string;
+  updateAvailable: (currentVersion: string, latestVersion: string) => string;
+};
+
+export type UpdateCheckResult =
+  | {
+      type: 'loading';
+    }
+  | {
+      type: 'updates-available';
+      response: CheckForUpdatesResponse;
+      lastCheckedMillis: number;
+    }
+  | {
+      type: 'up-to-date';
+      lastCheckedMillis: number;
+    }
+  | {
+      type: 'error';
+      error: string;
+      lastCheckedMillis: number;
+    };
+
+type UpdateBannerProps = {
+  strings: Strings;
+  updates: UpdateCheckResult | null;
+};
+
+export const UpdateBanner: FC<UpdateBannerProps> = ({ strings, updates }) => {
   const { version } = useSystemInformation();
   const { openExternalLink } = useBrowserContext();
 
@@ -63,10 +87,7 @@ export const UpdateBanner: FC = () => {
         "
       >
         <Icon icon="upgrade" />
-        {STRINGS.updates.updateAvailable(
-          version,
-          displayState.response.latestVersion,
-        )}
+        {strings.updateAvailable(version, displayState.response.latestVersion)}
         {displayState.response.downloadUrl && (
           <button
             className="
@@ -79,7 +100,7 @@ export const UpdateBanner: FC = () => {
             onClick={openDownloadLink}
           >
             <Icon icon="download" />
-            {STRINGS.updates.download}
+            {strings.download}
           </button>
         )}
       </div>
