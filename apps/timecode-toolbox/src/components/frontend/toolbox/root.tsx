@@ -51,7 +51,7 @@ import { Settings } from './settings';
 import { getFragmentValue } from '../../../urls';
 import { FullscreenTimecodeDisplay } from './core/timecode-display';
 import { License } from './license';
-import { Layout } from './core/layout';
+import { Layout, UPDATE_DETAILS_WINDOW_MODE } from './core/layout';
 import {
   ControlDialog,
   ControlDialogButtons,
@@ -62,6 +62,7 @@ import {
 } from '@arcanewizards/sigil/frontend/controls';
 import { RootAudioContext, RootAudioContextData } from './core/audio-context';
 import { AudioDevicesQueryProvider } from './core/audio-context';
+import { UpdateDetails } from '@arcanewizards/sigil/frontend/updates';
 
 type Props = {
   info: ToolboxRootComponent;
@@ -460,7 +461,9 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
         </Layout>
       ) : (
         <>
-          <Layout<'debug' | 'license' | 'settings'>
+          <Layout<
+            'debug' | 'license' | 'settings' | typeof UPDATE_DETAILS_WINDOW_MODE
+          >
             footer
             modes={{
               license: {
@@ -470,22 +473,39 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
                     setWindowMode={setWindowMode}
                   />
                 ),
-                icon: 'info',
-                title: STRINGS.license,
+                button: {
+                  icon: 'info',
+                  title: STRINGS.license,
+                },
               },
               settings: {
                 child: (setWindowMode) => (
                   <Settings setWindowMode={setWindowMode} />
                 ),
-                icon: 'settings',
-                title: STRINGS.settings.title,
+                button: {
+                  icon: 'settings',
+                  title: STRINGS.settings.title,
+                },
               },
               debug: {
                 child: () => (
                   <Debugger title={STRINGS.debugger} className="size-full" />
                 ),
-                icon: 'bug_report',
-                title: STRINGS.debugger,
+                button: {
+                  icon: 'bug_report',
+                  title: STRINGS.debugger,
+                },
+              },
+              [UPDATE_DETAILS_WINDOW_MODE]: {
+                child: (setWindowMode) =>
+                  info.state.updates ? (
+                    <UpdateDetails
+                      updates={info.state.updates}
+                      strings={STRINGS.updates.details}
+                      closeDetails={() => setWindowMode(null)}
+                    />
+                  ) : null,
+                button: null,
               },
             }}
             licenseMode="license"

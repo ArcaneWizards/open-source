@@ -3,9 +3,13 @@ import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { useSystemInformation } from './context';
 import { useBrowserContext } from './browser-context';
 import type { CheckForUpdatesResponse } from '@arcanewizards/apis';
+import { ToolbarDivider, ToolbarRow, ToolbarWrapper } from './toolbars';
+import { ControlButton } from './controls';
+import { apiContentToReact } from './utils';
 
-type Strings = {
+export type UpdateCheckStrings = {
   download: string;
+  details: string;
   updateAvailable: (currentVersion: string, latestVersion: string) => string;
 };
 
@@ -29,11 +33,24 @@ export type UpdateCheckResult =
     };
 
 type UpdateBannerProps = {
-  strings: Strings;
+  strings: UpdateCheckStrings;
   updates: UpdateCheckResult | null;
+  openDetails?: () => void;
 };
 
-export const UpdateBanner: FC<UpdateBannerProps> = ({ strings, updates }) => {
+const BANNER_BUTTON_CLS = `
+  flex cursor-pointer items-center gap-0.5 rounded-md border
+  border-sigil-usage-hint-selected-border
+  bg-sigil-usage-hint-selected-background px-1 py-0.5
+  text-sigil-usage-hint-text
+  hover:bg-sigil-usage-hint-selected-border
+`;
+
+export const UpdateBanner: FC<UpdateBannerProps> = ({
+  strings,
+  updates,
+  openDetails,
+}) => {
   const { version } = useSystemInformation();
   const { openExternalLink } = useBrowserContext();
 
@@ -82,23 +99,20 @@ export const UpdateBanner: FC<UpdateBannerProps> = ({ strings, updates }) => {
       <div
         className="
           flex items-center justify-center gap-2 border-b
-          border-sigil-usage-blue-border bg-sigil-usage-blue-background p-1
-          text-sigil-usage-blue-text
+          border-sigil-usage-hint-border bg-sigil-usage-hint-background p-1
+          text-sigil-usage-hint-text
         "
       >
         <Icon icon="upgrade" />
         {strings.updateAvailable(version, displayState.response.latestVersion)}
+        {openDetails && (
+          <button className={BANNER_BUTTON_CLS} onClick={openDetails}>
+            <Icon icon="info" />
+            {strings.details}
+          </button>
+        )}
         {displayState.response.downloadUrl && (
-          <button
-            className="
-              flex cursor-pointer items-center gap-0.5 rounded-md border
-              border-sigil-usage-blue-selected-border
-              bg-sigil-usage-blue-selected-background px-1 py-0.5
-              text-sigil-usage-blue-text
-              hover:bg-sigil-usage-blue-selected-border
-            "
-            onClick={openDownloadLink}
-          >
+          <button className={BANNER_BUTTON_CLS} onClick={openDownloadLink}>
             <Icon icon="download" />
             {strings.download}
           </button>
@@ -108,4 +122,62 @@ export const UpdateBanner: FC<UpdateBannerProps> = ({ strings, updates }) => {
   }
 
   return null;
+};
+
+export type UpdateDetailsStrings = {
+  title: string;
+  close: string;
+};
+
+type UpdateDetailsProps = {
+  updates: UpdateCheckResult;
+  strings: UpdateDetailsStrings;
+  closeDetails: () => void;
+};
+
+export const UpdateDetails: FC<UpdateDetailsProps> = ({
+  updates,
+  strings,
+  closeDetails,
+}) => {
+  const { version } = useSystemInformation();
+
+  if (updates.type !== 'updates-available') {
+    return null;
+  }
+
+  return (
+    <div className="flex grow flex-col">
+      <ToolbarWrapper>
+        <ToolbarRow>
+          <span className="grow p-1">{strings.title}</span>
+          <ToolbarDivider />
+          <ControlButton
+            onClick={closeDetails}
+            variant="titlebar"
+            icon="close"
+            title={strings.close}
+          />
+        </ToolbarRow>
+      </ToolbarWrapper>
+      <div
+        className="
+          grow basis-0 overflow-y-auto bg-sigil-bg-light scrollbar-sigil flex flex-col p-2 gap-2 select-text
+        "
+      >
+        <p className="m-0 p-0">
+          {`There have been ${(updates.response.newVersions ?? []).length} new update(s) since the version you are currently running (${version}).`}
+        </p>
+        {(updates.response.newVersions ?? []).map((update) => (
+          <div
+            key={update.version}
+            className="flex flex-col gap-2 border border-sigil-border bg-sigil-bg-dark p-2"
+          >
+            <h3 className="m-0 p-0">{`Version ${update.version}`}</h3>
+            {update.notes && <div>{apiContentToReact(update.notes)}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };

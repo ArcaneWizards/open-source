@@ -1,4 +1,8 @@
 import { TIMECODE_FPS } from '@arcanewizards/artnet/constants';
+import {
+  UpdateCheckStrings,
+  UpdateDetailsStrings,
+} from '@arcanewizards/sigil/frontend/updates';
 
 const MS_FORMAT = new Intl.NumberFormat(undefined, {
   style: 'unit',
@@ -163,9 +167,16 @@ export const STRINGS = {
     deviceTypeVirtual: 'Arcane Virtual MIDI Device',
   },
   updates: {
-    updateAvailable: (current: string, latest: string) =>
-      `Version ${latest} is available! You are currently on version ${current}.`,
-    download: 'Download',
+    banner: {
+      updateAvailable: (current: string, latest: string) =>
+        `Version ${latest} is available! You are currently on version ${current}.`,
+      download: 'Download',
+      details: 'Details',
+    } satisfies UpdateCheckStrings,
+    details: {
+      title: 'Update Details',
+      close: 'Close',
+    } satisfies UpdateDetailsStrings,
     settingsLabel: 'Automatically check for updates',
     settingsDetails: `When enabled, the app will automatically check for updates periodically and display a message when a new version is available.`,
     lastChecked: (time: string) => `Last checked: ${time}`,

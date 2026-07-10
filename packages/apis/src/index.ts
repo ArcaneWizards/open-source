@@ -29,12 +29,7 @@ const API_CONTENT_ITEM_UNKNOWN = z
 
 const API_CONTENT_ITEM = z.union([
   z.object({
-    type: z.literal('header'),
-    level: z.number().int().min(1).max(6),
-    text: z.string(),
-  }),
-  z.object({
-    type: z.literal('text'),
+    type: z.enum(['text', 'inlineCode']),
     text: z.string(),
   }),
   z.object({
@@ -51,12 +46,17 @@ export type ApiContent =
   | {
       type: 'container';
       children: ApiContent[];
-      mode: 'inline' | 'block';
+      mode: 'inline' | 'block' | 'paragraph';
     }
   | {
       type: 'list';
       children: ApiContent[];
       listType: 'ordered' | 'unordered' | 'unstyled';
+    }
+  | {
+      type: 'header';
+      level: number;
+      children: ApiContent[];
     }
   | ApiContentItem;
 
@@ -65,12 +65,17 @@ export const API_CONTENT: z.ZodType<ApiContent> = z.lazy(() =>
     z.object({
       type: z.literal('container'),
       children: z.array(API_CONTENT),
-      mode: z.enum(['inline', 'block']),
+      mode: z.enum(['inline', 'block', 'paragraph']),
     }),
     z.object({
       type: z.literal('list'),
       children: z.array(API_CONTENT),
       listType: z.enum(['ordered', 'unordered', 'unstyled']),
+    }),
+    z.object({
+      type: z.literal('header'),
+      level: z.number().int().min(1).max(6),
+      children: z.array(API_CONTENT),
     }),
     API_CONTENT_ITEM as z.ZodType<ApiContentItem>,
   ]),

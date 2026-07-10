@@ -4,7 +4,7 @@ import {
   ToolbarRow,
   ToolbarWrapper,
 } from '@arcanewizards/sigil/frontend/toolbars';
-import { JSX, ReactNode, useContext, useState } from 'react';
+import { Fragment, ReactNode, useCallback, useContext, useState } from 'react';
 import { STRINGS } from '../../constants';
 import { Footer } from './footer';
 import { SizeAwareDiv } from './size-aware-div';
@@ -18,9 +18,11 @@ import { useApplicationState } from '../context';
 type WindowModeDef<WindowMode extends string> = {
   child: (
     setWindowMode: React.Dispatch<React.SetStateAction<WindowMode | null>>,
-  ) => JSX.Element;
-  icon: string;
-  title: string;
+  ) => ReactNode;
+  button: {
+    icon: string;
+    title: string;
+  } | null;
 };
 
 type LayoutProps<WindowMode extends string> = {
@@ -29,6 +31,8 @@ type LayoutProps<WindowMode extends string> = {
   licenseMode?: WindowMode;
   footer?: boolean;
 };
+
+export const UPDATE_DETAILS_WINDOW_MODE = 'update-details' as const;
 
 export const Layout = <WindowMode extends string>({
   modes,
@@ -45,6 +49,12 @@ export const Layout = <WindowMode extends string>({
   const { updates } = useApplicationState();
 
   useRootHintVariables(preferences.color);
+
+  const viewUpdateDetails = useCallback(() => {
+    if (modes?.[UPDATE_DETAILS_WINDOW_MODE as WindowMode]) {
+      setWindowMode(UPDATE_DETAILS_WINDOW_MODE as WindowMode);
+    }
+  }, []);
 
   return (
     <div className="flex h-dvh flex-col">
@@ -68,23 +78,30 @@ export const Layout = <WindowMode extends string>({
                   WindowMode,
                   WindowModeDef<WindowMode>,
                 ][]
-              ).map(([key, { icon, title }]) => (
-                <ControlButton
-                  key={key}
-                  onClick={() =>
-                    setWindowMode((mode) => (mode === key ? null : key))
-                  }
-                  variant="titlebar"
-                  icon={icon}
-                  active={windowMode === key}
-                  title={STRINGS.toggle(title)}
-                />
+              ).map(([key, { button }]) => (
+                <Fragment key={key}>
+                  {button && (
+                    <ControlButton
+                      onClick={() =>
+                        setWindowMode((mode) => (mode === key ? null : key))
+                      }
+                      variant="titlebar"
+                      icon={button.icon}
+                      active={windowMode === key}
+                      title={STRINGS.toggle(button.title)}
+                    />
+                  )}
+                </Fragment>
               ))}
             </>
           )}
         </ToolbarRow>
       </ToolbarWrapper>
-      <UpdateBanner strings={STRINGS.updates} updates={updates} />
+      <UpdateBanner
+        strings={STRINGS.updates.banner}
+        updates={updates}
+        openDetails={viewUpdateDetails}
+      />
       <div className="relative flex h-0 grow flex-col">
         {connection.state !== 'connected' ? (
           <SizeAwareDiv
