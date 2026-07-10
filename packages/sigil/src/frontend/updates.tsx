@@ -38,7 +38,7 @@ type UpdateBannerProps = {
   openDetails?: () => void;
 };
 
-const BANNER_BUTTON_CLS = `
+const clsBannerButton = () => `
   flex cursor-pointer items-center gap-0.5 rounded-md border
   border-sigil-usage-hint-selected-border
   bg-sigil-usage-hint-selected-background px-1 py-0.5
@@ -106,13 +106,13 @@ export const UpdateBanner: FC<UpdateBannerProps> = ({
         <Icon icon="upgrade" />
         {strings.updateAvailable(version, displayState.response.latestVersion)}
         {openDetails && (
-          <button className={BANNER_BUTTON_CLS} onClick={openDetails}>
+          <button className={clsBannerButton()} onClick={openDetails}>
             <Icon icon="info" />
             {strings.details}
           </button>
         )}
         {displayState.response.downloadUrl && (
-          <button className={BANNER_BUTTON_CLS} onClick={openDownloadLink}>
+          <button className={clsBannerButton()} onClick={openDownloadLink}>
             <Icon icon="download" />
             {strings.download}
           </button>
@@ -162,7 +162,8 @@ export const UpdateDetails: FC<UpdateDetailsProps> = ({
       </ToolbarWrapper>
       <div
         className="
-          grow basis-0 overflow-y-auto bg-sigil-bg-light scrollbar-sigil flex flex-col p-2 gap-2 select-text
+          flex grow basis-0 flex-col gap-2 overflow-y-auto bg-sigil-bg-light p-2
+          select-text scrollbar-sigil
         "
       >
         <p className="m-0 p-0">
@@ -171,7 +172,10 @@ export const UpdateDetails: FC<UpdateDetailsProps> = ({
         {(updates.response.newVersions ?? []).map((update) => (
           <div
             key={update.version}
-            className="flex flex-col gap-2 border border-sigil-border bg-sigil-bg-dark p-2"
+            className="
+              flex flex-col gap-2 border border-sigil-border bg-sigil-bg-dark
+              p-2
+            "
           >
             <h3 className="m-0 p-0">{`Version ${update.version}`}</h3>
             {update.notes && <div>{apiContentToReact(update.notes)}</div>}

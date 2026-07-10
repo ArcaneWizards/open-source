@@ -571,6 +571,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
       dialogMode,
       windowedTimecodeId,
       info.license,
+      info.state.updates,
     ],
   );
 

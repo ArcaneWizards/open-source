@@ -12,7 +12,6 @@ import { Diff } from '@arcanejs/diff';
 import { NetworkInterface } from '@arcanewizards/net-utils';
 import { TimecodeMode } from '@arcanewizards/artnet/constants';
 import { Tree } from '../tree';
-import { CheckForUpdatesResponse } from '@arcanewizards/apis';
 import {
   APP_LISTENER_CONFIG,
   ListenerConfig,

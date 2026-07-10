@@ -6,7 +6,7 @@ import {
   api,
 } from '@arcanewizards/apis';
 import { useLogger } from '@arcanewizards/sigil';
-import { UpdateCheckResult } from './components/proto';
+import { UpdateCheckResult } from '@arcanewizards/sigil/frontend/updates';
 
 type UpdateCheckerProps = {
   apiBaseUrl: URL;

@@ -20,7 +20,10 @@ const Link: FC<{ href: string; text: string }> = ({ href, text }) => {
   return (
     <a
       onClick={handleClick}
-      className="text-sigil-usage-hint-foreground cursor-pointer hover:underline"
+      className="
+        cursor-pointer text-sigil-usage-hint-foreground
+        hover:underline
+      "
     >
       {text}
     </a>
@@ -40,7 +43,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
         );
       } else if (content.mode === 'paragraph') {
         return (
-          <p className="p-0 m-0">
+          <p className="m-0 p-0">
             {content.children.map((child, index) => (
               <Fragment key={index}>{apiContentToReact(child)}</Fragment>
             ))}
@@ -58,7 +61,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
     case 'list':
       if (content.listType === 'ordered') {
         return (
-          <ol className="flex flex-col gap-2 list-decimal m-0 py-0 pl-2">
+          <ol className="m-0 flex list-decimal flex-col gap-2 py-0 pl-2">
             {content.children.map((child, index) => (
               <li key={index}>{apiContentToReact(child)}</li>
             ))}
@@ -68,7 +71,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
         return (
           <ul
             className={cn(
-              'flex flex-col gap-2 m-0 py-0',
+              'm-0 flex flex-col gap-2 py-0',
               cnd(
                 content.listType === 'unstyled',
                 'list-none pl-0',
@@ -86,7 +89,12 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
       return <span>{content.text}</span>;
     case 'inlineCode':
       return (
-        <code className="bg-sigil-bg-light px-1 py-0.5 rounded-sigil-control border border-sigil-border text-sigil-usage-hint-foreground">
+        <code
+          className="
+          rounded-sigil-control border border-sigil-border bg-sigil-bg-light
+          px-1 py-0.5 text-sigil-usage-hint-foreground
+        "
+        >
           {content.text}
         </code>
       );
@@ -94,7 +102,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
       switch (content.level) {
         case 1:
           return (
-            <h1 className="p-0 m-0">
+            <h1 className="m-0 p-0">
               {content.children.map((child, index) => (
                 <Fragment key={index}>{apiContentToReact(child)}</Fragment>
               ))}
@@ -102,7 +110,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
           );
         case 2:
           return (
-            <h2 className="pb-0 pt-2 m-0">
+            <h2 className="m-0 pt-2 pb-0">
               {content.children.map((child, index) => (
                 <Fragment key={index}>{apiContentToReact(child)}</Fragment>
               ))}
@@ -110,7 +118,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
           );
         case 3:
           return (
-            <h3 className="pb-0 pt-1.5 m-0">
+            <h3 className="m-0 pt-1.5 pb-0">
               {content.children.map((child, index) => (
                 <Fragment key={index}>{apiContentToReact(child)}</Fragment>
               ))}
@@ -118,7 +126,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
           );
         case 4:
           return (
-            <h4 className="pb-0 pt-1 m-0">
+            <h4 className="m-0 pt-1 pb-0">
               {content.children.map((child, index) => (
                 <Fragment key={index}>{apiContentToReact(child)}</Fragment>
               ))}
@@ -126,7 +134,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
           );
         case 5:
           return (
-            <h5 className="pb-0 pt-0.5 m-0">
+            <h5 className="m-0 pt-0.5 pb-0">
               {content.children.map((child, index) => (
                 <Fragment key={index}>{apiContentToReact(child)}</Fragment>
               ))}
@@ -134,7 +142,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
           );
         case 6:
           return (
-            <h6 className="p-0 m-0">
+            <h6 className="m-0 p-0">
               {content.children.map((child, index) => (
                 <Fragment key={index}>{apiContentToReact(child)}</Fragment>
               ))}
@@ -142,7 +150,7 @@ export const apiContentToReact = (content: ApiContent): React.ReactNode => {
           );
         default:
           return (
-            <p className="p-0 m-0">
+            <p className="m-0 p-0">
               {content.children.map((child, index) => (
                 <Fragment key={index}>{apiContentToReact(child)}</Fragment>
               ))}

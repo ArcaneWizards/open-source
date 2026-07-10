@@ -32,7 +32,6 @@ import {
   ToolboxRootUpdateInputState,
   ToolboxRootUpdateOutputState,
   ToolboxRootUpdatePlayerState,
-  UpdateCheckResult,
 } from './components/proto';
 import { patchJson, Diff } from '@arcanejs/diff';
 import { InputConnections } from './inputs';
@@ -57,6 +56,7 @@ import {
 } from '@arcanejs/react-toolkit/connections';
 import { ToolkitConnection } from '@arcanejs/toolkit';
 import { midi } from '@arcanewizards/midi';
+import { UpdateCheckResult } from '@arcanewizards/sigil/frontend/updates';
 
 const DEFAULT_PORT: ListenerConfig['port'] = { from: 4100, to: 4200 };
 

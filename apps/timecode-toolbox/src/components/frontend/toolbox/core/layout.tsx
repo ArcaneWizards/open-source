@@ -54,7 +54,7 @@ export const Layout = <WindowMode extends string>({
     if (modes?.[UPDATE_DETAILS_WINDOW_MODE as WindowMode]) {
       setWindowMode(UPDATE_DETAILS_WINDOW_MODE as WindowMode);
     }
-  }, []);
+  }, [modes]);
 
   return (
     <div className="flex h-dvh flex-col">
