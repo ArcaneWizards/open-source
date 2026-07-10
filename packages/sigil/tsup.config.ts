@@ -15,6 +15,7 @@ export default defineConfig({
     'src/frontend/toolbars.tsx',
     'src/frontend/tooltip.tsx',
     'src/frontend/updates.tsx',
+    'src/frontend/utils.tsx',
     'src/shared/config.ts',
   ],
   format: ['cjs', 'esm'],
