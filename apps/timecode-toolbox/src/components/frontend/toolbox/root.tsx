@@ -504,6 +504,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
                       updates={info.state.updates}
                       strings={STRINGS.updates.details}
                       closeDetails={() => setWindowMode(null)}
+                      className="grow"
                     />
                   ) : null,
                 button: null,

@@ -6,8 +6,9 @@ import type { CheckForUpdatesResponse } from '@arcanewizards/apis';
 import { ToolbarDivider, ToolbarRow, ToolbarWrapper } from './toolbars';
 import { ControlButton } from './controls';
 import { apiContentToReact } from './utils';
+import { cn } from '@arcanejs/toolkit-frontend/util';
 
-export type UpdateCheckStrings = {
+export type UpdateBannerStrings = {
   download: string;
   details: string;
   updateAvailable: (currentVersion: string, latestVersion: string) => string;
@@ -33,7 +34,8 @@ export type UpdateCheckResult =
     };
 
 type UpdateBannerProps = {
-  strings: UpdateCheckStrings;
+  className?: string;
+  strings: UpdateBannerStrings;
   updates: UpdateCheckResult | null;
   openDetails?: () => void;
 };
@@ -47,6 +49,7 @@ const clsBannerButton = () => `
 `;
 
 export const UpdateBanner: FC<UpdateBannerProps> = ({
+  className,
   strings,
   updates,
   openDetails,
@@ -82,11 +85,14 @@ export const UpdateBanner: FC<UpdateBannerProps> = ({
   if (displayState?.type === 'error') {
     return (
       <div
-        className="
-          flex items-center justify-center gap-2 border-b
-          border-sigil-usage-orange-border bg-sigil-usage-orange-background p-1
-          text-sigil-usage-orange-text
-        "
+        className={cn(
+          `
+            flex items-center justify-center gap-2
+            border-sigil-usage-orange-border bg-sigil-usage-orange-background
+            p-1 text-sigil-usage-orange-text
+          `,
+          className,
+        )}
       >
         <Icon icon="error" />
         {displayState.error}
@@ -97,11 +103,14 @@ export const UpdateBanner: FC<UpdateBannerProps> = ({
   if (displayState?.type === 'updates-available') {
     return (
       <div
-        className="
-          flex items-center justify-center gap-2 border-b
-          border-sigil-usage-hint-border bg-sigil-usage-hint-background p-1
-          text-sigil-usage-hint-text
-        "
+        className={cn(
+          `
+            flex items-center justify-center gap-2
+            border-sigil-usage-hint-border bg-sigil-usage-hint-background p-1
+            text-sigil-usage-hint-text
+          `,
+          className,
+        )}
       >
         <Icon icon="upgrade" />
         {strings.updateAvailable(version, displayState.response.latestVersion)}
@@ -130,12 +139,14 @@ export type UpdateDetailsStrings = {
 };
 
 type UpdateDetailsProps = {
+  className?: string;
   updates: UpdateCheckResult;
   strings: UpdateDetailsStrings;
   closeDetails: () => void;
 };
 
 export const UpdateDetails: FC<UpdateDetailsProps> = ({
+  className,
   updates,
   strings,
   closeDetails,
@@ -147,7 +158,7 @@ export const UpdateDetails: FC<UpdateDetailsProps> = ({
   }
 
   return (
-    <div className="flex grow flex-col">
+    <div className={cn('flex flex-col', className)}>
       <ToolbarWrapper>
         <ToolbarRow>
           <span className="grow p-1">{strings.title}</span>
