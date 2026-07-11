@@ -101,6 +101,7 @@ export const Layout = <WindowMode extends string>({
         strings={STRINGS.updates.banner}
         updates={updates}
         openDetails={viewUpdateDetails}
+        className="border-b"
       />
       <div className="relative flex h-0 grow flex-col">
         {connection.state !== 'connected' ? (

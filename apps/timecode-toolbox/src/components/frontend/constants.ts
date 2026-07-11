@@ -1,6 +1,6 @@
 import { TIMECODE_FPS } from '@arcanewizards/artnet/constants';
 import {
-  UpdateCheckStrings,
+  UpdateBannerStrings,
   UpdateDetailsStrings,
 } from '@arcanewizards/sigil/frontend/updates';
 
@@ -174,7 +174,7 @@ export const STRINGS = {
         `Version ${latest} is available! You are currently on version ${current}.`,
       download: 'Download',
       details: 'Details',
-    } satisfies UpdateCheckStrings,
+    } satisfies UpdateBannerStrings,
     details: {
       title: 'Update Details',
       close: 'Close',
