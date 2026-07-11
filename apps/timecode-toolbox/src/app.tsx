@@ -484,16 +484,14 @@ export const App = ({
       shutdownContext={shutdownContext}
     >
       {children}
-      {data.checkForUpdates && (
-        <UpdateChecker
-          app="timecode-toolbox"
-          version={version}
-          edition={edition}
-          api={a}
-          setUpdateState={setUpdateState}
-          config={data}
-        />
-      )}
+      <UpdateChecker
+        app="timecode-toolbox"
+        version={version}
+        edition={edition}
+        api={a}
+        setUpdateState={setUpdateState}
+        config={data}
+      />
       <AppListenerManager
         toolkit={toolkit}
         setWindowUrl={setWindowUrl}

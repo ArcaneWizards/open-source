@@ -58,6 +58,7 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
 
   const checkForUpdates = useCallback(() => {
     if (!config.agreedToEula || !config.checkForUpdates) {
+      setUpdateState(null);
       return;
     }
     const lastCheckedMillis = Date.now();
