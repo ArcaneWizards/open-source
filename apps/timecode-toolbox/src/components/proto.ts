@@ -22,6 +22,8 @@ import type {
   MIDISupportResponse,
 } from '@arcanewizards/midi';
 import { UpdateCheckResult } from '@arcanewizards/sigil/frontend/updates';
+import { GET_EULA_RESPONSE, GetEulaResponse } from '@arcanewizards/apis';
+import type { UserActionState } from '@arcanewizards/sigil/frontend/user-actions';
 
 /* Shared config & proto definitions */
 
@@ -357,15 +359,25 @@ const OUTPUT_CONFIG = z.object({
 
 export type OutputConfig = z.infer<typeof OUTPUT_CONFIG>;
 
+const AGREED_TO_EULA = z.object({
+  content: GET_EULA_RESPONSE,
+  /**
+   * The date the user agreed to the EULA, in milliseconds since the epoch.
+   */
+  dateAgreedOnMillis: z.number(),
+  /**
+   * We only generate an ID to include in update requests after the user
+   * has agreed to the EULA.
+   */
+  updateId: z.string(),
+});
+
 export const TOOLBOX_CONFIG = z.object({
   appListener: APP_LISTENER_CONFIG.partial().optional(),
   inputs: z.record(z.string(), INPUT_CONFIG),
   generators: z.record(z.string(), GENERATOR_CONFIG),
   outputs: z.record(z.string(), OUTPUT_CONFIG),
-  /**
-   * Hash of the license the user has agreed to.
-   */
-  agreedToLicense: z.string().optional(),
+  agreedToEula: AGREED_TO_EULA.optional(),
   checkForUpdates: z.boolean().optional().default(true),
 });
 
@@ -556,7 +568,7 @@ export type ToolboxRootComponent = BaseComponentProto<
   Namespace,
   'toolbox-root'
 > & {
-  license: string;
+  license: z.infer<typeof GET_EULA_RESPONSE> | null;
   config: ToolboxConfig;
   state: ApplicationState;
   handlers: Tree<AvailableHandlers>;
@@ -574,8 +586,7 @@ export type ToolboxLicenseGateComponent = BaseComponentProto<
   Namespace,
   'license-gate'
 > & {
-  license: string;
-  hash: string;
+  eula: UserActionState<GetEulaResponse>;
 };
 
 export type TimecodeToolboxComponent =
@@ -668,7 +679,6 @@ export type ToolboxLicenseGateAcceptLicense =
   BaseClientComponentMessage<Namespace> & {
     component: 'license-gate';
     action: 'accept-license';
-    hash: string;
   };
 
 export type ToolboxRootUpdateInputState =

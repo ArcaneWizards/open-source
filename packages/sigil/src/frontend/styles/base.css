@@ -24,6 +24,11 @@
   --spacing-0_6: calc(var(--arcane-spacing) / 3);
   --spacing-0_8: calc(var(--arcane-spacing) / 2.5);
   --spacing-1_3: calc(var(--arcane-spacing) / 3 * 2);
+  --spacing-1_5: calc(
+    var(--arcane-spacing) * 0.75
+  ); /* TODO: correct this in arcanejs */
+  --spacing-3: calc(var(--arcane-spacing) * 1.5);
+  --spacing-4: calc(var(--arcane-spacing) * 2);
   --spacing-sigil-toolbar-gap: calc(var(--sigil-toolbar-spacing-px) / 2);
   --spacing-sigil-toolbar-padding: var(--sigil-toolbar-spacing-px);
   --spacing-sigil-toolbar-divider: 1.2rem;

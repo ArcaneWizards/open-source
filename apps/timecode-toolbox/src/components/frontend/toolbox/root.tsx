@@ -467,12 +467,13 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
             footer
             modes={{
               license: {
-                child: (setWindowMode) => (
-                  <License
-                    license={info.license}
-                    setWindowMode={setWindowMode}
-                  />
-                ),
+                child: (setWindowMode) =>
+                  info.license ? (
+                    <License
+                      eula={info.license}
+                      setWindowMode={setWindowMode}
+                    />
+                  ) : null,
                 button: {
                   icon: 'info',
                   title: STRINGS.license,
