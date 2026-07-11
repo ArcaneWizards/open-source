@@ -1,5 +1,27 @@
 # @arcanewizards/sigil
 
+## 0.1.12
+
+### Patch Changes
+
+- a928575: Introduce a new UpdateDetails component for release notes
+- 4d6879f: Clear the update state when checkForUpdates is disabled
+- 19c0ae4: Introduce new components related to user actions
+  - UserAction related types (loaded, idle, success, error)
+  - new Spinner component
+  - new Alert components
+  - new LoadingWrapper and UserActionAlert components
+
+- 37d7c04: Export utils module and apiContentToReact
+- a928575: Migrate UpdateBanner component from `timecode-toolbox`
+- cf23d63: Migrate UpdateChecker into sigil package
+- 19c0ae4: Add & fix some new Tailwind spacing variables
+- 5c29ceb: Allow for UpdateBanner and UpdateDetails classes to be customized
+- Updated dependencies [19c0ae4]
+- Updated dependencies [a928575]
+- Updated dependencies [19c0ae4]
+  - @arcanewizards/apis@0.0.2
+
 ## 0.1.11
 
 ### Patch Changes
