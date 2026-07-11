@@ -39,7 +39,6 @@ import { OutputConnections } from './outputs';
 import { Generators } from './generators';
 import { TimecodeHandlers } from './types';
 import { getTreeValue, mapTree, Tree, updateTreeState } from './tree';
-import { useLicense } from './license';
 import { UpdateChecker } from './updates';
 import { getEnv } from './env';
 import { ListenerConfig } from '@arcanewizards/sigil/shared/config';
@@ -57,6 +56,8 @@ import {
 import { ToolkitConnection } from '@arcanejs/toolkit';
 import { midi } from '@arcanewizards/midi';
 import { UpdateCheckResult } from '@arcanewizards/sigil/frontend/updates';
+import { EulaGate } from './eula';
+import { api } from '@arcanewizards/apis';
 
 const DEFAULT_PORT: ListenerConfig['port'] = { from: 4100, to: 4200 };
 
@@ -154,8 +155,6 @@ export const App = ({
     },
     [handlers],
   );
-
-  const license = useLicense();
 
   const appListenerConfig = useMemo(() => {
     const baseConfig: ListenerConfig = {
@@ -431,67 +430,49 @@ export const App = ({
     }
   }, [logger]);
 
-  if (!license) {
-    // Wait for license to load before starting the app.
-    return;
-  }
+  const a = useMemo(() => api(env.API_BASE_URL), [env.API_BASE_URL]);
 
-  const children: ReactNode =
-    data.agreedToLicense === license.hash ? (
-      <>
-        <C.ToolboxRoot
-          config={data}
-          state={augmentedState}
-          handlers={availableHandlers}
-          onUpdateConfig={onUpdateConfig}
-          onCallHandler={callHandler}
-          onDownloadAudioFile={downloadAudioFile}
-          onUpdateInputState={updateInputState}
-          onUpdatePlayerState={updatePlayerState}
-          onUpdateOutputState={updateOutputState}
-          onReleaseControl={releaseControl}
-          license={license.text}
-          network={{
-            envPort: env.PORT,
-            defaultPort: DEFAULT_PORT,
-          }}
-          midi={midiInterface ?? undefined}
-        />
-        <InputConnections
-          midi={midiInterface}
-          state={state}
-          setState={setState}
-        />
-        <PlayerStateManager
-          state={state}
-          setState={setState}
-          setPlayerState={setPlayerState}
-          setHandlers={setHandlers}
-        />
-        <Generators
-          state={state}
-          setState={setState}
-          setHandlers={setHandlers}
-        />
-        <OutputConnections
-          midi={midiInterface}
-          state={state}
-          setState={setState}
-        />
-      </>
-    ) : (
-      <C.LicenseGate
-        license={license.text}
-        hash={license.hash}
-        onAcceptLicense={(agreedToLicense) => {
-          logger.info(`License accepted: ${agreedToLicense}`);
-          updateData((current) => ({
-            ...current,
-            agreedToLicense,
-          }));
+  const children: ReactNode = data.agreedToEula ? (
+    <>
+      <C.ToolboxRoot
+        config={data}
+        state={augmentedState}
+        handlers={availableHandlers}
+        onUpdateConfig={onUpdateConfig}
+        onCallHandler={callHandler}
+        onDownloadAudioFile={downloadAudioFile}
+        onUpdateInputState={updateInputState}
+        onUpdatePlayerState={updatePlayerState}
+        onUpdateOutputState={updateOutputState}
+        onReleaseControl={releaseControl}
+        license={data.agreedToEula.content}
+        network={{
+          envPort: env.PORT,
+          defaultPort: DEFAULT_PORT,
         }}
+        midi={midiInterface ?? undefined}
       />
-    );
+      <InputConnections
+        midi={midiInterface}
+        state={state}
+        setState={setState}
+      />
+      <PlayerStateManager
+        state={state}
+        setState={setState}
+        setPlayerState={setPlayerState}
+        setHandlers={setHandlers}
+      />
+      <Generators state={state} setState={setState} setHandlers={setHandlers} />
+      <OutputConnections
+        midi={midiInterface}
+        state={state}
+        setState={setState}
+      />
+    </>
+  ) : (
+    <EulaGate api={a} />
+  );
 
   return (
     <AppShell
@@ -507,7 +488,7 @@ export const App = ({
         <UpdateChecker
           version={version}
           edition={edition}
-          apiBaseUrl={env.API_BASE_URL}
+          api={a}
           setUpdateState={setUpdateState}
         />
       )}

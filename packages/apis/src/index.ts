@@ -87,6 +87,7 @@ export const CHECK_FOR_UPDATES_REQUEST = z.object({
   platform: APP_PLATFORM,
   architecture: APP_ARCHITECTURE,
   currentVersion: z.string(),
+  updateId: z.string(),
 });
 
 export type CheckForUpdatesRequest = z.infer<typeof CHECK_FOR_UPDATES_REQUEST>;
@@ -110,6 +111,20 @@ export type CheckForUpdatesResponse = z.infer<
   typeof CHECK_FOR_UPDATES_RESPONSE
 >;
 
+export const GET_EULA_REQUEST = z.object({
+  app: z.string(),
+});
+
+export type GetEulaRequest = z.infer<typeof GET_EULA_REQUEST>;
+
+export const GET_EULA_RESPONSE = z.object({
+  title: z.string(),
+  dateLastUpdated: z.string(),
+  content: API_CONTENT,
+});
+
+export type GetEulaResponse = z.infer<typeof GET_EULA_RESPONSE>;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -121,25 +136,38 @@ export class ApiError extends Error {
 }
 
 export const api = (baseUrl: URL) => {
-  const checkForUpdates = async (
-    request: CheckForUpdatesRequest,
-  ): Promise<CheckForUpdatesResponse> => {
-    const response = await fetch(new URL('/api/v1/updates', baseUrl), {
+  const callApi = async <TRequest, TResponse>(
+    endpoint: string,
+    request: TRequest,
+    responseSchema: z.ZodType<TResponse>,
+  ): Promise<TResponse> => {
+    const response = await fetch(new URL(endpoint, baseUrl), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
     if (!response.ok) {
       throw new ApiError(
-        `Failed to check for updates: ${response.statusText} - ${await response.text()}`,
+        `Failed to call API endpoint ${endpoint}: ${response.statusText} - ${await response.text()}`,
         response,
       );
     }
     const responseData = await response.json();
-    return CHECK_FOR_UPDATES_RESPONSE.parse(responseData);
+    return responseSchema.parse(responseData);
   };
+
+  const checkForUpdates = async (
+    request: CheckForUpdatesRequest,
+  ): Promise<CheckForUpdatesResponse> =>
+    callApi('/api/v1/updates', request, CHECK_FOR_UPDATES_RESPONSE);
+
+  const getEula = async (request: GetEulaRequest): Promise<GetEulaResponse> =>
+    callApi('/api/v1/eula', request, GET_EULA_RESPONSE);
 
   return {
     checkForUpdates,
+    getEula,
   };
 };
+
+export type ArcaneWizardsApi = ReturnType<typeof api>;

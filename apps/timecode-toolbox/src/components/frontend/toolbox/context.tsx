@@ -26,13 +26,12 @@ export const ConfigContext = createContext<ConfigContextData>(
   }),
 );
 
-export const ApplicationStateContext = createContext<ApplicationState>(
-  new Proxy({} as ApplicationState, {
-    get() {
-      throw new Error('ApplicationStateContext not initialized');
-    },
-  }),
-);
+export const ApplicationStateContext = createContext<ApplicationState>({
+  updates: null,
+  inputs: {},
+  outputs: {},
+  generators: {},
+});
 
 export const useApplicationState = () => useContext(ApplicationStateContext);
 

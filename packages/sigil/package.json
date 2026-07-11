@@ -23,6 +23,12 @@
       "import": "./dist/frontend.js",
       "require": "./dist/frontend.cjs"
     },
+    "./frontend/alert": {
+      "@arcanewizards/source": "./src/frontend/alert.tsx",
+      "types": "./dist/frontend/alert.d.ts",
+      "import": "./dist/frontend/alert.js",
+      "require": "./dist/frontend/alert.cjs"
+    },
     "./frontend/appearance": {
       "@arcanewizards/source": "./src/frontend/appearance.tsx",
       "types": "./dist/frontend/appearance.d.ts",
@@ -59,6 +65,12 @@
       "import": "./dist/frontend/preferences.js",
       "require": "./dist/frontend/preferences.cjs"
     },
+    "./frontend/spinner": {
+      "@arcanewizards/source": "./src/frontend/spinner.tsx",
+      "types": "./dist/frontend/spinner.d.ts",
+      "import": "./dist/frontend/spinner.js",
+      "require": "./dist/frontend/spinner.cjs"
+    },
     "./frontend/styling": {
       "@arcanewizards/source": "./src/frontend/styling.ts",
       "types": "./dist/frontend/styling.d.ts",
@@ -82,6 +94,12 @@
       "types": "./dist/frontend/tooltip.d.ts",
       "import": "./dist/frontend/tooltip.js",
       "require": "./dist/frontend/tooltip.cjs"
+    },
+    "./frontend/user-actions": {
+      "@arcanewizards/source": "./src/frontend/user-actions.tsx",
+      "types": "./dist/frontend/user-actions.d.ts",
+      "import": "./dist/frontend/user-actions.js",
+      "require": "./dist/frontend/user-actions.cjs"
     },
     "./frontend/updates": {
       "@arcanewizards/source": "./src/frontend/updates.tsx",

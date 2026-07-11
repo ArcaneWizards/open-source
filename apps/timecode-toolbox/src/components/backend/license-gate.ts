@@ -12,21 +12,18 @@ import {
   ToolboxLicenseGateComponent,
 } from '../proto';
 import { AnyClientComponentMessage } from '@arcanejs/protocol';
+import { prepareUserActionsState } from '@arcanewizards/sigil/frontend/user-actions';
 
 export type Events = {
-  acceptLicense: (hash: string) => void;
+  acceptLicense: () => void;
 };
 
-export type AppRootProps = Pick<
-  ToolboxLicenseGateComponent,
-  'license' | 'hash'
-> & {
+export type AppRootProps = Pick<ToolboxLicenseGateComponent, 'eula'> & {
   onAcceptLicense?: Events['acceptLicense'];
 };
 
 const DEFAULT_PROPS: AppRootProps = {
-  license: '',
-  hash: '',
+  eula: prepareUserActionsState({ type: 'loading' }),
 };
 
 export class LicenseGate
@@ -64,8 +61,7 @@ export class LicenseGate
       namespace: 'timecode-toolbox',
       component: 'license-gate',
       key: idMap.getId(this),
-      license: this.props.license,
-      hash: this.props.hash,
+      eula: this.props.eula,
     };
   }
 
@@ -73,7 +69,7 @@ export class LicenseGate
   public handleMessage = (message: AnyClientComponentMessage) => {
     if (isTimecodeToolboxComponentMessage(message, 'license-gate')) {
       if (message.action === 'accept-license') {
-        this.events.emit('acceptLicense', message.hash);
+        this.events.emit('acceptLicense');
       }
     }
   };

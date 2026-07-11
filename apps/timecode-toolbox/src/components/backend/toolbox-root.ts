@@ -81,7 +81,7 @@ const DEFAULT_PROPS: AppRootProps = {
     updates: null,
   },
   handlers: { children: {} },
-  license: '',
+  license: null,
   network: {
     envPort: null,
     defaultPort: -1,

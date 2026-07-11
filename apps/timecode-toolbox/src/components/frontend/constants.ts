@@ -26,7 +26,9 @@ export const STRINGS = {
   clearFile: 'Clear loaded file',
   license: 'License & About',
   acceptLicense: 'Accept License',
-  licensePrompt: 'Please review and accept the license to use Timecode Toolbox',
+  licensePrompt: (title: string) =>
+    `Please review and accept the ${title} to use Timecode Toolbox`,
+  licenseLastUpdated: (date: string) => `Last updated: ${date}`,
   sourceCode: 'Source Code',
   helpAndSupport: 'Get Help & Support',
   protocols: {

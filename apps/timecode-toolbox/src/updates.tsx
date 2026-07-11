@@ -1,15 +1,17 @@
-import { FC, useCallback, useEffect, useMemo } from 'react';
+import { FC, useCallback, useEffect } from 'react';
 import {
   AppArchitecture,
   AppEdition,
   AppPlatform,
-  api,
+  ArcaneWizardsApi,
 } from '@arcanewizards/apis';
 import { useLogger } from '@arcanewizards/sigil';
 import { UpdateCheckResult } from '@arcanewizards/sigil/frontend/updates';
+import { ToolboxConfigData } from './config';
+import { useDataFileContext } from '@arcanejs/react-toolkit/data';
 
 type UpdateCheckerProps = {
-  apiBaseUrl: URL;
+  api: ArcaneWizardsApi;
   version: string;
   edition: AppEdition;
   setUpdateState: (update: UpdateCheckResult | null) => void;
@@ -40,24 +42,30 @@ const getAppArchitecture = (): AppArchitecture => {
 };
 
 export const UpdateChecker: FC<UpdateCheckerProps> = ({
-  apiBaseUrl,
+  api,
   version,
   edition,
   setUpdateState,
 }) => {
-  const a = useMemo(() => api(apiBaseUrl), [apiBaseUrl]);
+  const { data } = useDataFileContext(ToolboxConfigData);
+
   const logger = useLogger();
 
   const checkForUpdates = useCallback(() => {
+    if (!data.agreedToEula || !data.checkForUpdates) {
+      return;
+    }
     const lastCheckedMillis = Date.now();
     setUpdateState({ type: 'loading' });
-    a.checkForUpdates({
-      app: 'timecode-toolbox',
-      edition,
-      platform: getAppPlatform(),
-      architecture: getAppArchitecture(),
-      currentVersion: version,
-    })
+    api
+      .checkForUpdates({
+        app: 'timecode-toolbox',
+        edition,
+        platform: getAppPlatform(),
+        architecture: getAppArchitecture(),
+        currentVersion: version,
+        updateId: data.agreedToEula.updateId,
+      })
       .then((response) => {
         if (!response.newVersions || response.newVersions.length === 0) {
           setUpdateState({ type: 'up-to-date', lastCheckedMillis });
@@ -83,7 +91,15 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
         });
         logger.error(err);
       });
-  }, [a, setUpdateState, edition, logger, version]);
+  }, [
+    api,
+    setUpdateState,
+    edition,
+    logger,
+    version,
+    data.agreedToEula,
+    data.checkForUpdates,
+  ]);
 
   useEffect(() => {
     checkForUpdates();
