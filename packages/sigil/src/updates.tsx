@@ -10,6 +10,7 @@ import { useLogger } from './context';
 
 type UpdateCheckerProps = {
   api: ArcaneWizardsApi;
+  app: string;
   version: string;
   edition: AppEdition;
   setUpdateState: (update: UpdateCheckResult | null) => void;
@@ -46,6 +47,7 @@ const getAppArchitecture = (): AppArchitecture => {
 };
 
 export const UpdateChecker: FC<UpdateCheckerProps> = ({
+  app,
   api,
   version,
   edition,
@@ -62,7 +64,7 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
     setUpdateState({ type: 'loading' });
     api
       .checkForUpdates({
-        app: 'timecode-toolbox',
+        app,
         edition,
         platform: getAppPlatform(),
         architecture: getAppArchitecture(),
@@ -95,6 +97,7 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
         logger.error(err);
       });
   }, [
+    app,
     api,
     setUpdateState,
     edition,

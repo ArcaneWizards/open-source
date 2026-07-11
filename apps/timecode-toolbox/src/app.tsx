@@ -486,6 +486,7 @@ export const App = ({
       {children}
       {data.checkForUpdates && (
         <UpdateChecker
+          app="timecode-toolbox"
           version={version}
           edition={edition}
           api={a}
