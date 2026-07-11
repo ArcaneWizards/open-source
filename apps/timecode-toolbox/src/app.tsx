@@ -39,7 +39,7 @@ import { OutputConnections } from './outputs';
 import { Generators } from './generators';
 import { TimecodeHandlers } from './types';
 import { getTreeValue, mapTree, Tree, updateTreeState } from './tree';
-import { UpdateChecker } from './updates';
+import { UpdateChecker } from '@arcanewizards/sigil/updates';
 import { getEnv } from './env';
 import { ListenerConfig } from '@arcanewizards/sigil/shared/config';
 import {
@@ -490,6 +490,7 @@ export const App = ({
           edition={edition}
           api={a}
           setUpdateState={setUpdateState}
+          config={data}
         />
       )}
       <AppListenerManager
