@@ -1,20 +1,24 @@
-import { FC, useCallback, useEffect } from 'react';
-import {
+import { type FC, useCallback, useEffect } from 'react';
+import type {
   AppArchitecture,
   AppEdition,
   AppPlatform,
   ArcaneWizardsApi,
 } from '@arcanewizards/apis';
-import { useLogger } from '@arcanewizards/sigil';
-import { UpdateCheckResult } from '@arcanewizards/sigil/frontend/updates';
-import { ToolboxConfigData } from './config';
-import { useDataFileContext } from '@arcanejs/react-toolkit/data';
+import type { UpdateCheckResult } from './frontend/updates';
+import { useLogger } from './context';
 
 type UpdateCheckerProps = {
   api: ArcaneWizardsApi;
   version: string;
   edition: AppEdition;
   setUpdateState: (update: UpdateCheckResult | null) => void;
+  config: {
+    agreedToEula?: {
+      updateId: string;
+    };
+    checkForUpdates: boolean;
+  };
 };
 
 const getAppPlatform = (): AppPlatform => {
@@ -46,13 +50,12 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
   version,
   edition,
   setUpdateState,
+  config,
 }) => {
-  const { data } = useDataFileContext(ToolboxConfigData);
-
   const logger = useLogger();
 
   const checkForUpdates = useCallback(() => {
-    if (!data.agreedToEula || !data.checkForUpdates) {
+    if (!config.agreedToEula || !config.checkForUpdates) {
       return;
     }
     const lastCheckedMillis = Date.now();
@@ -64,7 +67,7 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
         platform: getAppPlatform(),
         architecture: getAppArchitecture(),
         currentVersion: version,
-        updateId: data.agreedToEula.updateId,
+        updateId: config.agreedToEula.updateId,
       })
       .then((response) => {
         if (!response.newVersions || response.newVersions.length === 0) {
@@ -97,8 +100,8 @@ export const UpdateChecker: FC<UpdateCheckerProps> = ({
     edition,
     logger,
     version,
-    data.agreedToEula,
-    data.checkForUpdates,
+    config.agreedToEula,
+    config.checkForUpdates,
   ]);
 
   useEffect(() => {

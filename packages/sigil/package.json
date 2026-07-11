@@ -128,6 +128,12 @@
       "import": "./dist/shared/config.js",
       "require": "./dist/shared/config.cjs"
     },
+    "./updates": {
+      "@arcanewizards/source": "./src/updates.tsx",
+      "types": "./dist/updates.d.ts",
+      "import": "./dist/updates.js",
+      "require": "./dist/updates.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [
