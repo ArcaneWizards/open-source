@@ -191,6 +191,29 @@
   }
 }
 
+@utility sigil-grid-table-basic {
+  display: grid;
+  grid-template-columns: [name-start] 1fr [name-end controls-start] max-content [controls-end];
+  grid-gap: var(--sigil-control-gap);
+  font-size: 0.7rem;
+}
+
+@utility sigil-grid-table-basic-subgrid {
+  display: grid;
+  grid-area: auto / name-start / span 1 / controls-end;
+  grid-template-columns: subgrid;
+}
+
+@utility sigil-grid-pos-name {
+  grid-column: name-start / name-end;
+  grid-row: auto / span 1;
+}
+
+@utility sigil-grid-pos-controls {
+  grid-column: controls-start / controls-end;
+  grid-row: auto / span 1;
+}
+
 .arcane-theme-root {
   /*
    * Any component-specific styling variables

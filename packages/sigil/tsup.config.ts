@@ -11,6 +11,7 @@ export default defineConfig({
     'src/frontend/dialogs.tsx',
     'src/frontend/input.ts',
     'src/frontend/preferences.ts',
+    'src/frontend/showfiles.tsx',
     'src/frontend/spinner.tsx',
     'src/frontend/styling.ts',
     'src/frontend/styling.hooks.ts',

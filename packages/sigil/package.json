@@ -65,6 +65,12 @@
       "import": "./dist/frontend/preferences.js",
       "require": "./dist/frontend/preferences.cjs"
     },
+    "./frontend/showfiles": {
+      "@arcanewizards/source": "./src/frontend/showfiles.tsx",
+      "types": "./dist/frontend/showfiles.d.ts",
+      "import": "./dist/frontend/showfiles.js",
+      "require": "./dist/frontend/showfiles.cjs"
+    },
     "./frontend/spinner": {
       "@arcanewizards/source": "./src/frontend/spinner.tsx",
       "types": "./dist/frontend/spinner.d.ts",
