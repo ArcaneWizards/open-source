@@ -1,9 +1,25 @@
-import { FC } from 'react';
+import { FC, useCallback, useMemo, useState, useTransition } from 'react';
 import { cn } from '@arcanejs/toolkit-frontend/util';
 import { Spinner } from './spinner';
 import { Alert, AlertDescription, AlertTitle } from './alert';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { cnd } from './styling';
+
+export type ActionResponse<T> = Promise<
+  | {
+      success: true;
+      data: T;
+    }
+  | {
+      success: false;
+      title: string;
+      details?: string;
+    }
+>;
+
+export const success = <T,>(data: T): Awaited<ActionResponse<T>> => {
+  return { success: true, data };
+};
 
 export type InternalUserActionState<T> =
   | {
@@ -80,6 +96,66 @@ export const prepareUserActionsState = <T,>(
         details: state.details,
       };
   }
+};
+
+export const mapUserActionState = <T, U>(
+  state: UserActionState<T>,
+  transform: (data: T) => U,
+): UserActionState<U> => {
+  if (state.success) {
+    return {
+      idle: false,
+      success: true,
+      data: transform(state.data),
+      loading: false,
+      error: false,
+    };
+  }
+  return state as UserActionState<U>;
+};
+
+export const useUserAction = <T,>(initial?: T) => {
+  const [state, setState] = useState<InternalUserActionState<T>>(
+    initial ? { type: 'success', data: initial } : { type: 'idle' },
+  );
+
+  const [isPending, startTransition] = useTransition();
+
+  const performAction = useCallback(
+    async (action: () => ActionResponse<T>) =>
+      startTransition(async () => {
+        try {
+          const result = await action();
+          if (!result.success) {
+            setState({
+              type: 'error',
+              title: result.title,
+              details: result.details,
+            });
+            return;
+          }
+          setState({ type: 'success', data: result.data });
+        } catch (error) {
+          setState({
+            type: 'error',
+            title: 'An unexpected error ocurred',
+            details: `${error}`,
+          });
+        }
+      }),
+    [],
+  );
+
+  const reset = useCallback(() => {
+    setState({ type: 'idle' });
+  }, []);
+
+  const returnState = useMemo(
+    () => prepareUserActionsState(state, isPending),
+    [state, isPending],
+  );
+
+  return [returnState, performAction, reset] as const;
 };
 
 type UserActionAlertProps = {

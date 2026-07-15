@@ -58,11 +58,20 @@ export type ControlLabelProps = ComponentPropsWithoutRef<'label'> & {
   position?: ControlPosition;
   disabled?: boolean;
   nonMicro?: boolean;
+  vAlign?: 'start' | 'center' | 'end';
 };
 
 export const ControlLabel = forwardRef<HTMLLabelElement, ControlLabelProps>(
   (
-    { className, disabled, nonMicro, position = 'label', subgrid, ...props },
+    {
+      className,
+      disabled,
+      nonMicro,
+      position = 'label',
+      subgrid,
+      vAlign = 'center',
+      ...props
+    },
     ref,
   ) => {
     return (
@@ -70,7 +79,10 @@ export const ControlLabel = forwardRef<HTMLLabelElement, ControlLabelProps>(
         {...props}
         ref={ref}
         className={cn(
-          'flex items-center justify-end gap-0.6 p-0.6',
+          'flex justify-end gap-0.6 p-0.6',
+          cnd(vAlign === 'start', 'items-start'),
+          cnd(vAlign === 'center', 'items-center'),
+          cnd(vAlign === 'end', 'items-end'),
           clsControlPosition(position),
           cnd(nonMicro, 'max-[550px]:hidden'),
           cnd(disabled, 'opacity-50'),
@@ -95,7 +107,7 @@ export const ControlDetails = forwardRef<HTMLDivElement, ControlDetailsProps>(
       {...props}
       ref={ref}
       className={cn(
-        'flex items-center px-0.3 text-sigil-foreground-muted',
+        'flex items-center px-0.3 py-0.6 text-sigil-foreground-muted',
         clsControlPosition(position),
         cnd(align === 'start', 'justify-start'),
         cnd(align === 'center', 'justify-center'),

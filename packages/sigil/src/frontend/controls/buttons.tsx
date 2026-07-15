@@ -2,6 +2,8 @@ import {
   ComponentPropsWithoutRef,
   CSSProperties,
   forwardRef,
+  useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import { cn } from '@arcanejs/toolkit-frontend/util';
@@ -216,6 +218,56 @@ export const CheckboxControlButton = forwardRef<
 ));
 
 CheckboxControlButton.displayName = 'CheckboxControlButton';
+
+export type ControlFileButtonProps = Omit<ControlButtonProps, 'onClick'> &
+  Pick<ComponentPropsWithoutRef<'input'>, 'accept' | 'multiple'> & {
+    onFilesSelected: (files: FileList) => Promise<void>;
+  };
+
+export const ControlFileButton = forwardRef<
+  HTMLButtonElement,
+  ControlFileButtonProps
+>(({ onFilesSelected, accept, multiple, children, ...props }, ref) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (event.target.files) {
+        onFilesSelected(event.target.files).finally(() => {
+          // Reset the input value to allow re-selecting the same file
+          // But only after promise has resolded, and so files have been read
+          event.target.value = '';
+        });
+      }
+    },
+    [onFilesSelected],
+  );
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        style={{ display: 'none' }}
+        onChange={handleChange}
+      />
+      <ControlButton
+        title="Import spell"
+        onClick={handleClick}
+        ref={ref}
+        {...props}
+      >
+        {children}
+      </ControlButton>
+    </>
+  );
+});
 
 export type LongPressableControlButtonProps = Omit<
   ControlButtonFrameProps,
