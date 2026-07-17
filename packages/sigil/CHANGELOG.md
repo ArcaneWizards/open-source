@@ -1,5 +1,32 @@
 # @arcanewizards/sigil
 
+## 0.2.0
+
+### Minor Changes
+
+- c274364: Introduce a new `ShowFileConfig` component
+
+  Introduce a new component for the UI / frontend for consistently managing show
+  files across sigil-based apps. The first usage of this component will be in
+  Arcane Desktop, but additional usages (e.g. timecode-toolbox) are expected
+  later on.
+
+### Patch Changes
+
+- c274364: Expand user-actions module with more utilities
+  - `ActionResponse` type, designed to allow for more rich error messages from
+    e.g. server actions
+  - `mapUserActionState` (basic functional map function over `UserActionState`)
+  - `useUserAction` - a react hook for managing state relating to user actions
+    and promise-based calls
+
+- c274364: Add sigil-grid tailwind utility classes
+- c274364: Add vAligh attribute to ControlLabel
+- c274364: Introduce ControlFileButton component
+
+  This is a special-case of a ControlButton,
+  designed to load files from the users' system.
+
 ## 0.1.12
 
 ### Patch Changes
