@@ -2,4 +2,4 @@
 '@arcanewizards/sigil': patch
 ---
 
-Add vAligh attribute to ControlLabel
+Add vAlign attribute to ControlLabel
