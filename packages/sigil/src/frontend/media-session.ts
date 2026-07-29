@@ -45,8 +45,13 @@ export const createBrowserMediaSession = (): MediaSessionControl => {
       navigator.mediaSession.setPositionState({
         duration: durationMillis / 1000,
         position:
-          Math.max(0, (Date.now() - state.effectiveStartTime) * state.speed) /
-          1000,
+          Math.max(
+            0,
+            Math.min(
+              (Date.now() - state.effectiveStartTime) * state.speed,
+              durationMillis,
+            ),
+          ) / 1000,
         playbackRate: state.speed,
       });
       return;
@@ -55,7 +60,8 @@ export const createBrowserMediaSession = (): MediaSessionControl => {
     navigator.mediaSession.playbackState = 'paused';
     navigator.mediaSession.setPositionState({
       duration: durationMillis / 1000,
-      position: state.currentTimeMillis / 1000,
+      position:
+        Math.max(0, Math.min(state.currentTimeMillis, durationMillis)) / 1000,
     });
   };
 
