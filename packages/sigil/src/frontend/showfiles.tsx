@@ -1,10 +1,18 @@
 import { cn } from '@arcanejs/toolkit-frontend/util';
-import { ComponentProps, FC, useCallback, useState } from 'react';
+import {
+  ComponentProps,
+  Dispatch,
+  FC,
+  SetStateAction,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 import {
   clsControlPosition,
   ControlButton,
   ControlButtonGroup,
-  ControlDialog,
+  ControlButtonProps,
   ControlDialogButtons,
   ControlFileButton,
   ControlInput,
@@ -20,6 +28,7 @@ import {
   success,
   useUserAction,
 } from './user-actions';
+import { Dialog } from './dialogs';
 
 const ShowFileUuidBrand = Symbol('ShowFileUuid');
 
@@ -97,6 +106,244 @@ export type ShowFileConfigStrings = {
   };
 };
 
+type ShowFileSaveAsProps = {
+  data: ShowFileConfigData;
+  strings: ShowFileConfigStrings;
+  onSaveAs: (name: string) => ActionResponse<string | null>;
+} & Pick<ControlButtonProps, 'variant'>;
+
+type SaveAsDialogMode =
+  | {
+      mode: 'save-as-loading';
+    }
+  | {
+      mode: 'save-as';
+      name: string;
+      error?: string;
+    }
+  | {
+      mode: 'save-as-overwrite-confirmation';
+      name: string;
+    }
+  | null;
+
+const useSaveAsHooks = (
+  onSaveAs: (name: string) => ActionResponse<string | null>,
+  data: ShowFileConfigData,
+  strings: ShowFileConfigStrings,
+  performAction: (action: () => ActionResponse<string | null>) => void,
+  dialogMode: SaveAsDialogMode,
+  setDialogMode: Dispatch<SetStateAction<SaveAsDialogMode>>,
+) => {
+  const onSaveAsName = useCallback(
+    (name: string, overwrite = false) => {
+      if (name.trim() === '') {
+        setDialogMode({
+          mode: 'save-as',
+          name: '',
+          error: strings.dialogs.emptyNameError,
+        });
+        return;
+      }
+      const existingName = Object.keys(data.showfiles).includes(name);
+      if (existingName && !overwrite) {
+        setDialogMode({ mode: 'save-as-overwrite-confirmation', name });
+      } else {
+        setDialogMode({ mode: 'save-as-loading' });
+        performAction(() =>
+          onSaveAs(name)
+            .then((response) => {
+              if (response.success) {
+                setDialogMode(null);
+              } else {
+                setDialogMode({
+                  mode: 'save-as',
+                  name,
+                });
+              }
+              return response;
+            })
+            .catch((err) => {
+              setDialogMode({
+                mode: 'save-as',
+                name,
+              });
+              throw err;
+            }),
+        );
+      }
+    },
+    [data.showfiles, onSaveAs, performAction, setDialogMode, strings],
+  );
+
+  const onSaveAsSubmit = useCallback(() => {
+    if (dialogMode?.mode !== 'save-as') return;
+    onSaveAsName(dialogMode.name);
+  }, [dialogMode, onSaveAsName]);
+
+  const onSaveAsInputChanged = useCallback(
+    (name: string, enterPressed: boolean) => {
+      setDialogMode((current) => {
+        if (!current || current.mode !== 'save-as') return current;
+        return { ...current, name };
+      });
+      if (enterPressed) {
+        onSaveAsName(name);
+      }
+    },
+    [onSaveAsName, setDialogMode],
+  );
+
+  const onSaveAsButtonClicked = useCallback(() => {
+    setDialogMode({ mode: 'save-as', name: '' });
+  }, [setDialogMode]);
+
+  const onSaveAsOverwrite = useCallback(() => {
+    if (dialogMode?.mode !== 'save-as-overwrite-confirmation') return;
+    onSaveAsName(dialogMode.name, true);
+  }, [dialogMode, onSaveAsName]);
+
+  return {
+    onSaveAsSubmit,
+    onSaveAsInputChanged,
+    onSaveAsButtonClicked,
+    onSaveAsOverwrite,
+  };
+};
+
+const saveAsDialogContents = ({
+  dialogMode,
+  strings,
+  onSaveAsInputChanged,
+  onSaveAsSubmit,
+  onSaveAsOverwrite,
+  dialogClosed,
+}: {
+  dialogMode: SaveAsDialogMode;
+  strings: ShowFileConfigStrings;
+  onSaveAsInputChanged: (name: string, enterPressed: boolean) => void;
+  onSaveAsSubmit: () => void;
+  onSaveAsOverwrite: () => void;
+  dialogClosed: () => void;
+}) => {
+  if (!dialogMode) return null;
+
+  if (dialogMode.mode === 'save-as') {
+    return (
+      <>
+        <ControlParagraph position="row">
+          {strings.dialogs.saveAs.description}
+        </ControlParagraph>
+        <ControlLabel>{strings.dialogs.nameLabel}</ControlLabel>
+        <ControlInput
+          value={dialogMode.name}
+          onChange={onSaveAsInputChanged}
+          placeholder={strings.dialogs.namePlaceholder}
+          position="all"
+        />
+        {dialogMode.error && (
+          <ControlParagraph position="row" mode="warning">
+            {dialogMode.error}
+          </ControlParagraph>
+        )}
+        <ControlDialogButtons>
+          <ControlButton onClick={dialogClosed} variant="large">
+            {strings.dialogs.cancel}
+          </ControlButton>
+          <ControlButton onClick={onSaveAsSubmit} variant="large">
+            {strings.dialogs.saveAs.save}
+          </ControlButton>
+        </ControlDialogButtons>
+      </>
+    );
+  }
+
+  if (dialogMode.mode === 'save-as-overwrite-confirmation') {
+    return (
+      <>
+        <ControlParagraph position="row">
+          {strings.dialogs.saveAsOverwriteConfirmation.description}
+        </ControlParagraph>
+        <ControlDialogButtons>
+          <ControlButton onClick={dialogClosed} variant="large">
+            {strings.dialogs.cancel}
+          </ControlButton>
+          <ControlButton
+            onClick={onSaveAsOverwrite}
+            variant="large"
+            destructive
+          >
+            {strings.dialogs.saveAsOverwriteConfirmation.overwrite}
+          </ControlButton>
+        </ControlDialogButtons>
+      </>
+    );
+  }
+
+  return null;
+};
+
+export const ShowFileSaveAsButton: FC<ShowFileSaveAsProps> = ({
+  data,
+  strings,
+  onSaveAs,
+  ...buttonProps
+}) => {
+  const [userAction, performAction] = useUserAction<string | null>();
+
+  const [dialogMode, setDialogMode] = useState<SaveAsDialogMode>(null);
+
+  const dialogClosed = useCallback(() => {
+    setDialogMode(null);
+  }, []);
+
+  const {
+    onSaveAsSubmit,
+    onSaveAsOverwrite,
+    onSaveAsInputChanged,
+    onSaveAsButtonClicked,
+  } = useSaveAsHooks(
+    onSaveAs,
+    data,
+    strings,
+    performAction,
+    dialogMode,
+    setDialogMode,
+  );
+
+  return (
+    <>
+      {dialogMode && (
+        <Dialog
+          dialogClosed={dialogClosed}
+          title={getDialogTitle(dialogMode, strings)}
+          variant="dark"
+        >
+          <LoadingWrapper action={userAction}>
+            <div className="control-grid gap-1 bg-sigil-bg-dark select-none">
+              {saveAsDialogContents({
+                dialogMode,
+                strings,
+                onSaveAsInputChanged,
+                onSaveAsSubmit,
+                dialogClosed,
+                onSaveAsOverwrite,
+              })}
+            </div>
+          </LoadingWrapper>
+        </Dialog>
+      )}
+      <ControlButton
+        onClick={onSaveAsButtonClicked}
+        icon="save_as"
+        {...buttonProps}
+      >
+        {strings.saveAs}
+      </ControlButton>
+    </>
+  );
+};
+
 export type ShowFileConfigProps = {
   mimeType: {
     extension: string;
@@ -132,15 +379,7 @@ const Scroll: FC<ComponentProps<typeof TooltipBoundary>> = ({
 );
 
 type DialogMode =
-  | {
-      mode: 'save-as';
-      name: string;
-      error?: string;
-    }
-  | {
-      mode: 'save-as-overwrite-confirmation';
-      name: string;
-    }
+  | SaveAsDialogMode
   | {
       mode: 'load-unsaved-changes-confirmation';
       uuid: ShowFileUuid;
@@ -201,13 +440,51 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
 
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
 
+  const saveAsDialogMode = useMemo(
+    () =>
+      dialogMode?.mode === 'save-as' ||
+      dialogMode?.mode === 'save-as-overwrite-confirmation'
+        ? dialogMode
+        : null,
+    [dialogMode],
+  );
+
+  const saveAsSetDialogMode = useCallback(
+    (value: SetStateAction<SaveAsDialogMode>) => {
+      if (typeof value === 'function') {
+        setDialogMode((current) => {
+          if (
+            current?.mode === 'save-as' ||
+            current?.mode === 'save-as-overwrite-confirmation'
+          ) {
+            return value(current);
+          }
+          return current;
+        });
+      } else {
+        setDialogMode(value);
+      }
+    },
+    [],
+  );
+
+  const {
+    onSaveAsButtonClicked,
+    onSaveAsInputChanged,
+    onSaveAsSubmit,
+    onSaveAsOverwrite,
+  } = useSaveAsHooks(
+    onSaveAs,
+    data,
+    strings,
+    performAction,
+    saveAsDialogMode,
+    saveAsSetDialogMode,
+  );
+
   const onSaveButtonClicked = useCallback(() => {
     performAction(() => onSave());
   }, [onSave, performAction]);
-
-  const onSaveAsButtonClicked = useCallback(() => {
-    setDialogMode({ mode: 'save-as', name: '' });
-  }, []);
 
   const onExportButtonClicked = useCallback(
     (name: string, uuid: ShowFileUuid) => {
@@ -231,45 +508,6 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
   const dialogClosed = useCallback(() => {
     setDialogMode(null);
   }, []);
-
-  const onSaveAsName = useCallback(
-    (name: string) => {
-      if (name.trim() === '') {
-        setDialogMode({
-          mode: 'save-as',
-          name: '',
-          error: strings.dialogs.emptyNameError,
-        });
-        return;
-      }
-      const existingName = Object.keys(data.showfiles).includes(name);
-      if (existingName) {
-        setDialogMode({ mode: 'save-as-overwrite-confirmation', name });
-      } else {
-        performAction(() => onSaveAs(name));
-        setDialogMode(null);
-      }
-    },
-    [data.showfiles, onSaveAs, performAction, strings],
-  );
-
-  const onSaveAsSubmit = useCallback(() => {
-    if (dialogMode?.mode !== 'save-as') return;
-    onSaveAsName(dialogMode.name);
-  }, [dialogMode, onSaveAsName]);
-
-  const onSaveAsInputChanged = useCallback(
-    (name: string, enterPressed: boolean) => {
-      setDialogMode((current) => {
-        if (!current || current.mode !== 'save-as') return current;
-        return { ...current, name };
-      });
-      if (enterPressed) {
-        onSaveAsName(name);
-      }
-    },
-    [onSaveAsName],
-  );
 
   const onRenameWithName = useCallback(
     (uuid: ShowFileUuid, name: string) => {
@@ -329,132 +567,94 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
       className={cn('flex flex-col gap-0.5', clsControlPosition(position))}
     >
       {dialogMode && (
-        <ControlDialog
+        <Dialog
           dialogClosed={dialogClosed}
           title={getDialogTitle(dialogMode, strings)}
+          variant="dark"
         >
-          <>
-            {dialogMode.mode === 'save-as' && (
-              <>
-                <ControlParagraph position="row">
-                  {strings.dialogs.saveAs.description}
-                </ControlParagraph>
-                <ControlLabel>{strings.dialogs.nameLabel}</ControlLabel>
-                <ControlInput
-                  value={dialogMode.name}
-                  onChange={onSaveAsInputChanged}
-                  placeholder={strings.dialogs.namePlaceholder}
-                  position="all"
-                />
-                {dialogMode.error && (
-                  <ControlParagraph position="row" mode="warning">
-                    {dialogMode.error}
+          <LoadingWrapper action={userAction}>
+            <div className="control-grid gap-1 bg-sigil-bg-dark select-none">
+              {saveAsDialogContents({
+                dialogMode: saveAsDialogMode,
+                strings,
+                onSaveAsInputChanged,
+                onSaveAsSubmit,
+                dialogClosed,
+                onSaveAsOverwrite,
+              })}
+              {dialogMode.mode === 'load-unsaved-changes-confirmation' && (
+                <>
+                  <ControlParagraph position="row">
+                    {strings.dialogs.loadUnsavedChangesConfirmation.description}
                   </ControlParagraph>
-                )}
-                <ControlDialogButtons>
-                  <ControlButton onClick={dialogClosed} variant="large">
-                    {strings.dialogs.cancel}
-                  </ControlButton>
-                  <ControlButton onClick={onSaveAsSubmit} variant="large">
-                    {strings.dialogs.saveAs.save}
-                  </ControlButton>
-                </ControlDialogButtons>
-              </>
-            )}
-            {dialogMode.mode === 'save-as-overwrite-confirmation' && (
-              <>
-                <ControlParagraph position="row">
-                  {strings.dialogs.saveAsOverwriteConfirmation.description}
-                </ControlParagraph>
-                <ControlDialogButtons>
-                  <ControlButton onClick={dialogClosed} variant="large">
-                    {strings.dialogs.cancel}
-                  </ControlButton>
-                  <ControlButton
-                    onClick={() => {
-                      performAction(() => onSaveAs(dialogMode.name));
-                      setDialogMode(null);
-                    }}
-                    variant="large"
-                    destructive
-                  >
-                    {strings.dialogs.saveAsOverwriteConfirmation.overwrite}
-                  </ControlButton>
-                </ControlDialogButtons>
-              </>
-            )}
-            {dialogMode.mode === 'load-unsaved-changes-confirmation' && (
-              <>
-                <ControlParagraph position="row">
-                  {strings.dialogs.loadUnsavedChangesConfirmation.description}
-                </ControlParagraph>
-                <ControlDialogButtons>
-                  <ControlButton onClick={dialogClosed} variant="large">
-                    {strings.dialogs.cancel}
-                  </ControlButton>
-                  <ControlButton
-                    onClick={() => {
-                      performAction(() => onLoad(dialogMode.uuid));
-                      setDialogMode(null);
-                    }}
-                    variant="large"
-                  >
-                    {strings.dialogs.loadUnsavedChangesConfirmation.load}
-                  </ControlButton>
-                </ControlDialogButtons>
-              </>
-            )}
-            {dialogMode.mode === 'delete-confirmation' && (
-              <>
-                <ControlParagraph position="row">
-                  {strings.dialogs.deleteConfirmation.description}
-                </ControlParagraph>
-                <ControlDialogButtons>
-                  <ControlButton onClick={dialogClosed} variant="large">
-                    {strings.dialogs.cancel}
-                  </ControlButton>
-                  <ControlButton
-                    onClick={() => {
-                      performAction(() => onDelete(dialogMode.uuid));
-                      setDialogMode(null);
-                    }}
-                    variant="large"
-                    destructive
-                  >
-                    {strings.dialogs.deleteConfirmation.delete}
-                  </ControlButton>
-                </ControlDialogButtons>
-              </>
-            )}
-            {dialogMode.mode === 'rename' && (
-              <>
-                <ControlParagraph position="row">
-                  {strings.dialogs.rename.description}
-                </ControlParagraph>
-                <ControlLabel>{strings.dialogs.nameLabel}</ControlLabel>
-                <ControlInput
-                  value={dialogMode.name}
-                  onChange={onRenameInputChanged}
-                  placeholder={strings.dialogs.namePlaceholder}
-                  position="all"
-                />
-                {dialogMode.error && (
-                  <ControlParagraph position="row" mode="warning">
-                    {dialogMode.error}
+                  <ControlDialogButtons>
+                    <ControlButton onClick={dialogClosed} variant="large">
+                      {strings.dialogs.cancel}
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => {
+                        performAction(() => onLoad(dialogMode.uuid));
+                        setDialogMode(null);
+                      }}
+                      variant="large"
+                    >
+                      {strings.dialogs.loadUnsavedChangesConfirmation.load}
+                    </ControlButton>
+                  </ControlDialogButtons>
+                </>
+              )}
+              {dialogMode.mode === 'delete-confirmation' && (
+                <>
+                  <ControlParagraph position="row">
+                    {strings.dialogs.deleteConfirmation.description}
                   </ControlParagraph>
-                )}
-                <ControlDialogButtons>
-                  <ControlButton onClick={dialogClosed} variant="large">
-                    {strings.dialogs.cancel}
-                  </ControlButton>
-                  <ControlButton onClick={onRenameSubmit} variant="large">
-                    {strings.rename}
-                  </ControlButton>
-                </ControlDialogButtons>
-              </>
-            )}
-          </>
-        </ControlDialog>
+                  <ControlDialogButtons>
+                    <ControlButton onClick={dialogClosed} variant="large">
+                      {strings.dialogs.cancel}
+                    </ControlButton>
+                    <ControlButton
+                      onClick={() => {
+                        performAction(() => onDelete(dialogMode.uuid));
+                        setDialogMode(null);
+                      }}
+                      variant="large"
+                      destructive
+                    >
+                      {strings.dialogs.deleteConfirmation.delete}
+                    </ControlButton>
+                  </ControlDialogButtons>
+                </>
+              )}
+              {dialogMode.mode === 'rename' && (
+                <>
+                  <ControlParagraph position="row">
+                    {strings.dialogs.rename.description}
+                  </ControlParagraph>
+                  <ControlLabel>{strings.dialogs.nameLabel}</ControlLabel>
+                  <ControlInput
+                    value={dialogMode.name}
+                    onChange={onRenameInputChanged}
+                    placeholder={strings.dialogs.namePlaceholder}
+                    position="all"
+                  />
+                  {dialogMode.error && (
+                    <ControlParagraph position="row" mode="warning">
+                      {dialogMode.error}
+                    </ControlParagraph>
+                  )}
+                  <ControlDialogButtons>
+                    <ControlButton onClick={dialogClosed} variant="large">
+                      {strings.dialogs.cancel}
+                    </ControlButton>
+                    <ControlButton onClick={onRenameSubmit} variant="large">
+                      {strings.rename}
+                    </ControlButton>
+                  </ControlDialogButtons>
+                </>
+              )}
+            </div>
+          </LoadingWrapper>
+        </Dialog>
       )}
       {description && (
         <div className="px-0.3 py-0.6 text-sigil-foreground-muted">
