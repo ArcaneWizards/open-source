@@ -19,6 +19,7 @@ export type AppShellProps = {
   logEventEmitter: SigilLogEventEmitter;
   shutdownContext: ShutdownContextData;
   children: ReactNode;
+  extraSystemInformation?: Record<string, string>;
 };
 
 export const AppShell = ({
@@ -29,6 +30,7 @@ export const AppShell = ({
   logEventEmitter,
   shutdownContext,
   children,
+  extraSystemInformation,
 }: AppShellProps): JSX.Element => {
   const [logs, setLogs] = useState<AppRootLogEntry[]>([]);
 
@@ -44,8 +46,13 @@ export const AppShell = ({
   }, [logEventEmitter]);
 
   const system = useMemo(
-    () => createSystemInformation({ dataDirectory, version }),
-    [dataDirectory, version],
+    () =>
+      createSystemInformation({
+        dataDirectory,
+        version,
+        extra: extraSystemInformation,
+      }),
+    [dataDirectory, version, extraSystemInformation],
   );
 
   const appInformation: AppInformationContextData = useMemo(

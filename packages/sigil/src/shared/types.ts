@@ -20,4 +20,5 @@ export type SystemInformation = {
   appPath: string;
   cwd: string;
   dataDirectory: string;
+  extra?: Record<string, string>;
 };

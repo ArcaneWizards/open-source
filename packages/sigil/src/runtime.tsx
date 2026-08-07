@@ -90,9 +90,11 @@ const getStackFramesFromError = (error: unknown): AppRootLogEntryStackFrame => {
 export const createSystemInformation = ({
   dataDirectory,
   version,
+  extra,
 }: {
   dataDirectory: string;
   version: string;
+  extra?: SystemInformation['extra'];
 }): SystemInformation => {
   return {
     appPath: process.execPath,
@@ -100,6 +102,7 @@ export const createSystemInformation = ({
     os: process.platform,
     version,
     dataDirectory,
+    extra,
   };
 };
 
