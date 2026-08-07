@@ -1,4 +1,4 @@
-import { FC, ReactNode, useCallback, useEffect, useRef } from 'react';
+import { FC, ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useBrowserContext } from './browser-context';
 import { useDebuggerContext, useSystemInformation } from './context';
 import { AppRootLogEntryStackFrame } from '../shared/types';
@@ -79,6 +79,22 @@ export const Debugger: FC<DebuggerProps> = ({ title, className }) => {
     scrollToBottomIfRequired();
   }, [scrollToBottomIfRequired]);
 
+  const systemInfo = useMemo(() => {
+    let info = '';
+
+    info += `OS: ${system.os}\n`;
+    info += `Version: ${system.version}\n`;
+    info += `App Path: ${system.appPath}\n`;
+    info += `CWD: ${system.cwd}\n`;
+    info += `Data Directory: ${system.dataDirectory}\n`;
+
+    for (const [key, value] of Object.entries(system.extra ?? {})) {
+      info += `${key}: ${value}\n`;
+    }
+
+    return info;
+  }, [system]);
+
   return (
     <div className={cn('flex flex-col', className)}>
       <ToolbarWrapper>
@@ -112,7 +128,7 @@ export const Debugger: FC<DebuggerProps> = ({ title, className }) => {
           select-text scrollbar-sigil
         "
       >
-        {`OS: ${system.os}\nVersion: ${system.version}\nApp Path: ${system.appPath}\nCWD: ${system.cwd}\nData Directory: ${system.dataDirectory}`}
+        {systemInfo}
       </pre>
       <div
         ref={scrollRef}

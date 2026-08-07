@@ -33,6 +33,7 @@ const DEFAULT_PROPS: AppRootProps = {
     cwd: 'unknown',
     os: 'unknown',
     dataDirectory: 'unknown',
+    extra: {},
   },
 };
 
