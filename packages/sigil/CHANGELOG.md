@@ -1,5 +1,14 @@
 # @arcanewizards/sigil
 
+## 0.2.1
+
+### Patch Changes
+
+- cf00003: Add optional extra system information
+
+  Allow a sigil app to include additional system information to display in
+  the Debugger component, such as additional paths.
+
 ## 0.2.0
 
 ### Minor Changes
