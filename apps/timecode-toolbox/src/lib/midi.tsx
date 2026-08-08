@@ -45,17 +45,32 @@ export const useMidiDeviceWatcher = (
           return;
         }
 
+        let establishedListener = false;
         if (supportInfo.notifications.supported) {
-          m.addEventListener('endpointschanged', listener);
-          // Get the initial list of devices
-          m.getEndpoints()
-            .then((endpoints) => setAvailableDevices(endpoints[type]))
-            .catch((cause) => {
-              const error = new Error(`Failed to get MIDI ${type}`, { cause });
-              log.error(error);
-            });
-        } else {
-          // If notifications aren't supported, poll for changes every 5 seconds
+          try {
+            m.addEventListener('endpointschanged', listener);
+            establishedListener = true;
+            // Get the initial list of devices
+            m.getEndpoints()
+              .then((endpoints) => setAvailableDevices(endpoints[type]))
+              .catch((cause) => {
+                const error = new Error(`Failed to get MIDI ${type}`, {
+                  cause,
+                });
+                log.error(error);
+              });
+          } catch (cause) {
+            const error = new Error(
+              `Failed to initialize MIDI endpoint change listener, falling-back to polling`,
+              { cause },
+            );
+            log.error(error);
+          }
+        }
+
+        if (!establishedListener) {
+          // If notifications aren't supported, or listening failed,
+          // poll for changes every 5 seconds
           interval = setInterval(() => {
             m.getEndpoints()
               .then((endpoints) => setAvailableDevices(endpoints[type]))
