@@ -1,5 +1,13 @@
 # @arcanewizards/sigil
 
+## 0.3.0
+
+### Minor Changes
+
+- 1e23fdb: Automatically handle uncaught exceptions and rejections
+
+  Improve app stability by automatically routing unhandled rejections into the logger, and preventing app from crashing.
+
 ## 0.2.1
 
 ### Patch Changes
