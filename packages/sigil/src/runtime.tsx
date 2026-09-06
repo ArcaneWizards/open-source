@@ -164,6 +164,15 @@ export const runSigilApp = <TAppApi, TExtraAppProps extends object>({
     error: (message: string | Error) => logError('error', message),
   };
 
+  const unhandledRejectionHandler = (reason: unknown) => {
+    const error = new Error('Unhandled Rejection at Promise', {
+      cause: reason,
+    });
+    logger.error(error);
+  };
+
+  process.on('unhandledRejection', unhandledRejectionHandler);
+
   const toolkit = new Toolkit({
     log: {
       ...logger,
@@ -237,6 +246,7 @@ export const runSigilApp = <TAppApi, TExtraAppProps extends object>({
 
   const shutdown = async () => {
     logger.info(`Shutting down ${title}...`);
+    process.off('unhandledRejection', unhandledRejectionHandler);
     await Promise.all(
       Array.from(shutdownListeners).map((listener) => listener()),
     );

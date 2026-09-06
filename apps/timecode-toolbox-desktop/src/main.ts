@@ -467,8 +467,3 @@ if (shouldStartApp) {
     // which is the behavior we want for a tray app
   });
 }
-
-// Catch uncaught exceptions
-process.on('uncaughtException', (err) => {
-  logger.error(err);
-});
