@@ -1,5 +1,22 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.4.9
+
+### Patch Changes
+
+- 897d4ea: Use Bonjour to request local network access
+
+  MacOS was still not showing a prompt to request local network access when users
+  try to use TCNet. This changes introduces use of Apple's Bonjour framework to
+  try and encourage MacOS to display a local network request prompt.
+
+- 897d4ea: Fix error message on app close
+
+  Address the error message that was appearing in release 0.4.7,
+  when the user tries to quit the app.
+
+  Fixes [#163](https://github.com/ArcaneWizards/open-source/issues/163)
+
 ## 0.4.8
 
 ### Patch Changes

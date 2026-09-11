@@ -27,6 +27,16 @@ import {
   urls,
 } from '@arcanewizards/timecode-toolbox';
 
+const logger = pino(
+  {
+    level: 'info',
+  },
+  pino.multistream([
+    // Use multistream to prevent errors when logging during shutdown
+    { stream: pinoPretty() },
+  ]),
+);
+
 let mediaService: MediaService | null = null;
 
 type ActiveMediaWindow = {
@@ -73,31 +83,36 @@ const startMediaService = () => {
 };
 
 const updateMediaState = () => {
-  if (!mediaService) return;
-  const activeMedia =
-    activeMediaSessions.filter((m) => m.media.state.state === 'playing')[0] ||
-    activeMediaSessions[0];
-  if (!activeMedia) {
+  try {
+    if (!mediaService) return;
+    const activeMedia =
+      activeMediaSessions.filter((m) => m.media.state.state === 'playing')[0] ||
+      activeMediaSessions[0];
+    if (!activeMedia) {
+      mediaService.setMetaData({
+        title: 'No Track Loaded',
+        artist: '',
+        duration: 0,
+        state: 'stopped',
+      });
+      return;
+    }
     mediaService.setMetaData({
-      title: 'No Track Loaded',
-      artist: '',
-      duration: 0,
-      state: 'stopped',
+      title: activeMedia.media.title,
+      artist: activeMedia.media.artist,
+      duration: activeMedia.media.durationMillis,
+      state: activeMedia.media.state.state === 'playing' ? 'playing' : 'paused',
+      currentTime: Math.max(
+        0,
+        activeMedia.media.state.state === 'playing'
+          ? Date.now() - activeMedia.media.state.effectiveStartTime
+          : activeMedia.media.state.currentTimeMillis,
+      ),
     });
-    return;
+  } catch (cause) {
+    const error = new Error('Failed to update media state', { cause });
+    logger.error(error);
   }
-  mediaService.setMetaData({
-    title: activeMedia.media.title,
-    artist: activeMedia.media.artist,
-    duration: activeMedia.media.durationMillis,
-    state: activeMedia.media.state.state === 'playing' ? 'playing' : 'paused',
-    currentTime: Math.max(
-      0,
-      activeMedia.media.state.state === 'playing'
-        ? Date.now() - activeMedia.media.state.effectiveStartTime
-        : activeMedia.media.state.currentTimeMillis,
-    ),
-  });
 };
 
 const registerMediaSession = (window: BrowserWindow, media: MediaMetadata) => {
@@ -132,16 +147,6 @@ if (!shouldStartApp) {
 }
 
 app.setAppUserModelId('com.arcanewizards.timecode-toolbox-desktop');
-
-const logger = pino(
-  {
-    level: 'info',
-  },
-  pino.multistream([
-    // Use multistream to prevent errors when logging during shutdown
-    { stream: pinoPretty() },
-  ]),
-);
 
 const assetsPath = path.join(__dirname, '..', 'assets');
 
