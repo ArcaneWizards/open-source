@@ -84,6 +84,7 @@ module.exports = {
       },
       NSLocalNetworkUsageDescription:
         'Required for TCNet, and ArtNet to other devices',
+      NSBonjourServices: ['_http._tcp'],
     },
     osxSign:
       process.env.FULL_BUILD == 'false'

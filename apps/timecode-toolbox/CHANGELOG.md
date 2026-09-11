@@ -11,6 +11,9 @@
   previously been allowed through would work, and otherwise they would silently
   fail. A description is now provided for Timecode Toolbox.
 
+  We also now use Bonjour to try and trigger MacOS to display the prompt in
+  cases where it would previously not trigger.
+
 ## 0.4.7
 
 ### Patch Changes

@@ -82,6 +82,7 @@
     "@arcanejs/react-toolkit": "^0.16.2",
     "@arcanejs/toolkit": "^9.0.2",
     "@arcanewizards/midi": "workspace:^",
+    "bonjour-service": "^1.4.4",
     "pino": "^9.14.0",
     "pino-pretty": "^11.3.0",
     "react": "^19.2.4"
