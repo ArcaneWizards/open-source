@@ -1,13 +1,13 @@
 {
-  "name": "@arcanewizards/net-utils",
-  "version": "0.2.0",
+  "name": "@arcanewizards/net-utils-native",
+  "version": "0.1.0",
   "private": false,
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/ArcaneWizards/open-source.git",
-    "directory": "packages/net-utils"
+    "directory": "packages/net-utils-native"
   },
   "exports": {
     ".": {
@@ -19,17 +19,22 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "native/local-network-macos.mm",
+    "scripts/build-native.mjs"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup && check-export-map",
-    "clean": "rm -rf dist",
+    "build": "pnpm clean && tsup && node scripts/build-native.mjs && check-export-map",
+    "clean": "rm -rf dist && rm -rf native/out",
     "check:types": "tsc --noEmit",
     "format:fix": "cd .. && pnpm format:fix",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint --fix ."
+    "lint:fix": "eslint --fix .",
+    "postinstall": "node scripts/build-native.mjs",
+    "test:integration": "pnpm build && node scripts/test-integration.mjs"
   },
   "devDependencies": {
+    "@arcanejs/protocol": "^0.9.1",
     "@arcanewizards/eslint-config": "workspace:^",
     "@arcanewizards/typescript-config": "workspace:^",
     "@types/node": "^25.5.0",

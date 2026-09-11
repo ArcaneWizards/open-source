@@ -29,10 +29,8 @@ import {
   TCNetConnectedNodes,
   TCNetPortUsage,
 } from '@arcanewizards/tcnet/types';
-import {
-  ensureLocalNetworkAccess,
-  NetworkPortStatus,
-} from '@arcanewizards/net-utils';
+import { NetworkPortStatus } from '@arcanewizards/net-utils';
+import { ensureLocalNetworkAccess } from '@arcanewizards/net-utils-native';
 import { StateSensitiveComponentProps } from '../types';
 
 type TcnetInputConnectionProps = StateSensitiveComponentProps & {
