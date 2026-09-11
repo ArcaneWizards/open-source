@@ -40,5 +40,9 @@
   },
   "engines": {
     "node": ">=22.12.0 || >=23.1.0"
+  },
+  "dependencies": {
+    "@arcanejs/protocol": "^0.9.1",
+    "bonjour-service": "^1.4.4"
   }
 }

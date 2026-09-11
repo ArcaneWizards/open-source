@@ -29,50 +29,16 @@ import {
   TCNetConnectedNodes,
   TCNetPortUsage,
 } from '@arcanewizards/tcnet/types';
-import { NetworkPortStatus } from '@arcanewizards/net-utils';
+import {
+  ensureLocalNetworkAccess,
+  NetworkPortStatus,
+} from '@arcanewizards/net-utils';
 import { StateSensitiveComponentProps } from '../types';
-import Bonjour from 'bonjour-service';
-import { Logger } from '@arcanejs/protocol/logging';
 
 type TcnetInputConnectionProps = StateSensitiveComponentProps & {
   uuid: string;
   config: InputConfig;
   connection: InputTcnetDefinition;
-};
-
-/**
- * Ensures that local network access is available on the machine,
- * which is required for some platforms (e.g. macOS).
- */
-const ensureLocalNetworkAccess = (
-  logger: Logger,
-  waitForMs: number = 2000,
-): Promise<void> => {
-  if (process.platform !== 'darwin') {
-    // Using bonjour for local network access check is only required on macOS
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    try {
-      logger.info('Ensuring local network access is available...');
-      const bonjour = new Bonjour({}, (cause: unknown) => {
-        const error = new Error('Failed to access local network', { cause });
-        reject(error);
-      });
-      const browser = bonjour.find({ type: 'http' });
-      // Consider ready only after a short delay,
-      // to allow for the bonjour service to start,
-      // and for any errors to be reported via the error callback.
-      setTimeout(() => {
-        browser.stop();
-        bonjour.destroy();
-        resolve();
-      }, waitForMs);
-    } catch (cause) {
-      const error = new Error('Failed to access local network', { cause });
-      reject(error);
-    }
-  });
 };
 
 const TcnetInputConnection: FC<TcnetInputConnectionProps> = ({

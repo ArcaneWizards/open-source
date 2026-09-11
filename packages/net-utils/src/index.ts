@@ -1,4 +1,6 @@
+import Bonjour from 'bonjour-service';
 import os from 'os';
+import type { Logger } from '@arcanejs/protocol/logging';
 
 export type NetworkTarget =
   | {
@@ -68,4 +70,39 @@ export const getNetworkInterfaces = async (): Promise<
     }
   }
   return results;
+};
+
+/**
+ * Ensures that local network access is available on the machine,
+ * which is required for some platforms (e.g. macOS).
+ */
+export const ensureLocalNetworkAccess = (
+  logger: Logger | null = null,
+  waitForMs: number = 2000,
+): Promise<void> => {
+  if (process.platform !== 'darwin') {
+    // Using bonjour for local network access check is only required on macOS
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    try {
+      logger?.info('Ensuring local network access is available...');
+      const bonjour = new Bonjour({}, (cause: unknown) => {
+        const error = new Error('Failed to access local network', { cause });
+        reject(error);
+      });
+      const browser = bonjour.find({ type: 'http' });
+      // Consider ready only after a short delay,
+      // to allow for the bonjour service to start,
+      // and for any errors to be reported via the error callback.
+      setTimeout(() => {
+        browser.stop();
+        bonjour.destroy();
+        resolve();
+      }, waitForMs);
+    } catch (cause) {
+      const error = new Error('Failed to access local network', { cause });
+      reject(error);
+    }
+  });
 };
