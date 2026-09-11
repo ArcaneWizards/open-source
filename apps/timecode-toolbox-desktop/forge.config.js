@@ -82,6 +82,8 @@ module.exports = {
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: false,
       },
+      NSLocalNetworkUsageDescription:
+        'Required for TCNet, and ArtNet to other devices',
     },
     osxSign:
       process.env.FULL_BUILD == 'false'
