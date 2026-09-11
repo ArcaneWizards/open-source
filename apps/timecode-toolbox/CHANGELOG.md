@@ -14,6 +14,13 @@
   We also now use Bonjour to try and trigger MacOS to display the prompt in
   cases where it would previously not trigger.
 
+- Fix error message on app close
+
+  Address the error message that was appearing in release 0.4.7,
+  when the user tries to quit the app.
+
+  Fixes [#163](https://github.com/ArcaneWizards/open-source/issues/163)
+
 ## 0.4.7
 
 ### Patch Changes
