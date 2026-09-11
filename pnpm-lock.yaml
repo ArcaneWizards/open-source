@@ -486,6 +486,13 @@ importers:
         version: 5.9.3
 
   packages/net-utils:
+    dependencies:
+      '@arcanejs/protocol':
+        specifier: ^0.9.1
+        version: 0.9.1
+      bonjour-service:
+        specifier: ^1.4.4
+        version: 1.4.4
     devDependencies:
       '@arcanewizards/eslint-config':
         specifier: workspace:^

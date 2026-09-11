@@ -1,6 +1,6 @@
 {
   "name": "@arcanewizards/net-utils",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "private": false,
   "license": "MIT",
   "type": "module",
@@ -40,5 +40,9 @@
   },
   "engines": {
     "node": ">=22.12.0 || >=23.1.0"
+  },
+  "dependencies": {
+    "@arcanejs/protocol": "^0.9.1",
+    "bonjour-service": "^1.4.4"
   }
 }
