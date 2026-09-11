@@ -1,5 +1,12 @@
 # @arcanewizards/artnet
 
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [a660b9e]
+  - @arcanewizards/net-utils@0.2.0
+
 ## 0.1.6
 
 ### Patch Changes
