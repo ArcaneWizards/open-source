@@ -2,6 +2,7 @@ import { createSocket, RemoteInfo, Socket } from 'node:dgram';
 import EventEmitter from 'node:events';
 import { ARTNET_PORT, TIMECODE_MODES } from './constants.js';
 import {
+  bindSocket,
   type ConnectionConfig,
   getNetworkInterfaces,
 } from '@arcanewizards/net-utils';
@@ -32,31 +33,6 @@ export type ArtNetEventMap = {
   destroy: [];
   timecode: [ArtNetTimecodeEvent];
   error: [Error];
-};
-
-const bindSocket = (
-  socket: Socket,
-  port: number,
-  address?: string,
-): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const onError = (error: Error) => {
-      socket.removeListener('error', onError);
-      reject(error);
-    };
-    socket.once('error', onError);
-
-    const onBound = () => {
-      socket.removeListener('error', onError);
-      resolve();
-    };
-
-    if (address) {
-      socket.bind(port, address, onBound);
-    } else {
-      socket.bind(port, onBound);
-    }
-  });
 };
 
 const parseTimecodePacket = (

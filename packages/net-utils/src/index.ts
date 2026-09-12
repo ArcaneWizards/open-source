@@ -1,4 +1,5 @@
-import os from 'os';
+import os from 'node:os';
+import type { Socket } from 'node:dgram';
 
 export type NetworkTarget =
   | {
@@ -68,4 +69,29 @@ export const getNetworkInterfaces = async (): Promise<
     }
   }
   return results;
+};
+
+export const bindSocket = (
+  socket: Socket,
+  port: number,
+  address?: string,
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const onError = (error: Error) => {
+      socket.removeListener('error', onError);
+      reject(error);
+    };
+    socket.once('error', onError);
+
+    const onBound = () => {
+      socket.removeListener('error', onError);
+      resolve();
+    };
+
+    if (address) {
+      socket.bind(port, address, onBound);
+    } else {
+      socket.bind(port, onBound);
+    }
+  });
 };
