@@ -73,6 +73,20 @@ export const CLX_CONTROL_PACKET = z.object({
 
 export type ClxControlPacket = z.infer<typeof CLX_CONTROL_PACKET>;
 
+export const DECK_TO_FADER_MAP = Object.freeze({
+  1: 'UpfaderA',
+  2: 'UpfaderB',
+  3: 'UpfaderC',
+  4: 'UpfaderD',
+});
+
+export type DeckFader =
+  (typeof DECK_TO_FADER_MAP)[keyof typeof DECK_TO_FADER_MAP];
+
+export const getFaderFromDeck = (deck: number): DeckFader | null => {
+  return DECK_TO_FADER_MAP[deck as keyof typeof DECK_TO_FADER_MAP] ?? null;
+};
+
 export const CLX_EVENT_PACKET = z.object({
   /** Event name (e.g., "Load", "Cue", "Play") */
   Event: z.string(),

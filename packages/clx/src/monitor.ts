@@ -1,6 +1,10 @@
 import EventEmitter from 'node:events';
 import { ClxClient } from '.';
-import { ClxDeckPacket } from './messagepack';
+import {
+  ClxControlPacket,
+  ClxDeckPacket,
+  getFaderFromDeck,
+} from './messagepack';
 
 /**
  * How many milliseconds need to have changed to consider a timecode update
@@ -123,6 +127,7 @@ type DeckState = {
 type HostState = {
   lastReceivedAt: number;
   resyncRequestLastSentAt?: number;
+  lastControlData: ClxControlPacket | null;
   decks: Record<number, DeckState>;
 };
 
@@ -131,6 +136,10 @@ const hasPlayStateChanged = (
   newState: ClxTimecodePlayState,
 ): boolean => {
   if (!oldState) {
+    return true;
+  }
+
+  if (oldState.onAir !== newState.onAir) {
     return true;
   }
 
@@ -169,6 +178,7 @@ export const createClxTimecodeMonitor = (
       existingHost = {
         lastReceivedAt: now,
         decks: {},
+        lastControlData: null,
       };
       stateByHost[hostId] = existingHost;
     }
@@ -192,6 +202,22 @@ export const createClxTimecodeMonitor = (
     return { hostState: existingHost, deckState: existingDeck };
   };
 
+  clx.on('controlPacket', ({ host, port, packet }) => {
+    const now = Date.now();
+    const hostId = `${host}:${port}`;
+    let existingHost = stateByHost[hostId];
+    if (!existingHost) {
+      existingHost = {
+        lastReceivedAt: now,
+        decks: {},
+        lastControlData: null,
+      };
+      stateByHost[hostId] = existingHost;
+    }
+    existingHost.lastReceivedAt = now;
+    existingHost.lastControlData = packet;
+  });
+
   clx.on('deckPacket', ({ host, port, packet }) => {
     const now = Date.now();
     const hostId = `${host}:${port}`;
@@ -209,7 +235,11 @@ export const createClxTimecodeMonitor = (
     /**
      * TODO: Use fader values for this
      */
-    const onAir = packet.EQHigh > 0 || packet.EQLow > 0 || packet.EQMid > 0;
+    const fader = getFaderFromDeck(packet.Deck);
+    const faderValue = (fader && hostState.lastControlData?.[fader]) ?? 0;
+    const onAir =
+      (packet.EQHigh > 0 || packet.EQLow > 0 || packet.EQMid > 0) &&
+      faderValue > 0;
 
     const positionUnchanged =
       deckState.lastPacket?.Position === packet.Position;
@@ -262,10 +292,11 @@ export const createClxTimecodeMonitor = (
     }
 
     if (
-      !deckState.last.info &&
-      (!hostState.resyncRequestLastSentAt ||
-        now - hostState.resyncRequestLastSentAt >
-          MIN_RESYNC_REQUEST_INTERVAL_MS)
+      !hostState.lastControlData ||
+      (!deckState.last.info &&
+        (!hostState.resyncRequestLastSentAt ||
+          now - hostState.resyncRequestLastSentAt >
+            MIN_RESYNC_REQUEST_INTERVAL_MS))
     ) {
       clx.resync(host);
       hostState.resyncRequestLastSentAt = now;
