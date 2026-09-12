@@ -17,18 +17,19 @@ on:
       os:
         description: 'OS to build for'
         required: true
-        default: macos
+        default: all
         type: choice
         options:
+          - all
           - macos
           - windows
       arch:
         description: 'Architecture to build for'
         required: false
-        default: 'all'
+        default: all
         type: choice
         options:
-          - 'all'
+          - all
           - x64
           - arm64
 
@@ -48,8 +49,8 @@ jobs:
       contents: write
     with:
       app: ${{ github.event.inputs.app }}
-      macos_build_requested: ${{ github.event.inputs.os == 'macos' }}
-      windows_build_requested: ${{ github.event.inputs.os == 'windows' }}
+      macos_build_requested: ${{ github.event.inputs.os == 'macos' || github.event.inputs.os == 'all' }}
+      windows_build_requested: ${{ github.event.inputs.os == 'windows' || github.event.inputs.os == 'all' }}
       notarize: ${{ github.ref_name == 'main' }}
       arch: ${{ github.event.inputs.arch }}
     secrets: inherit
