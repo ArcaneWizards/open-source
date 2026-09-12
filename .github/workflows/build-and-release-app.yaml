@@ -21,6 +21,11 @@ on:
       arch:
         required: false
         type: string
+      # Should the workflow always report build-<os> jobs, even if they are skipped
+      # for the purpose of repository branch protection rules, etc..
+      require_os_jobs:
+        required: false
+        type: boolean
 
 jobs:
   pre-release-checks:
@@ -193,7 +198,7 @@ jobs:
     name: build-macos
     needs:
       - pre-release-checks
-    if: inputs.macos_build_requested == false && needs.pre-release-checks.outputs.require_desktop_release == 'false'
+    if: inputs.macos_build_requested == false && needs.pre-release-checks.outputs.require_desktop_release == 'false' && inputs.require_os_jobs == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Skip macOS build
@@ -267,7 +272,7 @@ jobs:
     name: build-windows
     needs:
       - pre-release-checks
-    if: inputs.windows_build_requested == false && needs.pre-release-checks.outputs.require_desktop_release == 'false'
+    if: inputs.windows_build_requested == false && needs.pre-release-checks.outputs.require_desktop_release == 'false' && inputs.require_os_jobs == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Skip windows build

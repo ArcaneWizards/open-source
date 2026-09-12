@@ -66,4 +66,5 @@ jobs:
       windows_build_requested: ${{ contains(github.event.pull_request.labels.*.name, format('build-windows-{0}', matrix.app)) }}
       notarize: ${{ github.ref_name == 'main' }}
       release: ${{ github.ref_name == 'main' }}
+      require_os_jobs: true
     secrets: inherit
