@@ -7,17 +7,11 @@ import {
   InputState,
   isInputClxDefinition,
   TimecodeGroup,
-  TimecodeState,
 } from '../components/proto';
 import { useLogger } from '@arcanewizards/sigil';
 import { ClxClient, createClxClient } from '@arcanewizards/clx';
 import { createClxTimecodeMonitor } from '@arcanewizards/clx/monitor';
 import { StateSensitiveComponentProps } from '../types';
-/**
- * How long should we wait not receiving any packets
- * before considering a timecode to be stopped.
- */
-const TIMEOUT_MS = 500;
 
 type ClxInputConnectionProps = StateSensitiveComponentProps & {
   uuid: string;
@@ -27,13 +21,13 @@ type ClxInputConnectionProps = StateSensitiveComponentProps & {
 
 const ClxInputConnection: FC<ClxInputConnectionProps> = ({
   uuid,
-  config: { name, delayMs },
+  config: { delayMs },
   connection: { iface, port },
   setState,
 }) => {
   const log = useLogger();
 
-  const [clxInstance, setClxInstance] = useState<ClxClient | null>(null);
+  const [_clxInstance, setClxInstance] = useState<ClxClient | null>(null);
 
   // Use ref here to allow for updates without requiring re-init of node
   const delayRef = useRef(delayMs ?? 0);
