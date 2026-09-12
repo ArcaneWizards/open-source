@@ -56,13 +56,13 @@ export type ClxMetadataPacket = z.infer<typeof CLX_METADATA_PACKET>;
  */
 export const CLX_CONTROL_PACKET = z.object({
   /** Fader level for Deck A */
-  UpFaderA: z.number(),
+  UpfaderA: z.number(),
   /** Fader level for Deck B */
-  UpFaderB: z.number(),
+  UpfaderB: z.number(),
   /** Fader level for Deck C */
-  UpFaderC: z.number(),
+  UpfaderC: z.number(),
   /** Fader level for Deck D */
-  UpFaderD: z.number(),
+  UpfaderD: z.number(),
   /** Crossfader position (range between 0 - 1) */
   Crossfader: z.number(),
   /** Active deck or focus status */
