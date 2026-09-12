@@ -65,8 +65,12 @@ export const CLX_CONTROL_PACKET = z.object({
   UpfaderD: z.number(),
   /** Crossfader position (range between 0 - 1) */
   Crossfader: z.number(),
-  /** Active deck or focus status */
-  Active: z.number(),
+  /**
+   * Active deck or focus status
+   *
+   * Will be undefined when used with server.
+   */
+  Active: z.number().optional(),
   /** App connection or session state */
   AppState: z.string(),
 });
