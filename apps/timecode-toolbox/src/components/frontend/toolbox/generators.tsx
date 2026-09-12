@@ -497,7 +497,7 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
               variant="toolbar"
               icon="add"
             >
-              {STRINGS.outputs.addButton(STRINGS.generators.type[generator])}
+              {STRINGS.generators.addButton(STRINGS.generators.type[generator])}
             </ControlButton>
           ))}
         </>

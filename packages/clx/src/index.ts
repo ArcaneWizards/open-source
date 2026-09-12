@@ -6,10 +6,27 @@ import {
 import { createSocket, RemoteInfo, Socket } from 'node:dgram';
 import { EventEmitter } from 'node:events';
 import { CLX_PORT } from './constants.js';
+import { decode } from '@msgpack/msgpack';
+import {
+  CLX_CONTROL_PACKET,
+  CLX_DECK_PACKET,
+  CLX_EVENT_PACKET,
+  CLX_METADATA_PACKET,
+  ClxBeatGridDataPayload,
+  ClxControlPacket,
+  ClxDeckPacket,
+  ClxEventPacket,
+  ClxMetadataPacket,
+  ClxWaveformDataPayload,
+} from './messagepack.js';
 
-export type ClxBasePacketEvent = {
+export type ClxServerConnectionInfo = {
   host: string;
   port: number;
+};
+
+export type ClxBasePacketEvent<Packet> = ClxServerConnectionInfo & {
+  packet: Packet;
 };
 
 const PACKET_TYPES = Object.freeze({
@@ -27,78 +44,18 @@ const PACKET_TYPES = Object.freeze({
  *
  * @see https://github.com/medcelerate/CLX-Spec#deck-packet-0x01
  */
-export type ClxDeckPacketEvent = ClxBasePacketEvent & {
-  /**
-   * Track pitch or velocity
-   */
-  pitch: number;
-  /** Current playhead position */
-  positionSeconds: number;
-  /** Beatgrid position (Beat Number.fraction) */
-  positionBeatGrid: number;
-  /** Position normalized to range [0.0–1.0] */
-  positionNormalized: number;
-  bpm: number;
-  /** Track duration (in seconds) */
-  durationSeconds: number;
-  /** Low EQ gain level */
-  eqLow: number;
-  /** Mid EQ gain level */
-  eqMid: number;
-  /** High EQ gain level */
-  eqHigh: number;
-  /** Deck index (0 = A, 1 = B, etc...) */
-  deck: number;
-  /** Current Beat (1-4) all other values should be ignored */
-  beat: number;
-};
+export type ClxDeckPacketEvent = ClxBasePacketEvent<ClxDeckPacket>;
 
-/**
- * Track metadata, typically sent once on load or when requested.
- *
- * @see Fader https://github.com/medcelerate/CLX-Spec#metadata-packet-0x02
- */
-export type ClxMetadataPacketEvent = ClxBasePacketEvent & {
-  deck: number;
-  title: string;
-  artist: string;
-  album: string;
-  filePath: string;
-};
+export type ClxMetadataPacketEvent = ClxBasePacketEvent<ClxMetadataPacket>;
 
-/**
- * Represents mixer fader states and app state.
- *
- * @see https://github.com/medcelerate/CLX-Spec#control-packet-0x00
- */
-export type ClxControlPacketEvent = ClxBasePacketEvent & {
-  /** Fader level for Deck A */
-  upFaderA: number;
-  /** Fader level for Deck B */
-  upFaderB: number;
-  /** Fader level for Deck C */
-  upFaderC: number;
-  /** Fader level for Deck D */
-  upFaderD: number;
-  /** Crossfader position (range between 0 - 1) */
-  crossfader: number;
-  /** Active deck or focus status */
-  activeDeck: number;
-  /** App connection or session state */
-  appState: string;
-};
+export type ClxControlPacketEvent = ClxBasePacketEvent<ClxControlPacket>;
 
 /**
  * Signals a client-initiated action or state change.
  *
  * @see https://github.com/medcelerate/CLX-Spec#event-packet-0x04
  */
-export type ClxEventPacketEvent = ClxBasePacketEvent & {
-  /** Event name */
-  event: string;
-  /** Optional numeric value for the event */
-  eventData: number;
-};
+export type ClxEventPacketEvent = ClxBasePacketEvent<ClxEventPacket>;
 
 /**
  * A binary packet containing arbitrary data.
@@ -107,17 +64,11 @@ export type ClxEventPacketEvent = ClxBasePacketEvent & {
  * this library, allowing consumers to handle new payloads without
  * waiting for a library update.
  *
- * Payloads larger than a single UDP datagram are split into fragments;
- * each fragment is one 0x05 packet carrying the same envelope fields below,
- * and the receiver reassembles them by Order.
- *
- * The Type field discriminates the payload (e.g. waveform, beatgrid).
- * Additional fields are optional depending on how the data needs to be used.
- * It is recommended to include an order value as well as the expected total size.
+ * It is also only fired when the entire binary payload has been constructed
  *
  * @see https://github.com/medcelerate/CLX-Spec#binary-data-0x05
  */
-export type ClxBinaryPacketEvent = ClxBasePacketEvent & {
+export type ClxBinaryPacketEvent = ClxServerConnectionInfo & {
   /** Payload discriminator, e.g. waveform or beatgrid */
   type: string;
   /** 32-byte payload identifier (ASCII-hex track hash) */
@@ -126,54 +77,12 @@ export type ClxBinaryPacketEvent = ClxBasePacketEvent & {
   data: Buffer<ArrayBufferLike>;
 };
 
-/**
- * Waveform Payload
- *
- * These should be saved as rwf files in a local cache.
- *
- * @see https://github.com/medcelerate/CLX-Spec#waveform-payload-type--waveform
- */
-export type ClxWaveformDataEvent = ClxBinaryPacketEvent & {
-  /**
-   * The waveform data
-   *
-   * We follow the conventions from the BBC, with one alteration,
-   * appended to the bottom is a CLRS section in binary
-   * containing the rgb color values for each pair of values.
-   * This is represented as clrs in the json format.
-   * https://github.com/bbc/audiowaveform/blob/master/doc/DataFormat.md
-   */
-  data: Buffer<ArrayBufferLike>;
-  /** md5 sum of track title, waveform file name */
-  hash: Buffer<ArrayBufferLike>;
-  /**
-   * Optional; if true the receiver overwrites an existing cached waveform
-   * for this hash
-   * (older senders omit it, defaulting to false) */
-  replace: boolean;
+export type ClxWaveformDataEvent = ClxServerConnectionInfo & {
+  payload: ClxWaveformDataPayload;
 };
 
-/**
- * These should be saved as bg files in a local cache.
- *
- * @see https://github.com/medcelerate/CLX-Spec#beatgrid-payload-type--beatgrid
- */
-export type ClxBeatGridDataEvent = ClxBinaryPacketEvent & {
-  /** 32-byte ASCII-hex track hash */
-  hash: Buffer<ArrayBufferLike>;
-  /** Total number of beats in the grid */
-  total: number;
-  /** Array of beatgrid marker maps */
-  markers: Array<{
-    /** Tempo in effect from this marker */
-    bpm: number;
-    /** Marker position in seconds from the start of the track */
-    positionSeconds: number;
-    /** True for the start/end markers that bracket the grid */
-    terminal: boolean;
-    /** Number of beats from this marker to the next */
-    beatsToNext: number;
-  }>;
+export type ClxBeatGridDataEvent = ClxServerConnectionInfo & {
+  payload: ClxBeatGridDataPayload;
 };
 
 export type ClxEventMap = {
@@ -252,13 +161,64 @@ export const createClxClient = (config: ConnectionConfig): ClxClient => {
   };
 
   const handlePacket = (packet: Buffer, source: RemoteInfo) => {
-    for (const [type, code] of Object.entries(PACKET_TYPES)) {
-      if (packet[0] === code) {
-        console.log(`Received ${type}`);
-        return;
-      }
+    let data: unknown = null;
+    try {
+      data = decode(packet.subarray(1));
+    } catch (cause) {
+      const error = new Error(
+        `Received non Message-pack packet for type ${packet[0]?.toString(16)}`,
+        { cause },
+      );
+      events.emit('error', error);
+      return;
     }
-    console.log(`Received unknown packet`);
+    try {
+      switch (packet[0]) {
+        case PACKET_TYPES.DECK:
+          events.emit('deckPacket', {
+            host: source.address,
+            port: source.port,
+            packet: CLX_DECK_PACKET.parse(data),
+          });
+          return;
+        case PACKET_TYPES.META:
+          events.emit('metadataPacket', {
+            host: source.address,
+            port: source.port,
+            packet: CLX_METADATA_PACKET.parse(data),
+          });
+          return;
+        case PACKET_TYPES.CONTROL:
+          events.emit('controlPacket', {
+            host: source.address,
+            port: source.port,
+            packet: CLX_CONTROL_PACKET.parse(data),
+          });
+          return;
+        case PACKET_TYPES.EVENT:
+          events.emit('eventPacket', {
+            host: source.address,
+            port: source.port,
+            packet: CLX_EVENT_PACKET.parse(data),
+          });
+          return;
+        case PACKET_TYPES.WAVEFORM_REQUEST:
+        case PACKET_TYPES.BINARY:
+        case PACKET_TYPES.RESYNC_REQUEST:
+          // TODO: Currently not implemented
+          return;
+      }
+      const error = new Error(
+        `Received unknown packet with id: ${packet[0]} - ${JSON.stringify(data)}`,
+      );
+      events.emit('error', error);
+    } catch (cause) {
+      const error = new Error(
+        `Error handling CLX packet for type ${packet[0]?.toString(16)}`,
+        { cause },
+      );
+      events.emit('error', error);
+    }
   };
 
   const initializeReceiveSocket = async () => {

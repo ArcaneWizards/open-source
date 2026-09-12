@@ -69,7 +69,7 @@ export const augmentUpstreamTimecodeWithOutputMetadata = (
       state: {
         state: 'none',
         accuracyMillis: null,
-        smpteMode: config.definition.mode,
+        smpteMode: 'mode' in config.definition ? config.definition.mode : null,
         onAir: null,
         appliedDelayMillis: config.delayMs ?? 0,
       },
@@ -81,7 +81,7 @@ export const augmentUpstreamTimecodeWithOutputMetadata = (
     metadata: tc.metadata,
     state: {
       ...adjustTimecodeForDelay(tc.state, config.delayMs ?? 0, true),
-      smpteMode: config.definition.mode,
+      smpteMode: 'mode' in config.definition ? config.definition.mode : null,
     },
   };
 };

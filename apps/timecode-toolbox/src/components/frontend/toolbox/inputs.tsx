@@ -22,7 +22,9 @@ import {
   TimecodeInstanceId,
 } from '../../proto';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import { ARTNET_PORT, TimecodeMode } from '@arcanewizards/artnet/constants';
+import { ARTNET_PORT } from '@arcanewizards/artnet/constants';
+import type { SMPTETimecodeMode } from '@arcanewizards/smpte';
+import { CLX_PORT } from '@arcanewizards/clx/constants';
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@arcanejs/toolkit-frontend/util';
 import {
@@ -40,7 +42,12 @@ import { DelayConfig } from './core/delay';
 import { AudioRecordingContextProvider } from './core/audio-context';
 import { WithLtcRecorder } from './core/ltc/recorder';
 
-const DmxConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
+type SinglePortConnectionSettingsProps = SettingsProps<InputDefinition> & {
+  type: 'artnet' | 'clx';
+};
+
+const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
+  type,
   data,
   updateSettings,
 }) => {
@@ -48,7 +55,7 @@ const DmxConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
 
   const { interfaces, refreshInterfaces } = useNetworkInterfaces();
 
-  if (data.type !== 'artnet') {
+  if (data.type !== type) {
     return null;
   }
 
@@ -90,7 +97,7 @@ const DmxConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
         position="both"
         type="string"
         value={data.port?.toString() ?? ''}
-        placeholder={`Default (${ARTNET_PORT})`}
+        placeholder={`Default (${type === 'artnet' ? ARTNET_PORT : CLX_PORT})`}
         onChange={(value, enterPressed) => {
           const port = value ? parseInt(value, 10) : undefined;
           if (port !== undefined && isNaN(port)) {
@@ -206,14 +213,17 @@ const LTCConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
   return (
     <>
       <ControlLabel>FPS</ControlLabel>
-      <ControlSelect<TimecodeMode | 'AUTO'>
+      <ControlSelect<SMPTETimecodeMode | 'AUTO'>
         position="both"
         variant="large"
         value={data.mode}
         options={[
           { label: 'Auto Detect Framerate', value: 'AUTO' },
           ...(
-            Object.entries(STRINGS.smtpeModeOptions) as [TimecodeMode, string][]
+            Object.entries(STRINGS.smtpeModeOptions) as [
+              SMPTETimecodeMode,
+              string,
+            ][]
           ).map(([mode, label]) => ({
             label,
             value: mode,
@@ -245,6 +255,12 @@ const getDefaultInputConfigDefinition = (
     case 'artnet':
       return {
         type: 'artnet',
+        iface: '',
+        port: undefined,
+      };
+    case 'clx':
+      return {
+        type: 'clx',
         iface: '',
         port: undefined,
       };
@@ -391,10 +407,11 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
             }));
           }}
         />
-        {data.definition.type === 'artnet' ? (
-          <DmxConnectionSettings
+        {data.definition.type === 'artnet' || data.definition.type === 'clx' ? (
+          <SinglePortConnectionSettings
             data={data.definition}
             updateSettings={updateDefinition}
+            type={data.definition.type}
           />
         ) : data.definition.type === 'tcnet' ? (
           <TCNetConnectionSettings
@@ -572,7 +589,7 @@ export const InputsSection: FC<InputSectionProps> = ({
       title={STRINGS.inputs.title}
       buttons={
         <>
-          {(['artnet', 'tcnet', 'midi', 'ltc'] as const).map((type) => (
+          {(['artnet', 'clx', 'tcnet', 'midi', 'ltc'] as const).map((type) => (
             <ControlButton
               key={type}
               onClick={() =>
