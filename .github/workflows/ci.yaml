@@ -65,4 +65,5 @@ jobs:
       macos_build_requested: ${{ contains(github.event.pull_request.labels.*.name, format('build-macos-{0}', matrix.app)) }}
       windows_build_requested: ${{ contains(github.event.pull_request.labels.*.name, format('build-windows-{0}', matrix.app)) }}
       notarize: ${{ github.ref_name == 'main' }}
+      release: ${{ github.ref_name == 'main' }}
     secrets: inherit

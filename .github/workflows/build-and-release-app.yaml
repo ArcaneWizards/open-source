@@ -15,6 +15,12 @@ on:
       notarize:
         required: true
         type: boolean
+      release:
+        required: false
+        type: boolean
+      arch:
+        required: false
+        type: string
 
 jobs:
   pre-release-checks:
@@ -147,6 +153,7 @@ jobs:
         run: |
           echo -n "$APPLE_API_KEY_BASE64" | base64 --decode -o $RUNNER_TEMP/AuthKey_$APPLE_API_KEY_ID.p8
       - name: Build ${{ steps.build_vars.outputs.x64File }}
+        if: ${{ inputs.arch == 'x64' || inputs.arch == '' }}
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
           FULL_BUILD: ${{ inputs.notarize && 'true' || 'false' }}
@@ -157,6 +164,7 @@ jobs:
           ls -la out/make
           mv out/make/*.dmg "${OUTPUT}"
       - name: Build ${{ steps.build_vars.outputs.arm64File }}
+        if: ${{ inputs.arch == 'arm64' || inputs.arch == '' }}
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
           FULL_BUILD: ${{ inputs.notarize && 'true' || 'false' }}
@@ -232,6 +240,7 @@ jobs:
         run: |
           echo "x64File Output: ${{ steps.build_vars.outputs.x64File }}"
       - name: Build ${{ steps.build_vars.outputs.x64File }}
+        if: ${{ inputs.arch == 'x64' || inputs.arch == '' }}
         working-directory: ${{ needs.pre-release-checks.outputs.app_dir }}
         env:
           FULL_BUILD: ${{ inputs.notarize && 'true' || 'false' }}
@@ -266,7 +275,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: needs.pre-release-checks.outputs.require_desktop_release == 'true'
+    if: needs.pre-release-checks.outputs.require_desktop_release == 'true' && inputs.release == 'true'
     needs: [pre-release-checks, build-macos, build-windows]
     permissions:
       contents: write

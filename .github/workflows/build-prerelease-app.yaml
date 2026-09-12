@@ -1,0 +1,54 @@
+# This workflow builds a specific app for a specific OS from main
+# prior to publishing a release.
+# Main is required for access to the signing keys and notarization credentials.
+
+name: Build Prerelease
+run-name: Build Prerelease (${{ github.event.inputs.app }}) (${{ github.event.inputs.os }})
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'App to build'
+        required: true
+        default: timecode-toolbox
+        type: choice
+        options:
+          - timecode-toolbox
+      os:
+        description: 'OS to build for'
+        required: true
+        default: macos
+        type: choice
+        options:
+          - macos
+          - windows
+      arch:
+        description: 'Architecture to build for'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - x64
+          - arm64
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  build-app:
+    name: build-${{ github.event.inputs.app }}-${{ github.event.inputs.os }}
+    uses: ./.github/workflows/build-and-release-app.yaml
+    permissions:
+      contents: write
+    with:
+      app: ${{ github.event.inputs.app }}
+      macos_build_requested: ${{ github.event.inputs.os == 'macos' }}
+      windows_build_requested: ${{ github.event.inputs.os == 'windows' }}
+      notarize: ${{ github.ref_name == 'main' }}
+    secrets: inherit
