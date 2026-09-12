@@ -4,6 +4,7 @@ import { TcNetInputConnections } from './tcnet';
 import { StateSensitiveComponentPropsWithMidi } from '../types';
 import { MidiInputConnections } from './midi';
 import { LtcInputsStateManager } from './ltc';
+import { ClxInputConnections } from './clx';
 
 export const InputConnections: FC<StateSensitiveComponentPropsWithMidi> = ({
   midi,
@@ -12,6 +13,7 @@ export const InputConnections: FC<StateSensitiveComponentPropsWithMidi> = ({
   return (
     <>
       <ArtnetInputConnections {...props} />
+      <ClxInputConnections {...props} />
       <TcNetInputConnections {...props} />
       <MidiInputConnections midi={midi} {...props} />
       <LtcInputsStateManager {...props} />

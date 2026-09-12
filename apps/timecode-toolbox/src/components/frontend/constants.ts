@@ -36,6 +36,10 @@ export const STRINGS = {
       short: 'ArtNet',
       long: 'ArtNet',
     },
+    clx: {
+      short: 'CLX',
+      long: 'CLX (Clockworks)',
+    },
     tcnet: {
       short: 'TCNet',
       long: 'TCNet (ShowKontrol / Pioneer)',
@@ -56,7 +60,7 @@ export const STRINGS = {
     disable: 'Disable Input',
     edit: 'Edit Input',
     noChildren: 'No inputs yet. Please add one using the buttons below.',
-    addButton: (protocol: string) => `Add ${protocol}`,
+    addButton: (protocol: string) => protocol,
     addDialog: (protocol: string) => `Add ${protocol} Input`,
     editDialog: (protocol: string, name: string) =>
       `Edit ${protocol} Input ${name}`,
@@ -92,6 +96,7 @@ export const STRINGS = {
       clock: 'Clock',
       player: 'Audio Player',
     },
+    addButton: (protocol: string) => protocol,
     addDialog: (protocol: string) => `Add ${protocol} Generator`,
     editDialog: (protocol: string, name: string) =>
       `Edit ${protocol} Generator ${name}`,
@@ -109,7 +114,7 @@ export const STRINGS = {
     link: 'Link Output',
     edit: 'Edit Output',
     noChildren: 'No outputs yet. Please add one using the buttons below.',
-    addButton: (protocol: string) => `Add ${protocol}`,
+    addButton: (protocol: string) => protocol,
     addDialog: (protocol: string) => `Add ${protocol} Output`,
     editDialog: (protocol: string, name: string) =>
       `Edit ${protocol} Output ${name}`,

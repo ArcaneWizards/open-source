@@ -109,7 +109,8 @@ export const WithLtcPlayer: FC<WithLtcPlayerProps> = ({
     false,
   );
 
-  const useSmpteMode = config.definition.mode;
+  const useSmpteMode =
+    'mode' in config.definition ? config.definition.mode : null;
 
   useEffect(() => {
     if (!ltcWriter || !adjustedTimecode) {

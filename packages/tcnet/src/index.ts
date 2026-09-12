@@ -1,6 +1,7 @@
 import { createSocket, RemoteInfo, Socket } from 'node:dgram';
 import EventEmitter from 'node:events';
 import {
+  bindSocket,
   getNetworkInterfaces,
   NetworkInterface,
   NetworkPortStatus,
@@ -63,21 +64,6 @@ type Props = {
   vendorName: string;
   appName: string;
   appVersion: string;
-};
-
-const bindSocket = (
-  socket: Socket,
-  port: number,
-  address: string,
-): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    socket.once('error', reject);
-
-    socket.bind(port, address, () => {
-      socket.removeListener('error', reject);
-      resolve();
-    });
-  });
 };
 
 /**

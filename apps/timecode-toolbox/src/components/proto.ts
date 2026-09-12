@@ -70,6 +70,31 @@ export const isOutputArtnetDefinition = (
   definition: OutputDefinition,
 ): definition is OutputArtnetDefinition => definition.type === 'artnet';
 
+// CLX Config
+
+const INPUT_CLX_DEFINITION = z.object({
+  type: z.literal('clx'),
+  iface: z.string(),
+  port: z.number().optional(),
+});
+
+export type InputClxDefinition = z.infer<typeof INPUT_CLX_DEFINITION>;
+
+export const isInputClxDefinition = (
+  definition: InputDefinition,
+): definition is InputClxDefinition => definition.type === 'clx';
+
+const OUTPUT_CLX_DEFINITION = z.object({
+  type: z.literal('clx'),
+  target: NET_UTILS_GENERAL_TARGET_DEFINITION,
+});
+
+export type OutputClxDefinition = z.infer<typeof OUTPUT_CLX_DEFINITION>;
+
+export const isOutputClxDefinition = (
+  definition: OutputDefinition,
+): definition is OutputClxDefinition => definition.type === 'clx';
+
 // TCNet Config
 
 const INPUT_OR_OUTPUT_TCNET_DEFINITION = z.object({
@@ -204,6 +229,7 @@ export type GeneratorPlayerDefinition = z.infer<
 
 const INPUT_DEFINITION = z.union([
   INPUT_ARTNET_DEFINITION,
+  INPUT_CLX_DEFINITION,
   INPUT_OR_OUTPUT_TCNET_DEFINITION,
   INPUT_MIDI_DEFINITION,
   INPUT_LTC_DEFINITION,
@@ -243,6 +269,7 @@ export type GeneratorConfig = z.infer<typeof GENERATOR_CONFIG>;
 
 const OUTPUT_DEFINITION = z.union([
   OUTPUT_ARTNET_DEFINITION,
+  OUTPUT_CLX_DEFINITION,
   OUTPUT_MIDI_DEFINITION,
   OUTPUT_LTC_DEFINITION,
 ]);

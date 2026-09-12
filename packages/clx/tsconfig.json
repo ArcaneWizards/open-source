@@ -1,0 +1,11 @@
+{
+  "extends": "@arcanewizards/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "moduleResolution": "bundler",
+    "module": "preserve"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"],
+}
