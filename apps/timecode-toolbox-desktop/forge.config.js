@@ -3,6 +3,7 @@
 const PACKAGED_RUNTIME_DEPENDENCIES = [
   '@arcanewizards/electron-media-service',
   '@arcanewizards/midi',
+  '@arcanewizards/net-utils-native',
   'bindings',
   'file-uri-to-path',
   'material-symbols',
@@ -12,6 +13,11 @@ const PACKAGED_RUNTIME_DEPENDENCIES = [
 
 const STRICT_FILTERS = {
   '/node_modules/@arcanewizards/midi': ['dist', 'native', 'package.json'],
+  '/node_modules/@arcanewizards/net-utils-native': [
+    'dist',
+    'native',
+    'package.json',
+  ],
 };
 
 const PACKAGED_RUNTIME_DEPENDENCY_PATHS = PACKAGED_RUNTIME_DEPENDENCIES.map(
@@ -62,8 +68,8 @@ const shouldIgnorePackagedPath = (filePath) => {
         }
         return isIgnored;
       }
-      return false;
     }
+    return false;
   }
   return true;
 };
@@ -84,7 +90,16 @@ module.exports = {
       },
       NSLocalNetworkUsageDescription:
         'Required for TCNet, and ArtNet to other devices',
-      NSBonjourServices: ['_http._tcp'],
+      // Must stay in sync with DEFAULT_SERVICE_TYPES in
+      // @arcanewizards/net-utils-native, which are browsed to request and
+      // confirm local network access.
+      NSBonjourServices: [
+        '_airplay._tcp',
+        '_raop._tcp',
+        '_companion-link._tcp',
+        '_googlecast._tcp',
+        '_http._tcp',
+      ],
     },
     osxSign:
       process.env.FULL_BUILD == 'false'
