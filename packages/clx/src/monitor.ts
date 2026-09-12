@@ -1,7 +1,6 @@
 import EventEmitter from 'node:events';
 import { ClxClient } from '.';
 import { ClxDeckPacket } from './messagepack';
-import { CLX_DECK_FPS } from './constants';
 
 /**
  * How many milliseconds need to have changed to consider a timecode update
@@ -27,14 +26,6 @@ const INTERVAL_MS = 1000;
  * How often can resync requests be sent to a host
  */
 const MIN_RESYNC_REQUEST_INTERVAL_MS = 2000;
-/**
- * How long can we wait between receiving deck packets before considering the
- * deck to be stopped.
- *
- * We allow a longer interval than the expected FPS,
- * to account for network latency and packet loss.
- */
-const MAX_MS_INTERVAL_BETWEEN_PLAYING_DECK_PACKETS = (1000 / CLX_DECK_FPS) * 5;
 
 export type ClxTimecodeTrackInfo = {
   title: string | null;
@@ -200,12 +191,6 @@ export const createClxTimecodeMonitor = (
     existingDeck.lastReceivedAt = now;
     return { hostState: existingHost, deckState: existingDeck };
   };
-
-  clx.on('eventPacket', ({ host, port, packet }) => {
-    const now = Date.now();
-    const hostId = `${host}:${port}`;
-    console.log('eventPacket', now, hostId, packet);
-  });
 
   clx.on('deckPacket', ({ host, port, packet }) => {
     const now = Date.now();
