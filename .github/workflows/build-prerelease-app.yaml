@@ -51,4 +51,5 @@ jobs:
       macos_build_requested: ${{ github.event.inputs.os == 'macos' }}
       windows_build_requested: ${{ github.event.inputs.os == 'windows' }}
       notarize: ${{ github.ref_name == 'main' }}
+      arch: ${{ github.event.inputs.arch }}
     secrets: inherit
