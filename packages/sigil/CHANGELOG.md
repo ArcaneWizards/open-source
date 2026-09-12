@@ -1,5 +1,13 @@
 # @arcanewizards/sigil
 
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [b3238bb]
+- Updated dependencies [271713b]
+  - @arcanewizards/net-utils@0.3.0
+
 ## 0.3.1
 
 ### Patch Changes
