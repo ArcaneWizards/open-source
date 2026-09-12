@@ -3,7 +3,7 @@
 # Main is required for access to the signing keys and notarization credentials.
 
 name: Build Prerelease
-run-name: Build Prerelease (${{ github.event.inputs.app }}) (${{ github.event.inputs.os }})
+run-name: Build Prerelease (${{ github.event.inputs.app }}) (${{ github.event.inputs.os }} - ${{ github.event.inputs.arch }})
 on:
   workflow_dispatch:
     inputs:
@@ -25,10 +25,10 @@ on:
       arch:
         description: 'Architecture to build for'
         required: false
-        default: ''
+        default: 'all'
         type: choice
         options:
-          - ''
+          - 'all'
           - x64
           - arm64
 
