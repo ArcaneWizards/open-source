@@ -130,7 +130,7 @@ const hasPlayStateChanged = (
     const delta = Math.abs(
       oldState.effectiveStartTime - newState.effectiveStartTime,
     );
-    return delta > MAX_DELTA_MS;
+    return delta > MAX_DELTA_MS || oldState.speed !== newState.speed;
   }
 
   return true;
@@ -207,7 +207,7 @@ export const createClxTimecodeMonitor = (
       // Deck is playing
       playState = {
         state: 'playing',
-        effectiveStartTime: now - currentTimeMillis,
+        effectiveStartTime: now - currentTimeMillis / packet.Pitch,
         onAir,
         speed: packet.Pitch,
       };
