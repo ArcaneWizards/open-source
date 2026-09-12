@@ -8,14 +8,24 @@ import { ClxDeckPacket } from './messagepack';
 const MAX_DELTA_MS = 10;
 
 /**
+ * How much of a difference between the expected current time and actual current
+ * time is required to consider the deck to be scratching.
+ */
+const MAX_DELTA_SCRATCHING_MS = 100;
+
+/**
  * How long should we wait not receiving any packets for a deck / host,
  * before considering it to be disconnected.
  */
-const TIMEOUT_MS = 2000;
+const TIMEOUT_MS = 5000;
 /**
  * How often should we check for disconnected hosts / decks
  */
 const INTERVAL_MS = 1000;
+/**
+ * How often can resync requests be sent to a host
+ */
+const MIN_RESYNC_REQUEST_INTERVAL_MS = 2000;
 
 export type ClxTimecodeTrackInfo = {
   title: string | null;
@@ -102,6 +112,7 @@ export type ClxTimecodeMonitor = {
 type DeckState = {
   lastReceivedAt: number;
   lastPacket: ClxDeckPacket | null;
+  isPlayingNormally: boolean;
   last: {
     totalTime: ClxTimecodeStateChangedEvent['totalTime'] | null;
     playState: ClxTimecodePlayState | null;
@@ -111,6 +122,7 @@ type DeckState = {
 
 type HostState = {
   lastReceivedAt: number;
+  resyncRequestLastSentAt?: number;
   decks: Record<number, DeckState>;
 };
 
@@ -130,7 +142,7 @@ const hasPlayStateChanged = (
     const delta = Math.abs(
       oldState.effectiveStartTime - newState.effectiveStartTime,
     );
-    return delta > MAX_DELTA_MS;
+    return delta > MAX_DELTA_MS || oldState.speed !== newState.speed;
   }
 
   return true;
@@ -151,7 +163,7 @@ export const createClxTimecodeMonitor = (
     now: number,
     hostId: string,
     deck: number,
-  ): DeckState => {
+  ): { hostState: HostState; deckState: DeckState } => {
     let existingHost = stateByHost[hostId];
     if (!existingHost) {
       existingHost = {
@@ -167,6 +179,7 @@ export const createClxTimecodeMonitor = (
       existingDeck = {
         lastReceivedAt: now,
         lastPacket: null,
+        isPlayingNormally: false,
         last: {
           info: null,
           totalTime: null,
@@ -176,13 +189,17 @@ export const createClxTimecodeMonitor = (
       existingHost.decks[deck] = existingDeck;
     }
     existingDeck.lastReceivedAt = now;
-    return existingDeck;
+    return { hostState: existingHost, deckState: existingDeck };
   };
 
   clx.on('deckPacket', ({ host, port, packet }) => {
     const now = Date.now();
     const hostId = `${host}:${port}`;
-    const deckState = getOrCreateDeckState(now, hostId, packet.Deck);
+    const { hostState, deckState } = getOrCreateDeckState(
+      now,
+      hostId,
+      packet.Deck,
+    );
 
     const currentTimeMillis = packet.Position * 1000;
     const totalTimeMillis = packet.Length * 1000;
@@ -194,7 +211,24 @@ export const createClxTimecodeMonitor = (
      */
     const onAir = packet.EQHigh > 0 || packet.EQLow > 0 || packet.EQMid > 0;
 
-    if (deckState.lastPacket?.Position === packet.Position) {
+    const positionUnchanged =
+      deckState.lastPacket?.Position === packet.Position;
+    const expectedCurrentTimeMillis =
+      deckState.lastPacket && deckState.last.playState?.state === 'playing'
+        ? (now - deckState.last.playState.effectiveStartTime) *
+          deckState.last.playState.speed
+        : currentTimeMillis;
+
+    const expectationDelta = Math.abs(
+      expectedCurrentTimeMillis - currentTimeMillis,
+    );
+    const isPlayingNormally = expectationDelta <= MAX_DELTA_SCRATCHING_MS;
+
+    if (
+      positionUnchanged ||
+      !isPlayingNormally ||
+      !deckState.isPlayingNormally
+    ) {
       // Duplicate position for 2 frames, deck is paused
       playState = {
         state: 'stopped',
@@ -207,7 +241,7 @@ export const createClxTimecodeMonitor = (
       // Deck is playing
       playState = {
         state: 'playing',
-        effectiveStartTime: now - currentTimeMillis,
+        effectiveStartTime: now - currentTimeMillis / packet.Pitch,
         onAir,
         speed: packet.Pitch,
       };
@@ -227,6 +261,16 @@ export const createClxTimecodeMonitor = (
       emit = true;
     }
 
+    if (
+      !deckState.last.info &&
+      (!hostState.resyncRequestLastSentAt ||
+        now - hostState.resyncRequestLastSentAt >
+          MIN_RESYNC_REQUEST_INTERVAL_MS)
+    ) {
+      clx.resync(host);
+      hostState.resyncRequestLastSentAt = now;
+    }
+
     if (emit && deckState.last.playState) {
       events.emit('timecode-changed', {
         hostId,
@@ -238,12 +282,13 @@ export const createClxTimecodeMonitor = (
     }
 
     deckState.lastPacket = packet;
+    deckState.isPlayingNormally = isPlayingNormally;
   });
 
   clx.on('metadataPacket', ({ host, port, packet }) => {
     const now = Date.now();
     const hostId = `${host}:${port}`;
-    const deckState = getOrCreateDeckState(now, hostId, packet.Deck);
+    const { deckState } = getOrCreateDeckState(now, hostId, packet.Deck);
 
     const info: ClxTimecodeTrackInfo = {
       title: packet.Title || null,

@@ -5,7 +5,7 @@ import {
 } from '@arcanewizards/net-utils';
 import { createSocket, RemoteInfo, Socket } from 'node:dgram';
 import { EventEmitter } from 'node:events';
-import { CLX_PORT } from './constants.js';
+import { CLX_PORT, CLX_SERVER_PORT } from './constants.js';
 import { decode } from '@msgpack/msgpack';
 import {
   CLX_CONTROL_PACKET,
@@ -103,6 +103,13 @@ export type ClxClient = {
     event: K,
     callback: (...args: ClxEventMap[K]) => void,
   ): void;
+  /**
+   * Send a request to the given host to resync the CLX session state.
+   * This is useful if the client has missed packets and needs to resync.
+   *
+   * @param host The host to send the resync request to.
+   */
+  resync: (host: string) => void;
   addListener<K extends keyof ClxEventMap>(
     event: K,
     callback: (...args: ClxEventMap[K]) => void,
@@ -276,6 +283,14 @@ export const createClxClient = (config: ConnectionConfig): ClxClient => {
     return connectPromise;
   };
 
+  const resync: ClxClient['resync'] = (host) => {
+    if (!receiveSocket) {
+      throw new Error('Cannot resync before connecting');
+    }
+    const resyncPacket = Buffer.from([PACKET_TYPES.RESYNC_REQUEST]);
+    receiveSocket.send(resyncPacket, CLX_SERVER_PORT, host);
+  };
+
   const destroy = () => {
     destroyed = true;
     events.emit('destroy');
@@ -288,5 +303,6 @@ export const createClxClient = (config: ConnectionConfig): ClxClient => {
     addListener,
     removeListener,
     destroy,
+    resync,
   };
 };
