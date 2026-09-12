@@ -1,5 +1,34 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.5.0
+
+### Minor Changes
+
+- b3238bb: Introduce CLX (Clockworks) Input
+
+  [Clockworks Server](https://clockworks.live/products/server) and
+  [Clockworks Gateway](https://clockworks.live/products/gateway) can now be used
+  to feed timecode info into Timecode Toolbox, including track metadata.
+
+  This means you can now connect Serato, Traktor and VirtualDJ to Timecode
+  Toolbox, along with Denon DJ equipment.
+
+  Clockworks Gateway can also be used as an alternative to ShowKontrol or
+  Pro DJ Link Bridge to connect to Pioneer DJ equipment.
+
+### Patch Changes
+
+- 271713b: Use native MacOS API to request local network access
+
+  On some macs, despite the 2 releases since 0.4.7,
+  local network access was still blocked.
+
+  We're now trying a different approach to request local network access when it's
+  needed that should, hopefully, resolve the issue
+
+- Updated dependencies [271713b]
+  - @arcanewizards/net-utils-native@0.2.0
+
 ## 0.4.9
 
 ### Patch Changes
