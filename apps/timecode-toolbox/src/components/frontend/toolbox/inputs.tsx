@@ -11,12 +11,14 @@ import {
   ControlLabel,
   ControlParagraph,
   ControlSelect,
+  SelectOption,
 } from '@arcanewizards/sigil/frontend/controls';
 import { AssignToOutputCallback, DialogMode, SettingsProps } from './types';
 import {
   InputConfig,
   InputDefinition,
   InputLtcDefinition,
+  InputMultiSenderSupport,
   isLtcInput,
   MidiTargetConfig,
   TimecodeInstanceId,
@@ -45,6 +47,12 @@ import { WithLtcRecorder } from './core/ltc/recorder';
 type SinglePortConnectionSettingsProps = SettingsProps<InputDefinition> & {
   type: 'artnet' | 'clx';
 };
+
+const MULTI_SENDER_SUPPORT_OPTIONS: SelectOption<InputMultiSenderSupport>[] = [
+  { label: 'Off', value: 'off' },
+  { label: 'By Host', value: 'by-ip' },
+  { label: 'By Host & Port', value: 'by-ip-and-port' },
+];
 
 const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
   type,
@@ -112,6 +120,26 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
           }
         }}
       />
+
+      {type === 'clx' && (
+        <>
+          <ControlLabel>Multi-Sender Support</ControlLabel>
+          <ControlSelect
+            value={data.multiSender}
+            options={MULTI_SENDER_SUPPORT_OPTIONS}
+            placeholder="No Interface Selected"
+            onChange={(value) => {
+              updateSettings((current) => ({
+                ...current,
+                multiSender: value,
+              }));
+            }}
+            position="both"
+            variant="large"
+            triggerClassName={cn('text-sigil-control')}
+          />
+        </>
+      )}
     </>
   );
 };
@@ -257,12 +285,14 @@ const getDefaultInputConfigDefinition = (
         type: 'artnet',
         iface: '',
         port: undefined,
+        multiSender: 'off',
       };
     case 'clx':
       return {
         type: 'clx',
         iface: '',
         port: undefined,
+        multiSender: 'by-ip-and-port',
       };
     case 'tcnet':
       return {
