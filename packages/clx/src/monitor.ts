@@ -250,7 +250,6 @@ export const createClxTimecodeMonitor = (
 
   clx.on('deckPacket', ({ host, port, packet }) => {
     const now = Date.now();
-    const hostId = `${host}:${port}`;
     const { hostState, deckState } = getOrCreateDeckState(
       now,
       host,
