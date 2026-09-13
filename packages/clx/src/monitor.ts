@@ -71,7 +71,8 @@ export type ClxTimecodePlayState =
     };
 
 export type ClxTimecodeStateChangedEvent = {
-  hostId: string;
+  host: string;
+  port: number;
   deck: number;
   /**
    * If available, the total time of the track loaded in this layer.
@@ -94,11 +95,13 @@ export type ClxTimecodeStateChangedEvent = {
 };
 
 export type ClxServerDisconnectedEvent = {
-  hostId: string;
+  host: string;
+  port: number;
 };
 
 export type ClxDeckDisconnectedEvent = {
-  hostId: string;
+  host: string;
+  port: number;
   deck: number;
 };
 
@@ -143,6 +146,8 @@ type DeckState = {
 };
 
 type HostState = {
+  host: string;
+  port: number;
   lastReceivedAt: number;
   resyncRequestLastSentAt?: number;
   lastControlData: ClxControlPacket | null;
@@ -188,12 +193,16 @@ export const createClxTimecodeMonitor = (
 
   const getOrCreateDeckState = (
     now: number,
-    hostId: string,
+    host: string,
+    port: number,
     deck: number,
   ): { hostState: HostState; deckState: DeckState } => {
+    const hostId = `${host}:${port}`;
     let existingHost = stateByHost[hostId];
     if (!existingHost) {
       existingHost = {
+        host,
+        port,
         lastReceivedAt: now,
         decks: {},
         lastControlData: null,
@@ -227,6 +236,8 @@ export const createClxTimecodeMonitor = (
     let existingHost = stateByHost[hostId];
     if (!existingHost) {
       existingHost = {
+        host,
+        port,
         lastReceivedAt: now,
         decks: {},
         lastControlData: null,
@@ -242,7 +253,8 @@ export const createClxTimecodeMonitor = (
     const hostId = `${host}:${port}`;
     const { hostState, deckState } = getOrCreateDeckState(
       now,
-      hostId,
+      host,
+      port,
       packet.Deck,
     );
 
@@ -330,7 +342,8 @@ export const createClxTimecodeMonitor = (
 
     if (emit && deckState.last.playState) {
       events.emit('timecode-changed', {
-        hostId,
+        host,
+        port,
         deck: packet.Deck,
         totalTime: deckState.last.totalTime,
         playState: deckState.last.playState,
@@ -344,8 +357,7 @@ export const createClxTimecodeMonitor = (
 
   clx.on('metadataPacket', ({ host, port, packet }) => {
     const now = Date.now();
-    const hostId = `${host}:${port}`;
-    const { deckState } = getOrCreateDeckState(now, hostId, packet.Deck);
+    const { deckState } = getOrCreateDeckState(now, host, port, packet.Deck);
 
     const info: ClxTimecodeTrackInfo = {
       title: packet.Title || null,
@@ -363,7 +375,8 @@ export const createClxTimecodeMonitor = (
 
     if (emit && deckState.last.playState) {
       events.emit('timecode-changed', {
-        hostId,
+        host,
+        port,
         deck: packet.Deck,
         totalTime: deckState.last.totalTime,
         playState: deckState.last.playState,
@@ -376,9 +389,10 @@ export const createClxTimecodeMonitor = (
     const now = Date.now();
 
     for (const [hostId, hostState] of Object.entries(stateByHost)) {
+      const { host, port } = hostState;
       if (now - hostState.lastReceivedAt > TIMEOUT_MS) {
         delete stateByHost[hostId];
-        events.emit('server-disconnected', { hostId });
+        events.emit('server-disconnected', { host, port });
         continue;
       }
 
@@ -386,7 +400,8 @@ export const createClxTimecodeMonitor = (
         if (now - deckState.lastReceivedAt > TIMEOUT_MS) {
           delete hostState.decks[Number(deck)];
           events.emit('deck-disconnected', {
-            hostId,
+            host,
+            port,
             deck: Number(deck),
           });
         }
