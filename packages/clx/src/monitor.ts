@@ -8,8 +8,18 @@ import {
 
 /**
  * How many milliseconds need to have changed to consider a timecode update
+ *
+ * With Serato & Gateway Server, time updates occur only every 10ms,
+ * so we need to be at least a bit more than this,
+ * otherwise we'll get unnecessary timecode-changed events.
  */
-const MAX_DELTA_MS = 10;
+const MAX_DELTA_MS = 15;
+
+/**
+ * If a deck has not changed position for this amount of time,
+ * we consider it to be paused.
+ */
+const DECK_PAUSED_AFTER_MS = MAX_DELTA_MS * 2;
 
 /**
  * How much of a difference between the expected current time and actual current
@@ -61,7 +71,8 @@ export type ClxTimecodePlayState =
     };
 
 export type ClxTimecodeStateChangedEvent = {
-  hostId: string;
+  host: string;
+  port: number;
   deck: number;
   /**
    * If available, the total time of the track loaded in this layer.
@@ -84,11 +95,13 @@ export type ClxTimecodeStateChangedEvent = {
 };
 
 export type ClxServerDisconnectedEvent = {
-  hostId: string;
+  host: string;
+  port: number;
 };
 
 export type ClxDeckDisconnectedEvent = {
-  hostId: string;
+  host: string;
+  port: number;
   deck: number;
 };
 
@@ -117,6 +130,14 @@ type DeckState = {
   lastReceivedAt: number;
   lastPacket: ClxDeckPacket | null;
   isPlayingNormally: boolean;
+  /**
+   * When set, this was the first time that we observed the deck to be at the
+   * current position, and it has not changed since then.
+   *
+   * This is used to determine if the deck is paused,
+   * without having to require deck packets
+   */
+  unchangedPositionSince: number | null;
   last: {
     totalTime: ClxTimecodeStateChangedEvent['totalTime'] | null;
     playState: ClxTimecodePlayState | null;
@@ -125,6 +146,8 @@ type DeckState = {
 };
 
 type HostState = {
+  host: string;
+  port: number;
   lastReceivedAt: number;
   resyncRequestLastSentAt?: number;
   lastControlData: ClxControlPacket | null;
@@ -170,12 +193,16 @@ export const createClxTimecodeMonitor = (
 
   const getOrCreateDeckState = (
     now: number,
-    hostId: string,
+    host: string,
+    port: number,
     deck: number,
   ): { hostState: HostState; deckState: DeckState } => {
+    const hostId = `${host}:${port}`;
     let existingHost = stateByHost[hostId];
     if (!existingHost) {
       existingHost = {
+        host,
+        port,
         lastReceivedAt: now,
         decks: {},
         lastControlData: null,
@@ -190,6 +217,7 @@ export const createClxTimecodeMonitor = (
         lastReceivedAt: now,
         lastPacket: null,
         isPlayingNormally: false,
+        unchangedPositionSince: null,
         last: {
           info: null,
           totalTime: null,
@@ -208,6 +236,8 @@ export const createClxTimecodeMonitor = (
     let existingHost = stateByHost[hostId];
     if (!existingHost) {
       existingHost = {
+        host,
+        port,
         lastReceivedAt: now,
         decks: {},
         lastControlData: null,
@@ -220,14 +250,15 @@ export const createClxTimecodeMonitor = (
 
   clx.on('deckPacket', ({ host, port, packet }) => {
     const now = Date.now();
-    const hostId = `${host}:${port}`;
     const { hostState, deckState } = getOrCreateDeckState(
       now,
-      hostId,
+      host,
+      port,
       packet.Deck,
     );
 
     const currentTimeMillis = packet.Position * 1000;
+
     const totalTimeMillis = packet.Length * 1000;
 
     let playState: ClxTimecodePlayState | null = null;
@@ -254,11 +285,17 @@ export const createClxTimecodeMonitor = (
     );
     const isPlayingNormally = expectationDelta <= MAX_DELTA_SCRATCHING_MS;
 
-    if (
-      positionUnchanged ||
-      !isPlayingNormally ||
-      !deckState.isPlayingNormally
-    ) {
+    if (positionUnchanged) {
+      deckState.unchangedPositionSince ??= now;
+    } else {
+      deckState.unchangedPositionSince = null;
+    }
+
+    const isPaused =
+      deckState.unchangedPositionSince !== null &&
+      now - deckState.unchangedPositionSince > DECK_PAUSED_AFTER_MS;
+
+    if (isPaused || !isPlayingNormally || !deckState.isPlayingNormally) {
       // Duplicate position for 2 frames, deck is paused
       playState = {
         state: 'stopped',
@@ -286,7 +323,7 @@ export const createClxTimecodeMonitor = (
     if (deckState.last.totalTime?.timeMillis !== totalTimeMillis) {
       deckState.last.totalTime = {
         timeMillis: totalTimeMillis,
-        precisionMillis: 0,
+        precisionMillis: 1,
       };
       emit = true;
     }
@@ -304,7 +341,8 @@ export const createClxTimecodeMonitor = (
 
     if (emit && deckState.last.playState) {
       events.emit('timecode-changed', {
-        hostId,
+        host,
+        port,
         deck: packet.Deck,
         totalTime: deckState.last.totalTime,
         playState: deckState.last.playState,
@@ -318,8 +356,7 @@ export const createClxTimecodeMonitor = (
 
   clx.on('metadataPacket', ({ host, port, packet }) => {
     const now = Date.now();
-    const hostId = `${host}:${port}`;
-    const { deckState } = getOrCreateDeckState(now, hostId, packet.Deck);
+    const { deckState } = getOrCreateDeckState(now, host, port, packet.Deck);
 
     const info: ClxTimecodeTrackInfo = {
       title: packet.Title || null,
@@ -337,7 +374,8 @@ export const createClxTimecodeMonitor = (
 
     if (emit && deckState.last.playState) {
       events.emit('timecode-changed', {
-        hostId,
+        host,
+        port,
         deck: packet.Deck,
         totalTime: deckState.last.totalTime,
         playState: deckState.last.playState,
@@ -350,9 +388,10 @@ export const createClxTimecodeMonitor = (
     const now = Date.now();
 
     for (const [hostId, hostState] of Object.entries(stateByHost)) {
+      const { host, port } = hostState;
       if (now - hostState.lastReceivedAt > TIMEOUT_MS) {
         delete stateByHost[hostId];
-        events.emit('server-disconnected', { hostId });
+        events.emit('server-disconnected', { host, port });
         continue;
       }
 
@@ -360,7 +399,8 @@ export const createClxTimecodeMonitor = (
         if (now - deckState.lastReceivedAt > TIMEOUT_MS) {
           delete hostState.decks[Number(deck)];
           events.emit('deck-disconnected', {
-            hostId,
+            host,
+            port,
             deck: Number(deck),
           });
         }

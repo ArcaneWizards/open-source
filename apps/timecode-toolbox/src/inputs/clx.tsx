@@ -10,7 +10,10 @@ import {
 } from '../components/proto';
 import { useLogger } from '@arcanewizards/sigil';
 import { ClxClient, createClxClient } from '@arcanewizards/clx';
-import { createClxTimecodeMonitor } from '@arcanewizards/clx/monitor';
+import {
+  ClxTimecodeStateChangedEvent,
+  createClxTimecodeMonitor,
+} from '@arcanewizards/clx/monitor';
 import { StateSensitiveComponentProps } from '../types';
 
 type ClxInputConnectionProps = StateSensitiveComponentProps & {
@@ -19,10 +22,46 @@ type ClxInputConnectionProps = StateSensitiveComponentProps & {
   connection: InputClxDefinition;
 };
 
+const eventToInputState = (
+  {
+    deck,
+    playState,
+    ...timecodeState
+  }: Omit<ClxTimecodeStateChangedEvent, 'host' | 'port'>,
+  delayRef: React.RefObject<number>,
+): InputState['timecode'] => ({
+  name: `Deck ${deck}`,
+  metadata: {
+    totalTime: timecodeState.totalTime,
+    title: timecodeState?.info?.title ?? null,
+    artist: timecodeState?.info?.artist ?? null,
+  },
+  state:
+    playState.state === 'playing'
+      ? {
+          state: 'playing',
+          effectiveStartTimeMillis:
+            playState.effectiveStartTime + delayRef.current,
+          speed: playState.speed,
+          onAir: playState.onAir,
+          accuracyMillis: null,
+          smpteMode: null,
+          appliedDelayMillis: delayRef.current,
+        }
+      : {
+          state: 'stopped',
+          positionMillis: playState.currentTimeMillis - delayRef.current,
+          onAir: playState.onAir,
+          accuracyMillis: null,
+          smpteMode: null,
+          appliedDelayMillis: delayRef.current,
+        },
+});
+
 const ClxInputConnection: FC<ClxInputConnectionProps> = ({
   uuid,
   config: { delayMs },
-  connection: { iface, port },
+  connection: { iface, port, multiSender },
   setState,
 }) => {
   const log = useLogger();
@@ -97,15 +136,21 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
       timecodes: {},
     };
 
-    monitor.on(
-      'timecode-changed',
-      ({ hostId, deck, playState, ...timecodeState }) => {
+    const updateTimecodeGroup = (
+      host: string,
+      port: number,
+      update: (current: TimecodeGroup) => TimecodeGroup,
+    ) => {
+      if (multiSender == 'off') {
+        timecodeGroup = update(timecodeGroup);
+      } else {
+        const hostId = multiSender === 'by-ip' ? host : `${host}:${port}`;
         const existingHost = timecodeGroup.timecodes[hostId];
         const newHost: TimecodeGroup =
           existingHost && 'timecodes' in existingHost
             ? existingHost
             : {
-                name: `Host ${hostId}`,
+                name: hostId,
                 color: null,
                 timecodes: {},
               };
@@ -113,62 +158,48 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
           ...timecodeGroup,
           timecodes: {
             ...timecodeGroup.timecodes,
-            [hostId]: {
-              ...newHost,
-              timecodes: {
-                ...newHost.timecodes,
-                [deck]: {
-                  name: `Deck ${deck}`,
-                  metadata: {
-                    totalTime: timecodeState.totalTime,
-                    title: timecodeState?.info?.title ?? null,
-                    artist: timecodeState?.info?.artist ?? null,
-                  },
-                  state:
-                    playState.state === 'playing'
-                      ? {
-                          state: 'playing',
-                          effectiveStartTimeMillis:
-                            playState.effectiveStartTime + delayRef.current,
-                          speed: playState.speed,
-                          onAir: playState.onAir,
-                          accuracyMillis: null,
-                          smpteMode: null,
-                          appliedDelayMillis: delayRef.current,
-                        }
-                      : {
-                          state: 'stopped',
-                          positionMillis:
-                            playState.currentTimeMillis - delayRef.current,
-                          onAir: playState.onAir,
-                          accuracyMillis: null,
-                          smpteMode: null,
-                          appliedDelayMillis: delayRef.current,
-                        },
-                },
-              },
-            },
+            [hostId]: update(newHost),
           },
         };
-        setConnection({
-          ...connectionConfig,
-          status: 'active',
-          timecode: timecodeGroup,
-        });
-      },
-    );
-
-    monitor.on('server-disconnected', ({ hostId }) => {
-      const existingHost = timecodeGroup.timecodes[hostId];
-      if (!existingHost) {
-        return;
       }
-      const { [hostId]: _, ...rest } = timecodeGroup.timecodes;
-      timecodeGroup = {
-        ...timecodeGroup,
-        timecodes: rest,
-      };
-      log.info(`Host ${hostId} has timed-out, removing from timecode group`);
+      setConnection({
+        ...connectionConfig,
+        status: 'active',
+        timecode: timecodeGroup,
+      });
+    };
+
+    monitor.on('timecode-changed', ({ host, port, ...eventData }) => {
+      updateTimecodeGroup(host, port, (current) => ({
+        ...current,
+        timecodes: {
+          ...current.timecodes,
+          [eventData.deck]: eventToInputState(eventData, delayRef),
+        },
+      }));
+    });
+
+    monitor.on('server-disconnected', ({ host }) => {
+      if (multiSender === 'off') {
+        timecodeGroup = {
+          ...timecodeGroup,
+          timecodes: {},
+        };
+      } else {
+        const hostId = multiSender === 'by-ip' ? host : `${host}:${port}`;
+        const existingHost = timecodeGroup.timecodes[hostId];
+        if (!existingHost) {
+          return;
+        }
+        const { [hostId]: _, ...rest } = timecodeGroup.timecodes;
+        timecodeGroup = {
+          ...timecodeGroup,
+          timecodes: rest,
+        };
+      }
+      log.info(
+        `Host ${host}:${port} has timed-out, removing from timecode group`,
+      );
       setConnection({
         ...connectionConfig,
         status: 'active',
@@ -176,33 +207,16 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
       });
     });
 
-    monitor.on('deck-disconnected', ({ hostId, deck }) => {
-      const existingHost = timecodeGroup.timecodes[hostId];
-      if (
-        !existingHost ||
-        !('timecodes' in existingHost) ||
-        !(deck in existingHost.timecodes)
-      ) {
-        return;
-      }
-      const { [deck]: _, ...rest } = existingHost.timecodes;
-      timecodeGroup = {
-        ...timecodeGroup,
-        timecodes: {
-          ...timecodeGroup.timecodes,
-          [hostId]: {
-            ...existingHost,
-            timecodes: rest,
-          },
-        },
-      };
+    monitor.on('deck-disconnected', ({ host, port, deck }) => {
       log.info(
-        `Deck ${deck} on host ${hostId} has timed-out, removing from timecode group`,
+        `Deck ${deck} on host ${host}:${port} has timed-out, removing from timecode group`,
       );
-      setConnection({
-        ...connectionConfig,
-        status: 'active',
-        timecode: timecodeGroup,
+      updateTimecodeGroup(host, port, (current) => {
+        const { [deck]: _, ...rest } = current.timecodes;
+        return {
+          ...current,
+          timecodes: rest,
+        };
       });
     });
 
@@ -236,7 +250,7 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
         setClxInstance((current) => (clx === current ? null : current));
       }
     };
-  }, [setConnection, uuid, iface, port, log]);
+  }, [setConnection, uuid, iface, port, multiSender, log]);
 
   useEffect(() => {
     return () => {

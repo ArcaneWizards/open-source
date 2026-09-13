@@ -15,7 +15,7 @@ export const CLX_DECK_PACKET = z.object({
   /** Beatgrid position (Beat Number.fraction) */
   Position2: z.number(),
   /** Position normalized to range [0.0–1.0] */
-  NormalizedPosition: z.number(),
+  NormalizedPosition: z.number().or(z.nan().transform(() => null)),
   BPM: z.number(),
   /** Track duration (in seconds) */
   Length: z.number(),

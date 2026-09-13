@@ -46,10 +46,21 @@ const NET_UTILS_GENERAL_TARGET_DEFINITION = z
 
 // Art-Net Config
 
+const INPUT_MULTI_SENDER_SUPPORT_DEFINITION = z.enum([
+  'off',
+  'by-ip',
+  'by-ip-and-port',
+]);
+
+export type InputMultiSenderSupport = z.infer<
+  typeof INPUT_MULTI_SENDER_SUPPORT_DEFINITION
+>;
+
 const INPUT_ARTNET_DEFINITION = z.object({
   type: z.literal('artnet'),
   iface: z.string(),
   port: z.number().optional(),
+  multiSender: INPUT_MULTI_SENDER_SUPPORT_DEFINITION.optional().default('off'),
 });
 
 export type InputArtnetDefinition = z.infer<typeof INPUT_ARTNET_DEFINITION>;
@@ -76,6 +87,8 @@ const INPUT_CLX_DEFINITION = z.object({
   type: z.literal('clx'),
   iface: z.string(),
   port: z.number().optional(),
+  multiSender:
+    INPUT_MULTI_SENDER_SUPPORT_DEFINITION.optional().default('by-ip-and-port'),
 });
 
 export type InputClxDefinition = z.infer<typeof INPUT_CLX_DEFINITION>;
