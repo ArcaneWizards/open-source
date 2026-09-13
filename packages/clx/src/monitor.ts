@@ -312,7 +312,7 @@ export const createClxTimecodeMonitor = (
     if (deckState.last.totalTime?.timeMillis !== totalTimeMillis) {
       deckState.last.totalTime = {
         timeMillis: totalTimeMillis,
-        precisionMillis: 0,
+        precisionMillis: 1,
       };
       emit = true;
     }
