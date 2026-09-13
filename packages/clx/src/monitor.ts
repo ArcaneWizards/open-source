@@ -8,8 +8,18 @@ import {
 
 /**
  * How many milliseconds need to have changed to consider a timecode update
+ *
+ * With Serato & Gateway Server, time updates occur only every 10ms,
+ * so we need to be at least a bit more than this,
+ * otherwise we'll get unnecessary timecode-changed events.
  */
-const MAX_DELTA_MS = 10;
+const MAX_DELTA_MS = 15;
+
+/**
+ * If a deck has not changed position for this amount of time,
+ * we consider it to be paused.
+ */
+const DECK_PAUSED_AFTER_MS = MAX_DELTA_MS * 2;
 
 /**
  * How much of a difference between the expected current time and actual current
@@ -117,6 +127,14 @@ type DeckState = {
   lastReceivedAt: number;
   lastPacket: ClxDeckPacket | null;
   isPlayingNormally: boolean;
+  /**
+   * When set, this was the first time that we observed the deck to be at the
+   * current position, and it has not changed since then.
+   *
+   * This is used to determine if the deck is paused,
+   * without having to require deck packets
+   */
+  unchangedPositionSince: number | null;
   last: {
     totalTime: ClxTimecodeStateChangedEvent['totalTime'] | null;
     playState: ClxTimecodePlayState | null;
@@ -190,6 +208,7 @@ export const createClxTimecodeMonitor = (
         lastReceivedAt: now,
         lastPacket: null,
         isPlayingNormally: false,
+        unchangedPositionSince: null,
         last: {
           info: null,
           totalTime: null,
@@ -228,6 +247,7 @@ export const createClxTimecodeMonitor = (
     );
 
     const currentTimeMillis = packet.Position * 1000;
+
     const totalTimeMillis = packet.Length * 1000;
 
     let playState: ClxTimecodePlayState | null = null;
@@ -254,11 +274,17 @@ export const createClxTimecodeMonitor = (
     );
     const isPlayingNormally = expectationDelta <= MAX_DELTA_SCRATCHING_MS;
 
-    if (
-      positionUnchanged ||
-      !isPlayingNormally ||
-      !deckState.isPlayingNormally
-    ) {
+    if (positionUnchanged) {
+      deckState.unchangedPositionSince ??= now;
+    } else {
+      deckState.unchangedPositionSince = null;
+    }
+
+    const isPaused =
+      deckState.unchangedPositionSince !== null &&
+      now - deckState.unchangedPositionSince > DECK_PAUSED_AFTER_MS;
+
+    if (isPaused || !isPlayingNormally || !deckState.isPlayingNormally) {
       // Duplicate position for 2 frames, deck is paused
       playState = {
         state: 'stopped',
