@@ -320,7 +320,12 @@ export const createClxTimecodeMonitor = (
       emit = true;
     }
 
-    if (deckState.last.totalTime?.timeMillis !== totalTimeMillis) {
+    if (totalTimeMillis === 0) {
+      if (deckState.last.totalTime !== null) {
+        deckState.last.totalTime = null;
+        emit = true;
+      }
+    } else if (deckState.last.totalTime?.timeMillis !== totalTimeMillis) {
       deckState.last.totalTime = {
         timeMillis: totalTimeMillis,
         precisionMillis: 1,
