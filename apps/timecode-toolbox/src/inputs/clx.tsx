@@ -61,7 +61,7 @@ const eventToInputState = (
 const ClxInputConnection: FC<ClxInputConnectionProps> = ({
   uuid,
   config: { delayMs },
-  connection: { iface, port, multiSender },
+  connection: { iface, port, multiSender, multicast },
   setState,
 }) => {
   const log = useLogger();
@@ -116,9 +116,10 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
       type: 'interface',
       interface: iface,
       port,
+      multicast,
     });
     created.on('error', (err) => {
-      const error = new Error('Clx input connection error');
+      const error = new Error('CLX input connection error');
       error.cause = err instanceof Error ? err : new Error(String(err));
       log.error(error);
       setConnection({
@@ -225,7 +226,9 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
       .then(() => {
         clx = created;
         setClxInstance(created);
-        log.info('Clx Timecode input initialized');
+        log.info(
+          `CLX Timecode input initialized multicast: ${multicast ? 'enabled' : 'disabled'}`,
+        );
         setConnection({
           ...connectionConfig,
           status: 'active',
@@ -250,7 +253,7 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
         setClxInstance((current) => (clx === current ? null : current));
       }
     };
-  }, [setConnection, uuid, iface, port, multiSender, log]);
+  }, [setConnection, uuid, iface, port, multiSender, multicast, log]);
 
   useEffect(() => {
     return () => {

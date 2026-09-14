@@ -5,7 +5,11 @@ import {
 } from '@arcanewizards/net-utils';
 import { createSocket, RemoteInfo, Socket } from 'node:dgram';
 import { EventEmitter } from 'node:events';
-import { CLX_PORT, CLX_SERVER_PORT } from './constants.js';
+import {
+  CLX_MULTICAST_ADDRESS,
+  CLX_PORT,
+  CLX_SERVER_PORT,
+} from './constants.js';
 import { decode } from '@msgpack/msgpack';
 import {
   CLX_CONTROL_PACKET,
@@ -121,10 +125,15 @@ export type ClxClient = {
   destroy: () => void;
 };
 
-export const createClxClient = (config: ConnectionConfig): ClxClient => {
+export type ClxClientConfig = ConnectionConfig & {
+  multicast: boolean;
+};
+
+export const createClxClient = (config: ClxClientConfig): ClxClient => {
   const events = new EventEmitter<ClxEventMap>();
 
   let receiveSocket: Socket | null = null;
+  let multicastInterface: string | null = null;
 
   let destroyed = false;
 
@@ -162,9 +171,21 @@ export const createClxClient = (config: ConnectionConfig): ClxClient => {
   };
 
   const cleanupSockets = () => {
-    receiveSocket?.close();
-    receiveSocket = null;
-    connectPromise = null;
+    try {
+      if (config.multicast && multicastInterface) {
+        receiveSocket?.dropMembership(
+          CLX_MULTICAST_ADDRESS,
+          multicastInterface,
+        );
+        multicastInterface = null;
+      }
+      receiveSocket?.close();
+      receiveSocket = null;
+      connectPromise = null;
+    } catch (cause) {
+      const error = new Error('Error cleaning up sockets', { cause });
+      events.emit('error', error);
+    }
   };
 
   const handlePacket = (packet: Buffer, source: RemoteInfo) => {
@@ -234,16 +255,29 @@ export const createClxClient = (config: ConnectionConfig): ClxClient => {
     }
 
     const iface = await getInterface();
-    const bindAddress =
-      iface.internal || process.platform === 'win32'
+    const bindAddress = config.multicast
+      ? '0.0.0.0'
+      : iface.internal || process.platform === 'win32'
         ? iface.address
         : iface.broadcastAddress;
     const socket = createSocket({ type: 'udp4', reuseAddr: true });
-    receiveSocket = socket;
     socket.on('message', handlePacket);
 
     try {
       await bindSocket(socket, config.port ?? CLX_PORT, bindAddress);
+      receiveSocket = socket;
+      if (config.multicast && config.type === 'interface') {
+        try {
+          receiveSocket.addMembership(CLX_MULTICAST_ADDRESS, iface.address);
+          multicastInterface = iface.address;
+        } catch (cause) {
+          const error = new Error(
+            `Failed to join multicast group ${CLX_MULTICAST_ADDRESS} on interface ${config.interface} (${iface.address})`,
+            { cause },
+          );
+          throw error;
+        }
+      }
     } catch (error) {
       if (receiveSocket === socket) {
         receiveSocket = null;

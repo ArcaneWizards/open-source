@@ -54,6 +54,11 @@ const MULTI_SENDER_SUPPORT_OPTIONS: SelectOption<InputMultiSenderSupport>[] = [
   { label: 'By Host & Port', value: 'by-ip-and-port' },
 ];
 
+const ENABLED_OPTIONS: SelectOption<'true' | 'false'>[] = [
+  { label: 'Enabled', value: 'true' },
+  { label: 'Disabled', value: 'false' },
+];
+
 const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
   type,
   data,
@@ -132,6 +137,21 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
               updateSettings((current) => ({
                 ...current,
                 multiSender: value,
+              }));
+            }}
+            position="both"
+            variant="large"
+            triggerClassName={cn('text-sigil-control')}
+          />
+          <ControlLabel>Multicast</ControlLabel>
+          <ControlSelect
+            value={data.type === 'clx' && data.multicast ? 'true' : 'false'}
+            options={ENABLED_OPTIONS}
+            placeholder="No Interface Selected"
+            onChange={(value) => {
+              updateSettings((current) => ({
+                ...current,
+                multicast: value === 'true',
               }));
             }}
             position="both"
@@ -293,6 +313,7 @@ const getDefaultInputConfigDefinition = (
         iface: '',
         port: undefined,
         multiSender: 'by-ip-and-port',
+        multicast: false,
       };
     case 'tcnet':
       return {
