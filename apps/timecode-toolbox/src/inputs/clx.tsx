@@ -180,7 +180,10 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
       }));
     });
 
-    monitor.on('server-disconnected', ({ host }) => {
+    monitor.on('server-disconnected', ({ host, port }) => {
+      log.info(
+        `Host ${host}:${port} has timed-out, removing from timecode group`,
+      );
       if (multiSender === 'off') {
         timecodeGroup = {
           ...timecodeGroup,
@@ -198,9 +201,6 @@ const ClxInputConnection: FC<ClxInputConnectionProps> = ({
           timecodes: rest,
         };
       }
-      log.info(
-        `Host ${host}:${port} has timed-out, removing from timecode group`,
-      );
       setConnection({
         ...connectionConfig,
         status: 'active',
