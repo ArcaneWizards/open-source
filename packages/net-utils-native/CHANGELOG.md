@@ -1,6 +1,6 @@
-# @arcanewizards/net-utils
+# @arcanewizards/net-utils-native
 
-## 0.3.0
+## 0.2.0
 
 ### Minor Changes
 
@@ -25,37 +25,3 @@
 
   This is considered a breaking change for `@arcanewizards/net-utils`,
   but given that it's still pre-v1, we're doing a minor version bump.
-
-### Patch Changes
-
-- b3238bb: Introduce bindSocket utility function
-
-  Migrate the `bindSocket` utility function from the artnet package.
-
-## 0.2.0
-
-### Minor Changes
-
-- a660b9e: Introduce ensureLocalNetworkAccess
-
-  This utility function currently only impacts MacOS,
-  ensuring that a call to bonjour is made
-  (forcing a local network access request)
-
-## 0.1.3
-
-### Patch Changes
-
-- 7ddc46b: Include license in package files
-
-## 0.1.2
-
-### Patch Changes
-
-- aadf8ef: Introduce README
-
-## 0.1.1
-
-### Patch Changes
-
-- Initial version publication from Actions
