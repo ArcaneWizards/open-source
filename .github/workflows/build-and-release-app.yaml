@@ -280,7 +280,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: needs.pre-release-checks.outputs.require_desktop_release == 'true' && inputs.release == 'true'
+    if: needs.pre-release-checks.outputs.require_desktop_release == 'true' && inputs.release
     needs: [pre-release-checks, build-macos, build-windows]
     permissions:
       contents: write
