@@ -19,7 +19,7 @@ on:
         required: false
         type: boolean
       arch:
-        required: false
+        required: true
         type: string
       # Should the workflow always report build-<os> jobs, even if they are skipped
       # for the purpose of repository branch protection rules, etc..
