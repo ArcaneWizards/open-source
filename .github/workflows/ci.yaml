@@ -67,4 +67,5 @@ jobs:
       notarize: ${{ github.ref_name == 'main' }}
       release: ${{ github.ref_name == 'main' }}
       require_os_jobs: true
+      arch: all
     secrets: inherit
