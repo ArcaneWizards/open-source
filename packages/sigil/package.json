@@ -140,6 +140,12 @@
       "import": "./dist/updates.js",
       "require": "./dist/updates.cjs"
     },
+    "./util": {
+      "@arcanewizards/source": "./src/util.ts",
+      "types": "./dist/util.d.ts",
+      "import": "./dist/util.js",
+      "require": "./dist/util.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [
