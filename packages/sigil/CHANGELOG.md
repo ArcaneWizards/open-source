@@ -1,5 +1,27 @@
 # @arcanewizards/sigil
 
+## 0.4.0
+
+### Minor Changes
+
+- e5bf408: [breaking] Improve efficiency of internal log handling
+
+  Switch from using Array to FiFo for log storage,
+  which allows for O(1) log appending and retrieval.
+
+  This also decreases the limit for the default number of entries to 100.
+
+  As part of this, breaking changes have been made to the API,
+  however if the default App-Shell is being used directly,
+  it should not require any code changes.
+
+### Patch Changes
+
+- e5bf408: Limit the maximum number of log entries displayed in frontend to 100
+- Updated dependencies [b3238bb]
+- Updated dependencies [271713b]
+  - @arcanewizards/net-utils@0.3.0
+
 ## 0.3.1
 
 ### Patch Changes

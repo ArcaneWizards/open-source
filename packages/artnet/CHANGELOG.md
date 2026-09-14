@@ -1,5 +1,18 @@
 # @arcanewizards/artnet
 
+## 0.1.8
+
+### Patch Changes
+
+- b3238bb: Use new `bindSocket` utility from net-utils
+
+  Use the newly migrated shared `bindSocket` function from `net-utils` instead
+  of independently declaring it in the `artnet` and `tcnet` packages.
+
+- Updated dependencies [b3238bb]
+- Updated dependencies [271713b]
+  - @arcanewizards/net-utils@0.3.0
+
 ## 0.1.7
 
 ### Patch Changes
