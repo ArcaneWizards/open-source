@@ -20,6 +20,8 @@ type LoadedLogs = {
   logs: AppRootLogEntry[];
 };
 
+const MAX_LOGS = 100;
+
 export const AppRoot = <TBrowserContext extends BaseBrowserContext>({
   info,
   browser,
@@ -45,7 +47,7 @@ export const AppRoot = <TBrowserContext extends BaseBrowserContext>({
 
       setLogs({
         lastLog,
-        logs: [...logs.logs, ...newLogs],
+        logs: [...logs.logs, ...newLogs].slice(-MAX_LOGS),
       });
     });
   }, [call, debugMode, info.key, lastLog, logs]);

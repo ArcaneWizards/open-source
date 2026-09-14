@@ -1,4 +1,11 @@
-import React, { JSX, ReactNode, useEffect, useMemo, useState } from 'react';
+import React, {
+  JSX,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { SIGIL_COMPONENTS } from './backend/app-root';
 import {
   AppInformationContext,
@@ -10,6 +17,7 @@ import {
 import { AppRootLogEntry } from './shared/types';
 import { createSystemInformation, SigilLogEventEmitter } from './runtime';
 import { Logger } from '@arcanejs/protocol/logging';
+import { FiFo } from './util';
 
 export type AppShellProps = {
   title: string;
@@ -32,13 +40,21 @@ export const AppShell = ({
   children,
   extraSystemInformation,
 }: AppShellProps): JSX.Element => {
-  const [logs, setLogs] = useState<AppRootLogEntry[]>([]);
-
-  const lastLogIndex = logs[logs.length - 1]?.index ?? -1;
+  const logsRef = useRef<FiFo<AppRootLogEntry>>(null);
+  const [lastLogIndex, setLastLogIndex] = useState<number>(-1);
 
   useEffect(() => {
-    const listener = ({ logs }: { logs: AppRootLogEntry[] }) =>
-      setImmediate(() => setLogs(logs));
+    const listener = ({
+      lastLogIndex,
+      logs,
+    }: {
+      lastLogIndex: number;
+      logs: FiFo<AppRootLogEntry>;
+    }) =>
+      setImmediate(() => {
+        setLastLogIndex(lastLogIndex);
+        logsRef.current = logs;
+      });
     logEventEmitter.addListener('logsUpdated', listener);
     return () => {
       logEventEmitter.removeListener('logsUpdated', listener);
@@ -69,7 +85,11 @@ export const AppShell = ({
             system={system}
             onGetLogs={async ({ after }) => {
               return {
-                logs: logs.filter((log) => log.index > after),
+                logs: [
+                  ...(logsRef.current?.filterIterator(
+                    (log) => log.index > after,
+                  ) ?? []),
+                ],
               };
             }}
           >

@@ -22,6 +22,7 @@ export default defineConfig({
     'src/frontend/utils.tsx',
     'src/updates.tsx',
     'src/shared/config.ts',
+    'src/util.ts',
   ],
   format: ['cjs', 'esm'],
   splitting: true,

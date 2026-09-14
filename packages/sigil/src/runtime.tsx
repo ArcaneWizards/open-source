@@ -13,11 +13,12 @@ import {
   AppRootLogEntryStackFrame,
   SystemInformation,
 } from './shared/types';
+import { FiFo } from './util';
 
-const MAX_LOG_ENTRIES = 1000;
+const MAX_LOG_ENTRIES = 100;
 
 export type SigilLogEventEmitter = EventEmitter<{
-  logsUpdated: [{ logs: AppRootLogEntry[] }];
+  logsUpdated: [{ lastLogIndex: number; logs: FiFo<AppRootLogEntry> }];
 }>;
 
 export type SigilRuntimeAppProps<
@@ -116,15 +117,14 @@ export const runSigilApp = <TAppApi, TExtraAppProps extends object>({
   createApp,
   componentNamespaces = [CoreComponents, SIGIL_COMPONENTS],
 }: SigilRuntimeOptions<TAppApi, TExtraAppProps>): SigilAppInstance<TAppApi> => {
-  let logs: AppRootLogEntry[] = [];
+  const logs = new FiFo<AppRootLogEntry>(MAX_LOG_ENTRIES);
 
   const logEventEmitter: SigilLogEventEmitter = new EventEmitter();
 
   const addLogEntry = (entry: Omit<AppRootLogEntry, 'index'>) => {
-    const index = (logs[logs.length - 1]?.index ?? -1) + 1;
-    const trimEntries = Math.max(0, logs.length - MAX_LOG_ENTRIES + 1);
-    logs = [...logs.slice(trimEntries), { index, ...entry }];
-    logEventEmitter.emit('logsUpdated', { logs });
+    const index = (logs.tail()?.index ?? -1) + 1;
+    logs.enqueue({ index, ...entry });
+    logEventEmitter.emit('logsUpdated', { lastLogIndex: index, logs });
   };
 
   const logError = (level: 'error' | 'warn', rootMsg: string | Error) => {

@@ -291,9 +291,18 @@ export const createClxTimecodeMonitor = (
       deckState.unchangedPositionSince = null;
     }
 
+    /**
+     * There are multiple ways we need to account for detecting if a deck is
+     * paused or not.
+     *
+     * - With Server + Serato, when a deck is paused, the pitch will be 0.
+     * - With Gateway + CDJs, the pitch will remain at what's configured by the
+     *   tempo slider.
+     */
     const isPaused =
-      deckState.unchangedPositionSince !== null &&
-      now - deckState.unchangedPositionSince > DECK_PAUSED_AFTER_MS;
+      packet.Pitch === 0 ||
+      (deckState.unchangedPositionSince !== null &&
+        now - deckState.unchangedPositionSince > DECK_PAUSED_AFTER_MS);
 
     if (isPaused || !isPlayingNormally || !deckState.isPlayingNormally) {
       // Duplicate position for 2 frames, deck is paused
@@ -301,7 +310,6 @@ export const createClxTimecodeMonitor = (
         state: 'stopped',
         currentTimeMillis,
         onAir,
-        /** TODO: check this */
         speed: packet.Pitch,
       };
     } else {
@@ -320,7 +328,12 @@ export const createClxTimecodeMonitor = (
       emit = true;
     }
 
-    if (deckState.last.totalTime?.timeMillis !== totalTimeMillis) {
+    if (totalTimeMillis === 0) {
+      if (deckState.last.totalTime !== null) {
+        deckState.last.totalTime = null;
+        emit = true;
+      }
+    } else if (deckState.last.totalTime?.timeMillis !== totalTimeMillis) {
       deckState.last.totalTime = {
         timeMillis: totalTimeMillis,
         precisionMillis: 1,
