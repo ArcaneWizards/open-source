@@ -89,6 +89,7 @@ const INPUT_CLX_DEFINITION = z.object({
   port: z.number().optional(),
   multiSender:
     INPUT_MULTI_SENDER_SUPPORT_DEFINITION.optional().default('by-ip-and-port'),
+  multicast: z.boolean().optional().default(false),
 });
 
 export type InputClxDefinition = z.infer<typeof INPUT_CLX_DEFINITION>;
