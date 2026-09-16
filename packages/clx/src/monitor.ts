@@ -336,7 +336,15 @@ export const createClxTimecodeMonitor = (
     } else if (deckState.last.totalTime?.timeMillis !== totalTimeMillis) {
       deckState.last.totalTime = {
         timeMillis: totalTimeMillis,
-        precisionMillis: 1,
+        /**
+         * Precision depends on the source in question,
+         * for Server + Serato, this is accurate to roughly 100ms,
+         * for Gateway with the internal, it's sample-accurate (so < 1ms).
+         *
+         * To make sure we have the highest change of matching the same tracks
+         * across different sources, we will use a precision of 150ms.
+         */
+        precisionMillis: 150,
       };
       emit = true;
     }
