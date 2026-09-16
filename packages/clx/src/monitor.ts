@@ -403,6 +403,15 @@ export const createClxTimecodeMonitor = (
     for (const [hostId, hostState] of Object.entries(stateByHost)) {
       const { host, port } = hostState;
       if (now - hostState.lastReceivedAt > TIMEOUT_MS) {
+        // Fire a deck disconnected event for each deck that was connected
+        for (const deck of Object.keys(hostState.decks)) {
+          events.emit('deck-disconnected', {
+            host,
+            port,
+            deck: Number(deck),
+          });
+        }
+
         delete stateByHost[hostId];
         events.emit('server-disconnected', { host, port });
         continue;
