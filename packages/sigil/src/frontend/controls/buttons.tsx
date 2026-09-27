@@ -310,8 +310,8 @@ export const ControlButtonGroup = forwardRef<
     ref={ref}
     className={cn(
       `
-        flex items-stretch gap-sigil-control-gap
-        [&>button]:grow
+        flex items-stretch gap-px
+        [&>button]:grow p-[2px] bg-sigil-border
       `,
       clsControlPosition(position),
       className,

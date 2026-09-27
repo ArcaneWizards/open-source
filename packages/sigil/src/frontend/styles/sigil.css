@@ -52,7 +52,7 @@
     white-space: nowrap;
     gap: calc(var(--arcane-spacing) / 3);
     background: var(--sigil-control-button-bg);
-    border: 1px solid var(--sigil-control-button-border);
+    border: 2px solid var(--sigil-control-button-border);
   }
 
   &:focus {
@@ -221,7 +221,7 @@
    * These must be here rather than root because they need to make use of
    * the theme variables defined on this element.
    */
-  --sigil-control-button-bg: transparent;
+  --sigil-control-button-bg: var(--sigil-bg-dark);
   --sigil-control-button-bg-hover: var(--sigil-border);
   --sigil-control-button-bg-active: var(--sigil-bg-light);
   --sigil-control-button-fg: var(--sigil-foreground);

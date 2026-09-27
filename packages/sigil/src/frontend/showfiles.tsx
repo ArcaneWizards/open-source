@@ -758,7 +758,7 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
                 </TooltipWrapper>
                 <ControlButtonGroup
                   className="
-                    sigil-grid-pos-controls bg-sigil-bg-dark
+                    sigil-grid-pos-controls
                     group-hover:bg-sigil-bg-light
                   "
                 >

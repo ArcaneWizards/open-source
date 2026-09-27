@@ -987,10 +987,10 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
                 </div>
               </div>
             </div>
-            <ControlButtonGroup className="rounded-md bg-sigil-bg-light">
+            <ControlButtonGroup>
               {openOutputDeviceDialog && (
                 <ControlButton
-                  variant="toolbar"
+                  variant="large"
                   icon="volume_up"
                   title={STRINGS.audio.outputSettings}
                   onClick={openOutputDeviceDialog}
@@ -1000,7 +1000,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               )}
               {openInputDeviceDialog && (
                 <ControlButton
-                  variant="toolbar"
+                  variant="large"
                   icon="mic"
                   title={STRINGS.audio.inputSettings}
                   onClick={openInputDeviceDialog}
@@ -1008,14 +1008,14 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               )}
               {closeOrClear && (
                 <ControlButton
-                  variant="toolbar"
+                  variant="large"
                   icon="close"
                   title={closeOrClear.tooltip}
                   onClick={closeOrClear.call}
                 />
               )}
               <ControlButton
-                variant="toolbar"
+                variant="large"
                 icon="open_in_new"
                 title={STRINGS.openInNewWindow}
                 onClick={openInNewWindow}
