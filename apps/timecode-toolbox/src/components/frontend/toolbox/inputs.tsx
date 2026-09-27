@@ -449,7 +449,7 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
         <ControlColorSelect
           position="both"
           color={data.color ?? ''}
-          variant="standard"
+          variant="large"
           placeholder="Default"
           onChange={(color) => {
             updateSettings((current) => ({
@@ -586,7 +586,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
       buttons={
         <>
           <ControlButton
-            variant="large"
+            variant="group"
             title={
               config.enabled ? STRINGS.inputs.disable : STRINGS.inputs.enable
             }
@@ -594,7 +594,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
             icon={config.enabled ? 'pause' : 'play_arrow'}
           />
           <ControlButton
-            variant="large"
+            variant="group"
             title={STRINGS.inputs.edit}
             onClick={() =>
               setDialogMode({
@@ -673,7 +673,7 @@ export const InputsSection: FC<InputSectionProps> = ({
       ) : (
         <div
           className="
-            grid grow grid-cols-1 gap-px
+            grid grow grid-cols-1 gap-[2px]
             min-[800px]:grid-cols-2
             min-[1200px]:grid-cols-3
           "

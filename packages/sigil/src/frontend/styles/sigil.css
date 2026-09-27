@@ -4,29 +4,53 @@
 @import './base.css';
 
 @theme inline {
+  --color-sigil-dialog-foreground: var(--color-sigil-foreground);
   /*
    * Any component-specific tailwind tokens
    */
-  --color-sigil-dialog-foreground: var(--arcane-text-normal);
-  --color-sigil-control-button-bg: var(--sigil-control-button-bg);
-  --color-sigil-control-button-bg-hover: var(--sigil-control-button-bg-hover);
-  --color-sigil-control-button-bg-active: var(--sigil-control-button-bg-active);
+  --background-image-sigil-control-button-bg: var(--sigil-control-button-bg);
+  --background-image-sigil-control-button-bg-hover: var(
+    --sigil-control-button-bg-hover
+  );
+  --background-image-sigil-control-button-bg-active: var(
+    --sigil-control-button-bg-active
+  );
   --color-sigil-control-button-fg: var(--sigil-control-button-fg);
   --color-sigil-control-button-fg-hover: var(--sigil-control-button-fg-hover);
   --color-sigil-control-button-fg-active: var(--sigil-control-button-fg-active);
-  --color-sigil-control-button-border: var(--sigil-control-button-border);
-  --color-sigil-control-button-border-hover: var(
-    --sigil-control-button-border-hover
-  );
-  --color-sigil-control-button-border-active: var(
-    --sigil-control-button-border-active
-  );
 }
 
 @utility backdrop-sigil-dialog {
   &::backdrop {
     background: rgb(0 0 0 / 50%);
   }
+}
+
+@utility sigil-control-button-group {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  background: var(--sigil-border);
+  border-radius: var(--sigil-control-button-border-radius);
+  padding: 2px;
+
+  --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 6)
+    calc(var(--arcane-spacing) / 3);
+  --sigil-control-button-border-radius-group: calc(
+    var(--sigil-control-button-border-radius) - 2px
+  );
+
+  & > button {
+    --sigil-control-button-border-radius: var(
+      --sigil-control-button-border-radius-group
+    );
+    flex-grow: 1;
+  }
+}
+
+@utility sigil-control-button-group-variant-large {
+  --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 3)
+    calc(var(--arcane-spacing) / 1.5);
 }
 
 @utility sigil-control-button {
@@ -42,34 +66,34 @@
   flex-basis: 0;
 
   & > span {
+    flex-grow: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-grow: 1;
-    border-radius: 2px;
+    border-radius: var(--sigil-control-button-border-radius);
     padding: calc(var(--arcane-spacing) / 6) calc(var(--arcane-spacing) / 3);
     overflow: hidden;
     white-space: nowrap;
     gap: calc(var(--arcane-spacing) / 3);
+    background: var(--sigil-button-bg);
+    box-shadow:
+      inset 0 1px 1px var(--sigil-shadow-emboss-highlight),
+      inset 0 -1px 0 var(--sigil-shadow-emboss-dark);
     background: var(--sigil-control-button-bg);
-    border: 1px solid var(--sigil-control-button-border);
+    border: 2px solid var(--sigil-border);
   }
 
   &:focus {
     > span {
       background: var(--sigil-control-button-bg-hover);
       color: var(--sigil-control-button-fg-hover);
-      border-color: var(--sigil-control-button-border-hover);
     }
   }
 
   &:hover {
-    border-color: var(--sigil-foreground-highlight);
-
     > span {
       background: var(--sigil-control-button-bg-hover);
       color: var(--sigil-control-button-fg-hover);
-      border-color: var(--sigil-control-button-border-hover);
     }
   }
 
@@ -79,12 +103,9 @@
 
     &:hover,
     &:focus {
-      border-color: transparent;
-
       > span {
-        background: none;
+        background: var(--sigil-control-button-bg);
         color: inherit;
-        border-color: transparent;
       }
     }
   }
@@ -96,7 +117,6 @@
   > span {
     background: var(--sigil-control-button-bg-hover);
     color: var(--sigil-control-button-fg-hover);
-    border-color: var(--sigil-control-button-border-hover);
   }
 }
 
@@ -106,14 +126,16 @@
   > span {
     background: var(--sigil-control-button-bg-active);
     color: var(--sigil-control-button-fg-active);
-    border-color: var(--sigil-control-button-border-active);
+    box-shadow:
+      inset 0 1px 1px var(--sigil-shadow-emboss-dark),
+      inset 0 -1px 0 var(--sigil-shadow-emboss-highlight);
   }
 
   &:hover,
   &:focus {
     > span {
       color: var(--sigil-control-button-fg-active);
-      background: var(--sigil-control-button-bg-hover);
+      background: var(--sigil-control-button-bg-active-hover);
     }
   }
 }
@@ -131,9 +153,6 @@
   --sigil-control-button-fg: var(--sigil-usage-hint-text);
   --sigil-control-button-fg-hover: var(--sigil-usage-hint-text);
   --sigil-control-button-fg-active: var(--sigil-usage-hint-text);
-  --sigil-control-button-border: transparent;
-  --sigil-control-button-border-hover: transparent;
-  --sigil-control-button-border-active: transparent;
 }
 
 @utility sigil-control-button-destructive {
@@ -143,13 +162,30 @@
   --sigil-control-button-fg: var(--sigil-usage-red-text);
   --sigil-control-button-fg-hover: var(--sigil-usage-red-text);
   --sigil-control-button-fg-active: var(--sigil-usage-red-text);
-  --sigil-control-button-border: transparent;
-  --sigil-control-button-border-hover: transparent;
-  --sigil-control-button-border-active: transparent;
 }
 
 @utility sigil-control-button-variant-border {
   border-top-width: 2px;
+}
+
+@utility sigil-control-button-variant-group {
+  padding: 0;
+
+  > span {
+    padding: var(--sigil-control-button-group-padding);
+    border-radius: 0;
+    border: 0;
+  }
+
+  &:first-child > span {
+    border-top-left-radius: var(--sigil-control-button-border-radius);
+    border-bottom-left-radius: var(--sigil-control-button-border-radius);
+  }
+
+  &:last-child > span {
+    border-top-right-radius: var(--sigil-control-button-border-radius);
+    border-bottom-right-radius: var(--sigil-control-button-border-radius);
+  }
 }
 
 @utility sigil-control-button-variant-large {
@@ -221,13 +257,15 @@
    * These must be here rather than root because they need to make use of
    * the theme variables defined on this element.
    */
-  --sigil-control-button-bg: transparent;
-  --sigil-control-button-bg-hover: var(--sigil-border);
-  --sigil-control-button-bg-active: var(--sigil-bg-light);
+  --sigil-control-button-bg: var(--arcane-gradient-button);
+  --sigil-control-button-bg-hover: var(--arcane-gradient-button-hover);
+  --sigil-control-button-bg-active: var(--arcane-gradient-button-active);
+  --sigil-control-button-bg-active-hover: var(
+    --arcane-gradient-button-pressed-hover
+  );
   --sigil-control-button-fg: var(--sigil-foreground);
   --sigil-control-button-fg-hover: var(--sigil-foreground-highlight);
   --sigil-control-button-fg-active: var(--sigil-usage-hint-foreground);
-  --sigil-control-button-border: transparent;
-  --sigil-control-button-border-hover: var(--sigil-border);
-  --sigil-control-button-border-active: var(--sigil-bg-light);
+
+  --sigil-control-button-border-radius: 4px;
 }

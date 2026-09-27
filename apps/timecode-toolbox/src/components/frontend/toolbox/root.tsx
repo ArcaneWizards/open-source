@@ -515,7 +515,7 @@ export const ToolboxRoot: FC<Props> = ({ info }) => {
             <>
               <div
                 className="
-                  flex h-0 grow flex-col gap-px overflow-y-auto bg-sigil-border
+                  flex h-0 grow flex-col gap-[2px] overflow-y-auto bg-sigil-border
                   scrollbar-sigil
                 "
               >

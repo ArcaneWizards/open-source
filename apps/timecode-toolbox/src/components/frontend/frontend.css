@@ -106,3 +106,10 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+@utility size-aware-text-emboss {
+  --shadow-distance: min(calc(var(--size-aware-div-height) / 30), 2px);
+  text-shadow:
+    0 var(--shadow-distance) 2px var(--sigil-shadow-emboss-highlight),
+    0 calc(var(--shadow-distance) * -1) 2px var(--sigil-shadow-emboss-dark);
+}

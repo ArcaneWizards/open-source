@@ -442,7 +442,7 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
         <ControlColorSelect
           position="both"
           color={data.color ?? ''}
-          variant="standard"
+          variant="large"
           placeholder="Default"
           onChange={(color) => {
             updateSettings((current) => ({
@@ -629,7 +629,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         buttons={
           <>
             <ControlButton
-              variant="large"
+              variant="group"
               title={
                 config.enabled
                   ? STRINGS.outputs.disable
@@ -639,14 +639,14 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
               icon={config.enabled ? 'pause' : 'play_arrow'}
             />
             <ControlButton
-              variant="large"
+              variant="group"
               title={STRINGS.outputs.link}
               active={assignToOutput === uuid}
               onClick={linkCallback}
               icon={config.link ? 'link' : 'link_off'}
             />
             <ControlButton
-              variant="large"
+              variant="group"
               title={STRINGS.outputs.edit}
               onClick={() =>
                 setDialogMode({
@@ -743,7 +743,7 @@ export const OutputsSection: FC<OutputSectionProps> = ({
       ) : (
         <div
           className="
-            grid grow grid-cols-1 gap-px
+            grid grow grid-cols-1 gap-[2px]
             min-[800px]:grid-cols-2
             min-[1200px]:grid-cols-3
           "

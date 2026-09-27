@@ -39,6 +39,13 @@
   /* Font / Text */
   --text-sigil-control: var(--sigil-control-font-size);
 
+  /* Background Gradients */
+  --background-image-sigil-raised: linear-gradient(
+    to bottom,
+    var(--sigil-bg-light),
+    var(--sigil-bg-dark)
+  );
+
   /* Colors */
   --color-sigil-bg-dark-1: var(--sigil-bg-dark-1);
   --color-sigil-bg-light-2: var(--sigil-bg-light-2);

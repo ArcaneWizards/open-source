@@ -1,6 +1,9 @@
 import { FC, useCallback, useContext } from 'react';
 
-import { ControlButton } from '@arcanewizards/sigil/frontend/controls';
+import {
+  ControlButton,
+  ControlButtonGroup,
+} from '@arcanewizards/sigil/frontend/controls';
 
 import { HELP_AND_SUPPORT_URL, STRINGS } from '../constants';
 import { TimecodeToolboxLogo } from './logo';
@@ -50,23 +53,25 @@ export const License: FC<LicenseProps> = ({ eula, setWindowMode }) => {
         <TimecodeToolboxLogo className="h-[20%] max-h-[420px] min-h-[110px] w-full" />
         <LicenseContent eula={eula} />
         <div className="flex justify-center p-2">
-          <ControlButton
-            onClick={() => setWindowMode(null)}
-            variant="large"
-            icon="close"
-          >
-            {STRINGS.close(STRINGS.license)}
-          </ControlButton>
-          <ControlButton
-            onClick={(e) => {
-              e.preventDefault();
-              openExternalLink(HELP_AND_SUPPORT_URL);
-            }}
-            variant="large"
-            icon="help"
-          >
-            {STRINGS.helpAndSupport}
-          </ControlButton>
+          <ControlButtonGroup variant="large">
+            <ControlButton
+              onClick={() => setWindowMode(null)}
+              variant="group"
+              icon="close"
+            >
+              {STRINGS.close(STRINGS.license)}
+            </ControlButton>
+            <ControlButton
+              onClick={(e) => {
+                e.preventDefault();
+                openExternalLink(HELP_AND_SUPPORT_URL);
+              }}
+              variant="group"
+              icon="help"
+            >
+              {STRINGS.helpAndSupport}
+            </ControlButton>
+          </ControlButtonGroup>
         </div>
       </div>
     </div>

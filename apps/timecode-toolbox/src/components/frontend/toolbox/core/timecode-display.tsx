@@ -229,7 +229,7 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
     <div
       ref={ref}
       className={cn(
-        'group w-full border border-timecode-usage-foreground p-px',
+        'group w-full border border-timecode-usage-foreground p-px mt-1',
         cnd(
           seekAbsolute,
           `
@@ -260,6 +260,7 @@ export type TimecodeDisplayProps = {
   timecode: TimecodeInstance;
   config: UniversalConfig;
   headerComponents?: React.ReactNode;
+  secondaryHeaderComponents?: React.ReactNode;
   disabled: boolean;
   rootState: {
     errors: string[];
@@ -274,6 +275,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   timecode: { state, metadata },
   config,
   headerComponents,
+  secondaryHeaderComponents,
   disabled,
   rootState,
   loadFile,
@@ -398,7 +400,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
   );
 
   return (
-    <div className="flex grow flex-col gap-px">
+    <div className="flex grow flex-col gap-[2px]">
       {loadFile && (
         <input
           ref={fileRef}
@@ -414,17 +416,22 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           cnd(
             state?.state === 'lagging',
             'bg-sigil-usage-red-background text-sigil-usage-red-text',
-            'bg-sigil-bg-light text-timecode-usage-foreground',
+            'bg-sigil-raised text-timecode-usage-foreground',
           ),
         )}
       >
         {headerComponents && (
-          <div className="flex gap-0.25">{headerComponents}</div>
+          <div className="flex gap-0.25 items-center">{headerComponents}</div>
+        )}
+        {secondaryHeaderComponents && (
+          <div className="flex gap-0.25 items-center">
+            {secondaryHeaderComponents}
+          </div>
         )}
         <div className="flex min-h-timecode-min-height grow">
           {ltc?.state === 'here' && <AudioVisualizer ctx={ltc.ctx} />}
           <SizeAwareDiv
-            className="relative min-h-timecode-min-height grow"
+            className="relative min-h-timecode-min-height grow my-1"
             onClick={clickAction}
           >
             <div
@@ -457,7 +464,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
                   )}
                 />
               )}
-              <span className="font-mono text-timecode-adaptive">
+              <span className="font-mono text-timecode-adaptive size-aware-text-emboss">
                 {disabled ? (
                   <Icon icon="pause" className="text-timecode-adaptive" />
                 ) : ltc?.state === null && ltc ? (
@@ -492,56 +499,58 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
           </SizeAwareDiv>
         </div>
         {hooks?.pause || hooks?.play ? (
-          <div className="flex justify-center gap-px">
-            {hooks.beginning && (
-              <ControlButton
-                onClick={beginning}
-                variant="large"
-                icon="skip_previous"
-                disabled={!hooks?.beginning}
-                title={STRINGS.controls.beginning}
-                className="text-timecode-usage-foreground!"
-              />
-            )}
-            {hooks.seekRelative && (
-              <ControlButton
-                onClick={back5seconds}
-                variant="large"
-                icon="replay_5"
-                disabled={!hooks?.seekRelative}
-                title={STRINGS.controls.back5seconds}
-                className="text-timecode-usage-foreground!"
-              />
-            )}
-            {state.state === 'none' || state.state === 'stopped' ? (
-              <ControlButton
-                onClick={play}
-                variant="large"
-                icon="play_arrow"
-                disabled={!hooks?.play}
-                title={STRINGS.controls.play}
-                className="text-timecode-usage-foreground!"
-              />
-            ) : (
-              <ControlButton
-                onClick={pause}
-                variant="large"
-                icon="pause"
-                disabled={!hooks?.pause}
-                title={STRINGS.controls.pause}
-                className="text-timecode-usage-foreground!"
-              />
-            )}
-            {hooks.seekRelative && (
-              <ControlButton
-                onClick={forward5seconds}
-                variant="large"
-                icon="forward_5"
-                disabled={!hooks?.seekRelative}
-                title={STRINGS.controls.forward5seconds}
-                className="text-timecode-usage-foreground!"
-              />
-            )}
+          <div className="flex justify-center">
+            <ControlButtonGroup variant="large">
+              {hooks.beginning && (
+                <ControlButton
+                  onClick={beginning}
+                  variant="group"
+                  icon="skip_previous"
+                  disabled={!hooks?.beginning}
+                  title={STRINGS.controls.beginning}
+                  className="text-timecode-usage-foreground!"
+                />
+              )}
+              {hooks.seekRelative && (
+                <ControlButton
+                  onClick={back5seconds}
+                  variant="group"
+                  icon="replay_5"
+                  disabled={!hooks?.seekRelative}
+                  title={STRINGS.controls.back5seconds}
+                  className="text-timecode-usage-foreground!"
+                />
+              )}
+              {state.state === 'none' || state.state === 'stopped' ? (
+                <ControlButton
+                  onClick={play}
+                  variant="group"
+                  icon="play_arrow"
+                  disabled={!hooks?.play}
+                  title={STRINGS.controls.play}
+                  className="text-timecode-usage-foreground!"
+                />
+              ) : (
+                <ControlButton
+                  onClick={pause}
+                  variant="group"
+                  icon="pause"
+                  disabled={!hooks?.pause}
+                  title={STRINGS.controls.pause}
+                  className="text-timecode-usage-foreground!"
+                />
+              )}
+              {hooks.seekRelative && (
+                <ControlButton
+                  onClick={forward5seconds}
+                  variant="group"
+                  icon="forward_5"
+                  disabled={!hooks?.seekRelative}
+                  title={STRINGS.controls.forward5seconds}
+                  className="text-timecode-usage-foreground!"
+                />
+              )}
+            </ControlButtonGroup>
           </div>
         ) : null}
         {metadata?.totalTime && (
@@ -555,11 +564,11 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
       {(state.smpteMode !== null ||
         state.accuracyMillis !== null ||
         (config.delayMs !== null && config.delayMs !== undefined)) && (
-        <div className="flex gap-px">
+        <div className="flex gap-[2px]">
           {config.delayMs !== null &&
             config.delayMs !== undefined &&
             config.delayMs !== 0 && (
-              <div className="grow basis-0 truncate bg-sigil-bg-light p-0.5">
+              <div className="grow basis-0 truncate bg-sigil-bg-dark p-0.5">
                 <span
                   className={cn(
                     cnd(
@@ -587,12 +596,12 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
               </div>
             )}
           {state.smpteMode !== null && (
-            <div className="grow basis-0 truncate bg-sigil-bg-light p-0.5">
+            <div className="grow basis-0 truncate bg-sigil-bg-dark p-0.5">
               {STRINGS.smtpeModes[state.smpteMode]}
             </div>
           )}
           {state.accuracyMillis !== null && (
-            <div className="grow basis-0 truncate bg-sigil-bg-light p-0.5">
+            <div className="grow basis-0 truncate bg-sigil-bg-dark p-0.5">
               {STRINGS.accuracy(state.accuracyMillis)}
             </div>
           )}
@@ -615,14 +624,14 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
             </>
           }
         >
-          <div className="flex gap-px">
+          <div className="flex gap-[2px]">
             {metadata.title && (
-              <div className="grow truncate bg-sigil-bg-light p-0.5 font-bold">
+              <div className="grow truncate bg-sigil-bg-dark p-0.5 font-bold">
                 {metadata.title}
               </div>
             )}
             {metadata.artist && (
-              <div className="grow truncate bg-sigil-bg-light p-0.5">
+              <div className="grow truncate bg-sigil-bg-dark p-0.5">
                 {metadata.artist}
               </div>
             )}
@@ -630,7 +639,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         </TooltipWrapper>
       ) : null}
       {errors.length > 0 && (
-        <div className="flex gap-px">
+        <div className="flex gap-[2px]">
           {errors.map((error, index) => (
             <div
               key={index}
@@ -645,7 +654,7 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         </div>
       )}
       {rootState.warnings.length > 0 && (
-        <div className="flex gap-px">
+        <div className="flex gap-[2px]">
           {rootState.warnings.map((warning, index) => (
             <div
               key={index}
@@ -897,100 +906,55 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         startPlayer={startPlayer}
         headerComponents={
           <>
-            <div className="flex grow basis-0 items-start gap-0.25">
-              <div className="relative grow">
-                <div className="absolute inset-x-0 top-0">
-                  <div className="flex items-center gap-0.25 truncate">
-                    <span
-                      className="
+            <div className="flex grow w-0 items-start gap-0.25 overflow-hidden pl-0.25">
+              <div className="flex items-center gap-0.25 truncate">
+                <span
+                  className="
                         m-0.25 rounded-md border border-sigil-bg-light
                         bg-timecode-usage-foreground px-1 py-0.25
                         text-sigil-control text-timecode-usage-text
                       "
-                    >
-                      {type}
+                >
+                  {type}
+                </span>
+                {name.length ? (
+                  <TooltipWrapper tooltip={name.join(' / ')}>
+                    <span className="truncate p-0.5 font-bold">
+                      {name.join(' / ')}
                     </span>
-                    {name.length ? (
-                      <TooltipWrapper tooltip={name.join(' / ')}>
-                        <span className="truncate p-0.5 font-bold">
-                          {name.join(' / ')}
-                        </span>
-                      </TooltipWrapper>
-                    ) : null}
-                    {allLabels.map((label, index) => (
-                      <TooltipWrapper key={index} tooltip={label.text}>
-                        <span
-                          key={index}
-                          className="
+                  </TooltipWrapper>
+                ) : null}
+                {allLabels.map((label, index) => (
+                  <TooltipWrapper key={index} tooltip={label.text}>
+                    <span
+                      key={index}
+                      className="
                             m-0.25 truncate rounded-md border
                             border-sigil-bg-light bg-sigil-foreground-muted px-1
                             py-0.25 text-sigil-control text-sigil-bg-dark
                           "
-                        >
-                          {label.text}
-                        </span>
-                      </TooltipWrapper>
-                    ))}
-                    {!name.length && (
-                      <TooltipWrapper tooltip={namePlaceholder}>
-                        <span
-                          className="
+                    >
+                      {label.text}
+                    </span>
+                  </TooltipWrapper>
+                ))}
+                {!name.length && (
+                  <TooltipWrapper tooltip={namePlaceholder}>
+                    <span
+                      className="
                             grow basis-0 truncate p-0.5 italic opacity-50
                           "
-                        >
-                          {namePlaceholder}
-                        </span>
-                      </TooltipWrapper>
-                    )}
-                  </div>
-                  {link && (
-                    <div
-                      className="
-                        flex items-center gap-0.25
-                        text-timecode-usage-foreground
-                      "
-                      style={cssSigilColorUsageVariables(
-                        'timecode-usage',
-                        // Override timecode color with the user hint preferences
-                        // when no color is specified
-                        // as that will be what's used by the linked input/generator
-                        sigilColorUsage(link.color ?? 'hint'),
-                      )}
                     >
-                      <div
-                        className="
-                          m-0.25 flex items-center gap-0.25 rounded-md border
-                          border-sigil-bg-light bg-timecode-usage-foreground
-                          px-1 py-0.25 text-sigil-control
-                          text-timecode-usage-text
-                        "
-                      >
-                        <Icon icon="link" className="text-[120%]" />
-                        <span>{link.type}</span>
-                      </div>
-                      <div
-                        className={cn(
-                          'w-0 grow truncate p-0.5',
-                          cnd(
-                            link.name.length,
-                            'font-bold',
-                            'italic opacity-50',
-                          ),
-                        )}
-                      >
-                        {link.name.length
-                          ? link.name.join(' / ')
-                          : link.namePlaceholder}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      {namePlaceholder}
+                    </span>
+                  </TooltipWrapper>
+                )}
               </div>
             </div>
-            <ControlButtonGroup className="rounded-md bg-sigil-bg-light">
+            <ControlButtonGroup>
               {openOutputDeviceDialog && (
                 <ControlButton
-                  variant="toolbar"
+                  variant="group"
                   icon="volume_up"
                   title={STRINGS.audio.outputSettings}
                   onClick={openOutputDeviceDialog}
@@ -1000,7 +964,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               )}
               {openInputDeviceDialog && (
                 <ControlButton
-                  variant="toolbar"
+                  variant="group"
                   icon="mic"
                   title={STRINGS.audio.inputSettings}
                   onClick={openInputDeviceDialog}
@@ -1008,14 +972,14 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               )}
               {closeOrClear && (
                 <ControlButton
-                  variant="toolbar"
+                  variant="group"
                   icon="close"
                   title={closeOrClear.tooltip}
                   onClick={closeOrClear.call}
                 />
               )}
               <ControlButton
-                variant="toolbar"
+                variant="group"
                 icon="open_in_new"
                 title={STRINGS.openInNewWindow}
                 onClick={openInNewWindow}
@@ -1023,6 +987,42 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
               {buttons}
             </ControlButtonGroup>
           </>
+        }
+        secondaryHeaderComponents={
+          link && (
+            <div
+              className="flex grow items-center gap-0.25 text-timecode-usage-foreground"
+              style={cssSigilColorUsageVariables(
+                'timecode-usage',
+                // Override timecode color with the user hint preferences
+                // when no color is specified
+                // as that will be what's used by the linked input/generator
+                sigilColorUsage(link.color ?? 'hint'),
+              )}
+            >
+              <div
+                className="
+                          m-0.25 flex items-center gap-0.25 rounded-md border
+                          border-sigil-bg-light bg-timecode-usage-foreground
+                          px-1 py-0.25 text-sigil-control
+                          text-timecode-usage-text
+                        "
+              >
+                <Icon icon="link" className="text-[120%]" />
+                <span>{link.type}</span>
+              </div>
+              <div
+                className={cn(
+                  'w-0 grow truncate p-0.5',
+                  cnd(link.name.length, 'font-bold', 'italic opacity-50'),
+                )}
+              >
+                {link.name.length
+                  ? link.name.join(' / ')
+                  : link.namePlaceholder}
+              </div>
+            </div>
+          )
         }
       />
       {assignToOutput && id && !isOutputInstanceId(id) && (
@@ -1313,7 +1313,7 @@ export const FullscreenTimecodeDisplay: FC<{ id: TimecodeInstanceId }> = ({
   return (
     <div
       className="
-        flex h-0 grow flex-col gap-px overflow-y-auto bg-sigil-border
+        flex h-0 grow flex-col gap-[2px] overflow-y-auto bg-sigil-border
         scrollbar-sigil
       "
     >

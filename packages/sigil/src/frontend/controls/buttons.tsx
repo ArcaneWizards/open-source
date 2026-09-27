@@ -47,6 +47,7 @@ export const controlButtonColorVariables = (
 export type ControlButtonVariant =
   | 'standard'
   | 'border'
+  | 'group'
   | 'large'
   | 'table-row'
   | 'toolbar'
@@ -107,6 +108,7 @@ export const clsControlButton = ({
   cn(
     `sigil-control-button`,
     cnd(variant === 'border', `sigil-control-button-variant-border`),
+    cnd(variant === 'group', `sigil-control-button-variant-group`),
     cnd(variant === 'large', `sigil-control-button-variant-large`),
     cnd(variant === 'properties', `sigil-control-button-variant-properties`),
     cnd(variant === 'table-row', `sigil-control-button-variant-table-row`),
@@ -299,20 +301,19 @@ LongPressableControlButton.displayName = 'LongPressableControlButton';
 
 export type ControlButtonGroupProps = ComponentPropsWithoutRef<'div'> & {
   position?: ControlPosition;
+  variant?: 'standard' | 'large';
 };
 
 export const ControlButtonGroup = forwardRef<
   HTMLDivElement,
   ControlButtonGroupProps
->(({ children, className, position, ...props }, ref) => (
+>(({ children, className, position, variant, ...props }, ref) => (
   <div
     {...props}
     ref={ref}
     className={cn(
-      `
-        flex items-stretch gap-sigil-control-gap
-        [&>button]:grow
-      `,
+      'sigil-control-button-group',
+      cnd(variant === 'large', 'sigil-control-button-group-variant-large'),
       clsControlPosition(position),
       className,
     )}

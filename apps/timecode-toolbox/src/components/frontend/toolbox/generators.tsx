@@ -332,7 +332,7 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
         <ControlColorSelect
           position="both"
           color={data.color ?? ''}
-          variant="standard"
+          variant="large"
           placeholder="Default"
           onChange={(color) => {
             updateSettings((current) => ({
@@ -449,7 +449,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
       buttons={
         <>
           <ControlButton
-            variant="large"
+            variant="group"
             title={STRINGS.generators.edit}
             onClick={() =>
               setDialogMode({
@@ -508,7 +508,7 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
       ) : (
         <div
           className="
-            grid grow grid-cols-1 gap-px
+            grid grow grid-cols-1 gap-[2px]
             min-[800px]:grid-cols-2
             min-[1200px]:grid-cols-3
           "
