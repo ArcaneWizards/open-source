@@ -38,10 +38,13 @@
     "build:styles": "tailwindcss -i ./src/components/frontend/frontend.css -o ./dist/entrypoint.css",
     "clean": "rm -rf dist",
     "check:types": "tsc --noEmit",
+    "dev": "pnpm watch:entrypoint & pnpm watch:styles & tsx watch --conditions=@arcanewizards/source src/start",
     "format:fix": "cd .. && pnpm format:fix",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "start": "pnpm build:entrypoint && pnpm build:styles && node --import=tsx --conditions=@arcanewizards/source src/start"
+    "start": "pnpm build:entrypoint && pnpm build:styles && NODE_ENV=production node --import=tsx --conditions=@arcanewizards/source src/start",
+    "watch:entrypoint": "arcane-build-frontend --watch --dev --entry src/components/frontend/entrypoint.ts --outfile dist/entrypoint.js --sourcemap",
+    "watch:styles": "tailwindcss --watch -i ./src/components/frontend/frontend.css -o ./dist/entrypoint.css"
   },
   "devDependencies": {
     "@arcanejs/build-utils": "^0.2.0",
