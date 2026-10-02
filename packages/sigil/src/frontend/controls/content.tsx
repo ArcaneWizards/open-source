@@ -22,7 +22,7 @@ export const ControlParagraph = forwardRef<
     {...props}
     ref={ref}
     className={cn(
-      'border border-transparent',
+      'm-0 border border-transparent',
       clsControlPosition(position),
       cnd(
         mode === 'success',

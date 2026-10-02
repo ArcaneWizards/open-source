@@ -21,6 +21,9 @@ const server = runTimecodeToolboxServer({
   },
   toolkitOptions: {
     entrypointJsFile: path.join(path.dirname(__dirname), 'dist/entrypoint.js'),
+    performanceCheck: {
+      minEntryThreshold: 2,
+    },
   },
   title: 'Timecode Toolbox Server',
   edition: 'cli',
