@@ -1,5 +1,11 @@
 # @arcanewizards/sigil
 
+## 0.4.1
+
+### Patch Changes
+
+- 2ccab9b: Change default margin of ControlParagraph
+
 ## 0.4.0
 
 ### Minor Changes
