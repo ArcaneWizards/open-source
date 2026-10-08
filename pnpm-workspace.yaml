@@ -11,7 +11,7 @@ minimumReleaseAgeExclude:
   - '@arcanejs/build-utils@0.2.0'
   - '@arcanejs/diff@0.6.1'
   - '@arcanejs/protocol@0.9.2'
-  - '@arcanejs/react-toolkit@0.16.4'
+  - '@arcanejs/react-toolkit@0.16.5'
   - '@arcanejs/toolkit-frontend@0.12.3'
   - '@arcanejs/toolkit@9.2.0'
   - electron@35.7.5

@@ -84,7 +84,7 @@
     "zod": "^3.25.76"
   },
   "dependencies": {
-    "@arcanejs/react-toolkit": "^0.16.4",
+    "@arcanejs/react-toolkit": "^0.16.5",
     "@arcanejs/toolkit": "^9.2.0",
     "@arcanewizards/midi": "workspace:^",
     "@arcanewizards/net-utils-native": "workspace:^",
