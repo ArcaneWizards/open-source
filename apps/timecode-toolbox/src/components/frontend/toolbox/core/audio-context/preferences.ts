@@ -15,7 +15,8 @@ const TIMECODE_PREFERENCES = z.object({
     })
     .nullable(),
   /**
-   * Only used in singleChannel mode / recording context */
+   * Only used in singleChannel mode / recording context
+   */
   channel: z.number(),
 });
 
