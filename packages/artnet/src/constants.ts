@@ -10,11 +10,11 @@ export const TIMECODE_MODES: Record<SMPTETimecodeMode, number> = {
 };
 
 /**
- * @deprecated Use `SMPTE_TIMECODE_FPS` from `@arcanewizards/smpte` instead.
+ * @deprecated Use `SMPTE_TIMECODE_FPS` from `arcanewizards/smpte` instead.
  */
 export const TIMECODE_FPS = SMPTE_TIMECODE_FPS;
 
 /**
- * @deprecated Use `TimecodeMode` from `@arcanewizards/smpte` instead.
+ * @deprecated Use `TimecodeMode` from `arcanewizards/smpte` instead.
  */
 export type TimecodeMode = SMPTETimecodeMode;

@@ -11,6 +11,7 @@ module.exports = {
     'prettier',
     'turbo',
     'plugin:react-hooks/recommended',
+    'plugin:jsdoc/recommended-typescript',
   ],
   plugins: ['jest', 'unused-imports'],
   globals: {
@@ -63,6 +64,16 @@ module.exports = {
         varsIgnorePattern: '^_',
         args: 'after-used',
         argsIgnorePattern: '^_',
+      },
+    ],
+    'jsdoc/require-param': 'off',
+    'jsdoc/require-returns': 'off',
+    'jsdoc/require-jsdoc': 'off',
+    'jsdoc/tag-lines': [
+      'warn',
+      'any',
+      {
+        startLines: 1,
       },
     ],
   },

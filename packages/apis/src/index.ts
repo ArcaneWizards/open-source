@@ -94,7 +94,10 @@ export type CheckForUpdatesRequest = z.infer<typeof CHECK_FOR_UPDATES_REQUEST>;
 
 export const CHECK_FOR_UPDATES_VERSION = z.object({
   version: z.string(),
-  /** @deprecated */
+  /**
+   *
+   * @deprecated
+   */
   releaseNotes: z.literal(''),
   notes: API_CONTENT.nullable(),
 });
