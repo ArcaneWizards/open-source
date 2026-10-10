@@ -1,7 +1,7 @@
 {
   "name": "@arcanewizards/sigil-assets",
   "description": "Static assets used by the Sigil framework, packaged separately for easier bundling",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "repository": {
