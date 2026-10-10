@@ -60,6 +60,7 @@ export const Layout = <WindowMode extends string>({
     <div className="flex h-dvh flex-col">
       <ToolbarWrapper>
         <ToolbarRow className="border-b-2">
+          <div className="w-[80px]" />
           <div
             className="
               flex h-full min-h-[36px] grow items-center justify-center px-1
