@@ -97,7 +97,6 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
         }}
         position="second"
         variant="standard"
-        triggerClassName={cn('text-sigil-control')}
       />
 
       <ControlLabel>Port</ControlLabel>
@@ -135,8 +134,7 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
               }));
             }}
             position="both"
-            variant="large"
-            triggerClassName={cn('text-sigil-control')}
+            variant="standard"
           />
           <ControlLabel>Multicast</ControlLabel>
           <ControlEnabledDisabledButtonGroup
@@ -149,7 +147,6 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
               }));
             }}
             position="both"
-            variant="large"
           />
         </>
       )}
@@ -196,7 +193,6 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
         }}
         position="second"
         variant="standard"
-        triggerClassName={cn('text-sigil-control')}
       />
     </>
   );
@@ -255,7 +251,7 @@ const LTCConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
       <ControlLabel>FPS</ControlLabel>
       <ControlSelect<SMPTETimecodeMode | 'AUTO'>
         position="both"
-        variant="large"
+        variant="standard"
         value={data.mode}
         options={[
           { label: 'Auto Detect Framerate', value: 'AUTO' },
@@ -644,17 +640,19 @@ export const InputsSection: FC<InputSectionProps> = ({
               variant="toolbar"
               icon="add"
             >
-              {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
-              {type === 'ltc' && (
-                <span
-                  className="
-                    ml-1 rounded-md bg-sigil-foreground px-1 py-0.3
+              <span className="flex gap-1 items-center">
+                {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
+                {type === 'ltc' && (
+                  <span
+                    className="
+                    rounded-sigil-control bg-sigil-foreground px-0.8 py-0.25
                     text-sigil-control text-sigil-bg-dark
                   "
-                >
-                  BETA
-                </span>
-              )}
+                  >
+                    BETA
+                  </span>
+                )}
+              </span>
             </ControlButton>
           ))}
         </>

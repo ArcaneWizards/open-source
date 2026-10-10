@@ -34,8 +34,8 @@
   border-radius: var(--sigil-control-button-border-radius);
   padding: 2px;
 
-  --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 6)
-    calc(var(--arcane-spacing) / 3);
+  --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 3)
+    calc(var(--arcane-spacing) / 1.5);
   --sigil-control-button-border-radius-group: calc(
     var(--sigil-control-button-border-radius) - 2px
   );
@@ -49,7 +49,7 @@
 }
 
 @utility sigil-control-button-group-variant-large {
-  --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 3)
+  --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 1.5)
     calc(var(--arcane-spacing) / 1.5);
 }
 
@@ -58,7 +58,7 @@
   border: none;
   border-top: 0 solid transparent;
   color: var(--sigil-control-button-fg);
-  padding: calc(var(--arcane-spacing) / 6);
+  padding: 0;
   cursor: pointer;
   outline: none;
   display: flex;
@@ -71,16 +71,20 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--sigil-control-button-border-radius);
-    padding: calc(var(--arcane-spacing) / 6) calc(var(--arcane-spacing) / 3);
+    padding: calc(var(--arcane-spacing) / 3) calc(var(--arcane-spacing) / 1.5);
     overflow: hidden;
     white-space: nowrap;
-    gap: calc(var(--arcane-spacing) / 3);
+    gap: calc(var(--arcane-spacing) / 1.5);
     background: var(--sigil-button-bg);
     box-shadow:
       inset 0 1px 1px var(--sigil-shadow-highlight),
       inset 0 -1px 0 var(--sigil-shadow-dark);
     background: var(--sigil-control-button-bg);
     border: 2px solid var(--sigil-border);
+
+    > .font-arcane-icon {
+      margin: -6px -4px;
+    }
   }
 
   &:focus {
@@ -219,8 +223,6 @@
 }
 
 @utility sigil-control-button-variant-group {
-  padding: 0;
-
   > span {
     padding: var(--sigil-control-button-group-padding);
     border-radius: 0;
@@ -239,16 +241,20 @@
 }
 
 @utility sigil-control-button-variant-large {
-  padding: 0;
-
   > span {
-    padding: calc(var(--arcane-spacing) / 3) calc(var(--arcane-spacing) / 1.5);
+    padding: calc(var(--arcane-spacing) / 1.5) calc(var(--arcane-spacing) / 1.5);
+
+    > .font-arcane-icon {
+      margin: -6px -2px;
+    }
   }
 }
 
-@utility sigil-control-button-variant-properties {
-  padding: 0;
+@utility sigil-control-button-variant-grid {
+  padding: calc(var(--arcane-spacing) / 6);
+}
 
+@utility sigil-control-button-variant-properties {
   > span {
     padding: calc(var(--arcane-spacing) / 2.5) calc(var(--arcane-spacing) / 1.5);
   }
@@ -265,6 +271,7 @@
 @utility sigil-control-button-variant-titlebar {
   > span {
     border-radius: 6px;
+    aspect-ratio: 1;
   }
 }
 

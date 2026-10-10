@@ -118,7 +118,7 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
           );
         }}
         position="both"
-        variant="large"
+        variant="standard"
       />
       {data.mode === 'manual' ? (
         <>
@@ -160,7 +160,7 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
               }));
             }}
             position="both"
-            variant="large"
+            variant="standard"
           />
         </>
       )}

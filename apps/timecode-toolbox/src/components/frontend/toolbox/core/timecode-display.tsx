@@ -951,7 +951,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
                 )}
               </div>
             </div>
-            <ControlButtonGroup>
+            <ControlButtonGroup variant="large">
               {openOutputDeviceDialog && (
                 <ControlButton
                   variant="group"

@@ -97,7 +97,7 @@ export const MidiTargetSettings: FC<MidiTargetSettingsProps> = ({
           )
         }
         position="both"
-        variant="large"
+        variant="standard"
       />
       {target.type === 'port' ? (
         <>

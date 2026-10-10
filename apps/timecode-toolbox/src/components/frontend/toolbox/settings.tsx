@@ -186,7 +186,7 @@ const AppPortConfig: FC = () => {
   return (
     <>
       <ControlLabel>{STRINGS.settings.network.appInterfaceLabel}</ControlLabel>
-      <ControlButtonGroup position="first">
+      <ControlButtonGroup position="first" variant="standard">
         <ControlButton
           onClick={refreshInterfaces}
           title="Refresh Interfaces"
@@ -243,7 +243,7 @@ const AppPortConfig: FC = () => {
       )}
       <ControlButton
         onClick={saveNetworkConfig}
-        variant="large"
+        variant="standard"
         position="first"
         disabled={!canSave}
       >
@@ -308,7 +308,7 @@ export const Settings: FC<SettingsProps> = ({ setWindowMode }) => {
                 checkForUpdates: value,
               }))
             }
-            variant="large"
+            variant="standard"
           />
           <ControlDetails>{STRINGS.updates.settingsDetails}</ControlDetails>
           {updates && 'lastCheckedMillis' in updates && (

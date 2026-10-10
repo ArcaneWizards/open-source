@@ -21,6 +21,7 @@ export type ControlButtonVariant =
   | 'standard'
   | 'border'
   | 'group'
+  | 'grid'
   | 'large'
   | 'table-row'
   | 'toolbar'

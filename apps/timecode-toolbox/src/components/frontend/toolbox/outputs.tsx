@@ -138,7 +138,6 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
             }}
             position="second"
             variant="standard"
-            triggerClassName={cn('text-sigil-control')}
           />
         </>
       ) : (
@@ -713,17 +712,19 @@ export const OutputsSection: FC<OutputSectionProps> = ({
               variant="toolbar"
               icon="add"
             >
-              {STRINGS.outputs.addButton(STRINGS.protocols[type].long)}
-              {type === 'ltc' && (
-                <span
-                  className="
-                    ml-1 rounded-md bg-sigil-foreground px-1 py-0.3
+              <span className="flex gap-1 items-center">
+                {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
+                {type === 'ltc' && (
+                  <span
+                    className="
+                    rounded-sigil-control bg-sigil-foreground px-0.8 py-0.25
                     text-sigil-control text-sigil-bg-dark
                   "
-                >
-                  BETA
-                </span>
-              )}
+                  >
+                    BETA
+                  </span>
+                )}
+              </span>
             </ControlButton>
           ))}
         </>
