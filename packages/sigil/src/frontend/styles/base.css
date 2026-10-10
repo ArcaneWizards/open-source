@@ -45,6 +45,11 @@
     var(--sigil-bg-light),
     var(--sigil-bg-dark)
   );
+  --background-image-sigil-lowered: linear-gradient(
+    to top,
+    var(--sigil-bg-light),
+    var(--sigil-bg-dark)
+  );
 
   /* Colors */
   --color-sigil-bg-dark-1: var(--sigil-bg-dark-1);

@@ -122,10 +122,9 @@ export const ControlInput: FC<ControlInputProps> = ({
     {...props}
     className={cn(
       `
-        overflow-hidden border-0 bg-sigil-bg-dark px-arcane-slider-input-hidden
+        overflow-hidden border-2 border-sigil-border bg-sigil-lowered px-[7px]
         py-[7px] text-[0.7rem] text-sigil-foreground shadow-none
         focus:border-2 focus:border-sigil-usage-hint-foreground
-        focus:bg-sigil-bg-dark-1 focus:px-[7px] focus:py-arcane-slider-input-px
         focus:text-sigil-usage-hint-foreground focus:outline-none
         disabled:opacity-50
         [&::-webkit-inner-spin-button]:opacity-20
@@ -138,10 +137,7 @@ export const ControlInput: FC<ControlInputProps> = ({
       cnd(nonMicro, 'max-[550px]:hidden'),
       cnd(
         hasError,
-        `
-          border-2 border-sigil-error-foreground px-[7px]!
-          py-arcane-slider-input-px text-sigil-error-foreground
-        `,
+        `border-2 border-sigil-error-foreground text-sigil-error-foreground`,
       ),
       className,
     )}
