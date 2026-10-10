@@ -12,7 +12,7 @@ export const PrimaryToolboxSection: FC<PrimaryToolboxSectionProps> = ({
   buttons,
 }) => {
   return (
-    <div className="flex grow gap-px">
+    <div className="flex grow gap-[2px]">
       <div
         className="
           flex items-center justify-center bg-sigil-bg-light p-1
@@ -21,9 +21,9 @@ export const PrimaryToolboxSection: FC<PrimaryToolboxSectionProps> = ({
       >
         {title}
       </div>
-      <div className="flex grow flex-col gap-px">
-        <div className="flex grow flex-col gap-px">{children}</div>
-        <div className="flex w-full flex-wrap gap-1 bg-sigil-bg-light p-1">
+      <div className="flex grow flex-col gap-[2px]">
+        <div className="flex grow flex-col gap-[2px]">{children}</div>
+        <div className="flex w-full flex-wrap gap-1 bg-sigil-bg-dark p-1">
           {buttons}
         </div>
       </div>

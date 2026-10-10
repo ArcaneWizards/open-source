@@ -12,11 +12,12 @@ import { AppearanceSwitcher } from '@arcanewizards/sigil/frontend/appearance';
 import { useBrowserPreferences } from './preferences';
 import {
   ControlButton,
+  ControlButtonGroup,
   ControlDetails,
+  ControlEnabledDisabledButtonGroup,
   ControlInput,
   ControlLabel,
   ControlSelect,
-  SelectOption,
 } from '@arcanewizards/sigil/frontend/controls';
 import {
   ToolbarDivider,
@@ -25,8 +26,6 @@ import {
 } from '@arcanewizards/sigil/frontend/toolbars';
 import { STRINGS } from '../constants';
 import { ConfigContext, useApplicationState } from './context';
-import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import { cn } from '@arcanejs/toolkit-frontend/util';
 import { useBrowserContext } from '@arcanewizards/sigil/frontend';
 import { ListenerConfig } from '@arcanewizards/sigil';
 import { portString } from '@arcanewizards/sigil/shared/config';
@@ -35,11 +34,6 @@ import { useNetworkInterfaces } from './hooks';
 type SettingsProps = {
   setWindowMode: (mode: null) => void;
 };
-
-const ENABLED_DISABLED_OPTIONS: SelectOption<'enabled' | 'disabled'>[] = [
-  { value: 'enabled', label: STRINGS.general.enabled },
-  { value: 'disabled', label: STRINGS.general.disabled },
-];
 
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'medium',
@@ -189,22 +183,29 @@ const AppPortConfig: FC = () => {
   return (
     <>
       <ControlLabel>{STRINGS.settings.network.appInterfaceLabel}</ControlLabel>
-      <ControlSelect<InterfaceChoice>
-        value={iface}
-        options={[
-          { label: STRINGS.settings.network.anyInterface, value: 'any' },
-          ...(!interfaces
-            ? []
-            : Object.values(interfaces).map((iface) => ({
-                label: `${iface.name} (${iface.address})`,
-                value: `specific:${iface.name}` satisfies InterfaceChoice,
-              }))),
-        ]}
-        onChange={setNextInterface}
-        position="first"
-        variant="large"
-        triggerClassName={cn('text-sigil-control')}
-      />
+      <ControlButtonGroup position="first" variant="standard">
+        <ControlButton
+          onClick={refreshInterfaces}
+          title="Refresh Interfaces"
+          variant="group"
+          className="grow-0!"
+          icon="refresh"
+        />
+        <ControlSelect<InterfaceChoice>
+          value={iface}
+          options={[
+            { label: STRINGS.settings.network.anyInterface, value: 'any' },
+            ...(!interfaces
+              ? []
+              : Object.values(interfaces).map((iface) => ({
+                  label: `${iface.name} (${iface.address})`,
+                  value: `specific:${iface.name}` satisfies InterfaceChoice,
+                }))),
+          ]}
+          onChange={setNextInterface}
+          variant="group"
+        />
+      </ControlButtonGroup>
       {iface && interfaces?.[iface]?.internal && (
         <ControlDetails
           position="second"
@@ -213,14 +214,6 @@ const AppPortConfig: FC = () => {
           {STRINGS.settings.network.internalInterfaceUsed(iface)}
         </ControlDetails>
       )}
-      <ControlButton
-        onClick={refreshInterfaces}
-        title="Refresh Interfaces"
-        position="extra"
-        variant="large"
-      >
-        <Icon icon="refresh" className="text-arcane-normal" />
-      </ControlButton>
       <ControlLabel>{STRINGS.settings.network.appPortLabel}</ControlLabel>
       {network.envPort ? (
         <ControlDetails position="both">
@@ -247,7 +240,7 @@ const AppPortConfig: FC = () => {
       )}
       <ControlButton
         onClick={saveNetworkConfig}
-        variant="large"
+        variant="standard"
         position="first"
         disabled={!canSave}
       >
@@ -303,16 +296,16 @@ export const Settings: FC<SettingsProps> = ({ setWindowMode }) => {
             }
           />
           <ControlLabel>{STRINGS.updates.settingsLabel}</ControlLabel>
-          <ControlSelect
-            value={config.checkForUpdates ? 'enabled' : 'disabled'}
-            options={ENABLED_DISABLED_OPTIONS}
+          <ControlEnabledDisabledButtonGroup
+            strings={STRINGS.general}
+            value={config.checkForUpdates}
             onChange={(value) =>
               updateConfig((current) => ({
                 ...current,
-                checkForUpdates: value === 'enabled',
+                checkForUpdates: value,
               }))
             }
-            variant="large"
+            variant="standard"
           />
           <ControlDetails>{STRINGS.updates.settingsDetails}</ControlDetails>
           {updates && 'lastCheckedMillis' in updates && (

@@ -727,7 +727,7 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
                         text-sigil-foreground
                         group-hover:bg-sigil-bg-light
                         hover:bg-sigil-control-button-bg-hover
-                        hover:text-sigil-control-button-fg-hover
+                        hover:text-sigil-usage-hint-foreground
                       `,
                       cnd(
                         data.status.type === 'show-file-loaded' &&
@@ -758,7 +758,7 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
                 </TooltipWrapper>
                 <ControlButtonGroup
                   className="
-                    sigil-grid-pos-controls bg-sigil-bg-dark
+                    sigil-grid-pos-controls
                     group-hover:bg-sigil-bg-light
                   "
                 >
@@ -766,7 +766,7 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
                     onClick={() =>
                       setDialogMode({ mode: 'delete-confirmation', uuid })
                     }
-                    variant="large"
+                    variant="group"
                     icon="delete"
                     title={strings.delete}
                   />
@@ -774,13 +774,13 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
                     onClick={() =>
                       setDialogMode({ mode: 'rename', uuid, name })
                     }
-                    variant="large"
+                    variant="group"
                     icon="edit"
                     title={strings.rename}
                   />
                   <ControlButton
                     onClick={() => onExportButtonClicked(name, uuid)}
-                    variant="table-row"
+                    variant="group"
                     icon="publish"
                     title={strings.export}
                   />

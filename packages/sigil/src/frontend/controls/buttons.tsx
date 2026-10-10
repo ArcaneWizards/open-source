@@ -1,13 +1,13 @@
 import {
   ComponentPropsWithoutRef,
-  CSSProperties,
+  FC,
   forwardRef,
   useCallback,
   useRef,
   type ReactNode,
 } from 'react';
 import { cn } from '@arcanejs/toolkit-frontend/util';
-import { cnd, cssVariables } from '../styling';
+import { cnd } from '../styling';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { TooltipWrapper, type TooltipProps } from '../tooltip';
 import {
@@ -17,36 +17,11 @@ import {
 } from '../input';
 import { clsControlPosition, type ControlPosition } from './utils';
 
-const CONTROL_BUTTON_VAR_SUFFIX = {
-  bg: 'bg',
-  bgHover: 'bg-hover',
-  bgActive: 'bg-active',
-  fg: 'fg',
-  fgHover: 'fg-hover',
-  fgActive: 'fg-active',
-  border: 'border',
-  borderHover: 'border-hover',
-  borderActive: 'border-active',
-} as const;
-
-export const controlButtonColorVariable = (
-  property: keyof typeof CONTROL_BUTTON_VAR_SUFFIX,
-) => `--sigil-control-button-${CONTROL_BUTTON_VAR_SUFFIX[property]}`;
-
-export const controlButtonColorVariables = (
-  usage: Record<keyof typeof CONTROL_BUTTON_VAR_SUFFIX, string>,
-): CSSProperties =>
-  cssVariables(
-    Object.fromEntries(
-      (Object.keys(usage) as (keyof typeof CONTROL_BUTTON_VAR_SUFFIX)[]).map(
-        (key) => [controlButtonColorVariable(key), usage[key]],
-      ),
-    ),
-  );
-
 export type ControlButtonVariant =
   | 'standard'
   | 'border'
+  | 'group'
+  | 'grid'
   | 'large'
   | 'table-row'
   | 'toolbar'
@@ -107,6 +82,7 @@ export const clsControlButton = ({
   cn(
     `sigil-control-button`,
     cnd(variant === 'border', `sigil-control-button-variant-border`),
+    cnd(variant === 'group', `sigil-control-button-variant-group`),
     cnd(variant === 'large', `sigil-control-button-variant-large`),
     cnd(variant === 'properties', `sigil-control-button-variant-properties`),
     cnd(variant === 'table-row', `sigil-control-button-variant-table-row`),
@@ -299,20 +275,19 @@ LongPressableControlButton.displayName = 'LongPressableControlButton';
 
 export type ControlButtonGroupProps = ComponentPropsWithoutRef<'div'> & {
   position?: ControlPosition;
+  variant?: 'standard' | 'large';
 };
 
 export const ControlButtonGroup = forwardRef<
   HTMLDivElement,
   ControlButtonGroupProps
->(({ children, className, position, ...props }, ref) => (
+>(({ children, className, position, variant, ...props }, ref) => (
   <div
     {...props}
     ref={ref}
     className={cn(
-      `
-        flex items-stretch gap-sigil-control-gap
-        [&>button]:grow
-      `,
+      'sigil-control-button-group',
+      cnd(variant === 'large', 'sigil-control-button-group-variant-large'),
       clsControlPosition(position),
       className,
     )}
@@ -322,3 +297,59 @@ export const ControlButtonGroup = forwardRef<
 ));
 
 ControlButtonGroup.displayName = 'ControlButtonGroup';
+
+export type ControlMultiOptionButtonGroupProps<T extends string> = Omit<
+  ControlButtonGroupProps,
+  'value' | 'onChange'
+> & {
+  strings: Record<T, string>;
+  value: T;
+  onChange: (value: T) => void;
+};
+
+export const ControlMultiOptionButtonGroup = <T extends string>({
+  strings,
+  value,
+  onChange,
+  ...props
+}: ControlMultiOptionButtonGroupProps<T>) => {
+  return (
+    <ControlButtonGroup {...props}>
+      {(Object.entries(strings) as [T, string][]).map(([key, label]) => (
+        <ControlButton
+          key={key}
+          onClick={() => onChange(key as T)}
+          variant="group"
+          active={value === key}
+        >
+          {label}
+        </ControlButton>
+      ))}
+    </ControlButtonGroup>
+  );
+};
+
+export type ControlEnabledDisabledButtonGroupProps = Omit<
+  ControlButtonGroupProps,
+  'value' | 'onChange'
+> & {
+  strings: {
+    enabled: string;
+    disabled: string;
+  };
+  value: boolean;
+  onChange: (value: boolean) => void;
+};
+
+export const ControlEnabledDisabledButtonGroup: FC<
+  ControlEnabledDisabledButtonGroupProps
+> = ({ strings, value, onChange, ...props }) => {
+  return (
+    <ControlMultiOptionButtonGroup<'enabled' | 'disabled'>
+      strings={{ enabled: strings.enabled, disabled: strings.disabled }}
+      value={value ? 'enabled' : 'disabled'}
+      onChange={(val) => onChange(val === 'enabled')}
+      {...props}
+    />
+  );
+};

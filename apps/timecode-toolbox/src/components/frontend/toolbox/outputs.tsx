@@ -17,6 +17,7 @@ import {
   ControlDialogButtons,
   ControlInput,
   ControlLabel,
+  ControlMultiOptionButtonGroup,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
 import { ConfigContext, useApplicationState } from './context';
@@ -41,7 +42,6 @@ import {
   useChangeCommitBoundary,
 } from '@arcanewizards/sigil/frontend/context';
 import { v4 as uuidv4 } from 'uuid';
-import { cn } from '@arcanejs/toolkit-frontend/util';
 import { ARTNET_PORT, TimecodeMode } from '@arcanewizards/artnet/constants';
 import { SizeAwareDiv } from './core/size-aware-div';
 import { TooltipWrapper } from '@arcanewizards/sigil/frontend/tooltip';
@@ -84,20 +84,9 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   return (
     <>
       <ControlLabel>Target Type</ControlLabel>
-      <ControlSelect
+      <ControlMultiOptionButtonGroup
+        strings={{ interface: 'Broadcast', host: 'IP Address / Hostname' }}
         value={data.target.type}
-        options={[
-          {
-            value: 'interface',
-            label: 'Broadcast',
-          },
-          {
-            value: 'host',
-            label: 'IP Address / Hostname',
-          },
-        ]}
-        position="both"
-        variant="large"
         onChange={(type) => {
           updateArtnetSettings((current) => ({
             ...current,
@@ -113,6 +102,8 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
                   },
           }));
         }}
+        position="both"
+        variant="large"
       />
       {data.target.type === 'interface' ? (
         <>
@@ -121,10 +112,9 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
             onClick={refreshInterfaces}
             title="Refresh Interfaces"
             position="first"
-            variant="large"
-          >
-            <Icon icon="refresh" className="text-arcane-normal" />
-          </ControlButton>
+            variant="standard"
+            icon="refresh"
+          />
           <ControlSelect
             value={data.target.interface ?? null}
             options={
@@ -146,8 +136,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
               }));
             }}
             position="second"
-            variant="large"
-            triggerClassName={cn('text-sigil-control')}
+            variant="standard"
           />
         </>
       ) : (
@@ -442,7 +431,7 @@ export const OutputSettingsDialog: FC<OutputSettingsDialogProps> = ({
         <ControlColorSelect
           position="both"
           color={data.color ?? ''}
-          variant="standard"
+          variant="large"
           placeholder="Default"
           onChange={(color) => {
             updateSettings((current) => ({
@@ -629,7 +618,7 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
         buttons={
           <>
             <ControlButton
-              variant="large"
+              variant="group"
               title={
                 config.enabled
                   ? STRINGS.outputs.disable
@@ -639,14 +628,14 @@ const OutputDisplay: FC<OutputDisplayProps> = ({
               icon={config.enabled ? 'pause' : 'play_arrow'}
             />
             <ControlButton
-              variant="large"
+              variant="group"
               title={STRINGS.outputs.link}
               active={assignToOutput === uuid}
               onClick={linkCallback}
               icon={config.link ? 'link' : 'link_off'}
             />
             <ControlButton
-              variant="large"
+              variant="group"
               title={STRINGS.outputs.edit}
               onClick={() =>
                 setDialogMode({
@@ -722,17 +711,19 @@ export const OutputsSection: FC<OutputSectionProps> = ({
               variant="toolbar"
               icon="add"
             >
-              {STRINGS.outputs.addButton(STRINGS.protocols[type].long)}
-              {type === 'ltc' && (
-                <span
-                  className="
-                    ml-1 rounded-md bg-sigil-foreground px-1 py-0.3
-                    text-sigil-control text-sigil-bg-dark
-                  "
-                >
-                  BETA
-                </span>
-              )}
+              <span className="flex items-center gap-1">
+                {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
+                {type === 'ltc' && (
+                  <span
+                    className="
+                      rounded-sigil-control bg-sigil-foreground px-0.8 py-0.25
+                      text-sigil-control text-sigil-bg-dark
+                    "
+                  >
+                    BETA
+                  </span>
+                )}
+              </span>
             </ControlButton>
           ))}
         </>
@@ -743,7 +734,7 @@ export const OutputsSection: FC<OutputSectionProps> = ({
       ) : (
         <div
           className="
-            grid grow grid-cols-1 gap-px
+            grid grow grid-cols-1 gap-[2px]
             min-[800px]:grid-cols-2
             min-[1200px]:grid-cols-3
           "

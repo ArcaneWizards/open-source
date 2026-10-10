@@ -7,6 +7,7 @@ import {
   ControlColorSelect,
   ControlDialog,
   ControlDialogButtons,
+  ControlEnabledDisabledButtonGroup,
   ControlInput,
   ControlLabel,
   ControlParagraph,
@@ -23,12 +24,10 @@ import {
   MidiTargetConfig,
   TimecodeInstanceId,
 } from '../../proto';
-import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { ARTNET_PORT } from '@arcanewizards/artnet/constants';
 import type { SMPTETimecodeMode } from '@arcanewizards/smpte';
 import { CLX_PORT } from '@arcanewizards/clx/constants';
 import { v4 as uuidv4 } from 'uuid';
-import { cn } from '@arcanejs/toolkit-frontend/util';
 import {
   ChangeCommitContext,
   useChangeCommitBoundary,
@@ -54,11 +53,6 @@ const MULTI_SENDER_SUPPORT_OPTIONS: SelectOption<InputMultiSenderSupport>[] = [
   { label: 'By Host & Port', value: 'by-ip-and-port' },
 ];
 
-const ENABLED_OPTIONS: SelectOption<'true' | 'false'>[] = [
-  { label: 'Enabled', value: 'true' },
-  { label: 'Disabled', value: 'false' },
-];
-
 const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
   type,
   data,
@@ -79,10 +73,9 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
         onClick={refreshInterfaces}
         title="Refresh Interfaces"
         position="first"
-        variant="large"
-      >
-        <Icon icon="refresh" className="text-arcane-normal" />
-      </ControlButton>
+        variant="standard"
+        icon="refresh"
+      />
       <ControlSelect
         value={data.iface ?? null}
         options={
@@ -101,8 +94,7 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
           }));
         }}
         position="second"
-        variant="large"
-        triggerClassName={cn('text-sigil-control')}
+        variant="standard"
       />
 
       <ControlLabel>Port</ControlLabel>
@@ -140,23 +132,19 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
               }));
             }}
             position="both"
-            variant="large"
-            triggerClassName={cn('text-sigil-control')}
+            variant="standard"
           />
           <ControlLabel>Multicast</ControlLabel>
-          <ControlSelect
-            value={data.type === 'clx' && data.multicast ? 'true' : 'false'}
-            options={ENABLED_OPTIONS}
-            placeholder="No Interface Selected"
+          <ControlEnabledDisabledButtonGroup
+            strings={STRINGS.general}
+            value={data.type === 'clx' && data.multicast}
             onChange={(value) => {
               updateSettings((current) => ({
                 ...current,
-                multicast: value === 'true',
+                multicast: value,
               }));
             }}
             position="both"
-            variant="large"
-            triggerClassName={cn('text-sigil-control')}
           />
         </>
       )}
@@ -181,10 +169,9 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
         onClick={refreshInterfaces}
         title="Refresh Interfaces"
         position="first"
-        variant="large"
-      >
-        <Icon icon="refresh" className="text-arcane-normal" />
-      </ControlButton>
+        variant="standard"
+        icon="refresh"
+      />
       <ControlSelect
         value={data.iface ?? null}
         options={
@@ -203,8 +190,7 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
           }));
         }}
         position="second"
-        variant="large"
-        triggerClassName={cn('text-sigil-control')}
+        variant="standard"
       />
     </>
   );
@@ -263,7 +249,7 @@ const LTCConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
       <ControlLabel>FPS</ControlLabel>
       <ControlSelect<SMPTETimecodeMode | 'AUTO'>
         position="both"
-        variant="large"
+        variant="standard"
         value={data.mode}
         options={[
           { label: 'Auto Detect Framerate', value: 'AUTO' },
@@ -449,7 +435,7 @@ export const InputSettingsDialog: FC<InputSettingsDialogProps> = ({
         <ControlColorSelect
           position="both"
           color={data.color ?? ''}
-          variant="standard"
+          variant="large"
           placeholder="Default"
           onChange={(color) => {
             updateSettings((current) => ({
@@ -586,7 +572,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
       buttons={
         <>
           <ControlButton
-            variant="large"
+            variant="group"
             title={
               config.enabled ? STRINGS.inputs.disable : STRINGS.inputs.enable
             }
@@ -594,7 +580,7 @@ export const InputDisplay: FC<InputDisplayProps> = ({
             icon={config.enabled ? 'pause' : 'play_arrow'}
           />
           <ControlButton
-            variant="large"
+            variant="group"
             title={STRINGS.inputs.edit}
             onClick={() =>
               setDialogMode({
@@ -652,17 +638,19 @@ export const InputsSection: FC<InputSectionProps> = ({
               variant="toolbar"
               icon="add"
             >
-              {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
-              {type === 'ltc' && (
-                <span
-                  className="
-                    ml-1 rounded-md bg-sigil-foreground px-1 py-0.3
-                    text-sigil-control text-sigil-bg-dark
-                  "
-                >
-                  BETA
-                </span>
-              )}
+              <span className="flex items-center gap-1">
+                {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
+                {type === 'ltc' && (
+                  <span
+                    className="
+                      rounded-sigil-control bg-sigil-foreground px-0.8 py-0.25
+                      text-sigil-control text-sigil-bg-dark
+                    "
+                  >
+                    BETA
+                  </span>
+                )}
+              </span>
             </ControlButton>
           ))}
         </>
@@ -673,7 +661,7 @@ export const InputsSection: FC<InputSectionProps> = ({
       ) : (
         <div
           className="
-            grid grow grid-cols-1 gap-px
+            grid grow grid-cols-1 gap-[2px]
             min-[800px]:grid-cols-2
             min-[1200px]:grid-cols-3
           "

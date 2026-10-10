@@ -1,5 +1,9 @@
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import { ControlButton, ControlColorSelect } from './controls';
+import {
+  ControlButton,
+  ControlButtonGroup,
+  ControlColorSelect,
+} from './controls';
 import { useColorSchemePreferences } from '@arcanejs/toolkit-frontend/util';
 import { FC, useCallback } from 'react';
 import { SigilColor } from './styling';
@@ -39,33 +43,35 @@ export const AppearanceSwitcher: FC<AppearanceSwitcherProps> = ({
 
   return (
     <div className="control-grid-pos-all flex flex-wrap items-stretch gap-2">
-      <ControlButton
-        onClick={selectDarkMode}
-        active={colorSchemePreference === 'dark'}
-        title="Switch to Dark Mode"
-        variant="large"
-      >
-        <Icon icon="dark_mode" className="text-[1.5rem]" />
-        <span>Dark</span>
-      </ControlButton>
-      <ControlButton
-        onClick={selectLightMode}
-        active={colorSchemePreference === 'light'}
-        title="Switch to Light Mode"
-        variant="large"
-      >
-        <Icon icon="light_mode" className="text-[1.5rem]" />
-        <span>Light</span>
-      </ControlButton>
-      <ControlButton
-        onClick={selectSystemMode}
-        active={colorSchemePreference === 'auto'}
-        title="Switch to System Mode"
-        variant="large"
-      >
-        <Icon icon="contrast" className="text-[1.5rem]" />
-        <span>Auto / System</span>
-      </ControlButton>
+      <ControlButtonGroup variant="large">
+        <ControlButton
+          onClick={selectDarkMode}
+          active={colorSchemePreference === 'dark'}
+          title="Switch to Dark Mode"
+          variant="group"
+        >
+          <Icon icon="dark_mode" className="text-[1.5rem]" />
+          <span>Dark</span>
+        </ControlButton>
+        <ControlButton
+          onClick={selectLightMode}
+          active={colorSchemePreference === 'light'}
+          title="Switch to Light Mode"
+          variant="group"
+        >
+          <Icon icon="light_mode" className="text-[1.5rem]" />
+          <span>Light</span>
+        </ControlButton>
+        <ControlButton
+          onClick={selectSystemMode}
+          active={colorSchemePreference === 'auto'}
+          title="Switch to System Mode"
+          variant="group"
+        >
+          <Icon icon="contrast" className="text-[1.5rem]" />
+          <span>Auto / System</span>
+        </ControlButton>
+      </ControlButtonGroup>
       <ControlColorSelect
         color={color}
         onChange={updateHintColor}

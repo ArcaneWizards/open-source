@@ -8,11 +8,10 @@ import {
 import {
   ControlButton,
   ControlLabel,
+  ControlMultiOptionButtonGroup,
   ControlParagraph,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
-import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import { STRINGS } from '../../constants';
 
 type MidiTargetSettingsProps = {
   type: 'input' | 'output';
@@ -82,29 +81,21 @@ export const MidiTargetSettings: FC<MidiTargetSettingsProps> = ({
   return (
     <>
       <ControlLabel>Device Type</ControlLabel>
-      <ControlSelect
+      <ControlMultiOptionButtonGroup
+        strings={{ port: 'Port', virtual: 'Virtual' }}
         value={target.type}
-        options={[
-          { value: 'port', label: STRINGS.midi.deviceTypePort },
-          { value: 'virtual', label: STRINGS.midi.deviceTypeVirtual },
-        ]}
-        variant="large"
-        position="both"
         onChange={(type) =>
           updateTarget((current) =>
             current.type === type
               ? current
-              : type === 'port'
-                ? {
-                    type: 'port',
-                    deviceName: '',
-                  }
-                : {
-                    type: 'virtual',
-                    deviceName: '',
-                  },
+              : {
+                  type,
+                  deviceName: '',
+                },
           )
         }
+        position="both"
+        variant="standard"
       />
       {target.type === 'port' ? (
         <>
@@ -113,10 +104,9 @@ export const MidiTargetSettings: FC<MidiTargetSettingsProps> = ({
             onClick={refreshDevices}
             title="Refresh Devices"
             position="first"
-            variant="large"
-          >
-            <Icon icon="refresh" />
-          </ControlButton>
+            variant="standard"
+            icon="refresh"
+          />
           {devices.length === 0 ? (
             <ControlParagraph mode="warning" position="row">
               No MIDI {type} devices found. Please connect a MIDI device and
@@ -131,7 +121,7 @@ export const MidiTargetSettings: FC<MidiTargetSettingsProps> = ({
                   label: device.name,
                 })) || []
               }
-              variant="large"
+              variant="standard"
               position="second"
               placeholder="Select Device"
               onChange={(deviceName) =>

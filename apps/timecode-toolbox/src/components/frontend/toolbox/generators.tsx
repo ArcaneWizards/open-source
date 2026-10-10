@@ -18,11 +18,11 @@ import {
   ControlDialogButtons,
   ControlInput,
   ControlLabel,
+  ControlMultiOptionButtonGroup,
   ControlSelect,
   SelectOption,
 } from '@arcanewizards/sigil/frontend/controls';
 import {
-  GeneratorClockDefinition,
   GeneratorConfig,
   GeneratorDefinition,
   isAudioPlayerGenerator,
@@ -42,13 +42,6 @@ import {
 import { WithAudioPlayer } from './core/audio-player';
 import { DelayConfig } from './core/delay';
 import { AudioPlaybackContextProvider } from './core/audio-context';
-
-const CLOCK_MODE_OPTIONS: Array<
-  SelectOption<GeneratorClockDefinition['mode']>
-> = [
-  { label: 'Manual', value: 'manual' },
-  { label: 'System Time', value: 'system' },
-];
 
 const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
   data,
@@ -95,9 +88,9 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
   return (
     <>
       <ControlLabel>Mode</ControlLabel>
-      <ControlSelect
+      <ControlMultiOptionButtonGroup
+        strings={{ manual: 'Manual', system: 'System Time' }}
         value={data.mode}
-        options={CLOCK_MODE_OPTIONS}
         onChange={(mode) => {
           updateSettings((current) =>
             current.type === 'clock'
@@ -117,7 +110,7 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
           );
         }}
         position="both"
-        variant="large"
+        variant="standard"
       />
       {data.mode === 'manual' ? (
         <>
@@ -159,7 +152,7 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
               }));
             }}
             position="both"
-            variant="large"
+            variant="standard"
           />
         </>
       )}
@@ -332,7 +325,7 @@ export const GeneratorSettingsDialog: FC<GeneratorSettingsDialogProps> = ({
         <ControlColorSelect
           position="both"
           color={data.color ?? ''}
-          variant="standard"
+          variant="large"
           placeholder="Default"
           onChange={(color) => {
             updateSettings((current) => ({
@@ -449,7 +442,7 @@ const GeneratorDisplay: FC<GeneratorDisplayProps> = ({
       buttons={
         <>
           <ControlButton
-            variant="large"
+            variant="group"
             title={STRINGS.generators.edit}
             onClick={() =>
               setDialogMode({
@@ -508,7 +501,7 @@ export const GeneratorsSection: FC<GeneratorsSectionProps> = ({
       ) : (
         <div
           className="
-            grid grow grid-cols-1 gap-px
+            grid grow grid-cols-1 gap-[2px]
             min-[800px]:grid-cols-2
             min-[1200px]:grid-cols-3
           "

@@ -109,7 +109,12 @@
   --sigil-foreground: #616161;
   --sigil-foreground-highlight: #1f1f1f;
   --sigil-foreground-muted: #a0a0a0;
-  --sigil-box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 9px;
+  --sigil-shadow-emboss-dark: rgba(0, 0, 0, 0.2);
+  --sigil-shadow-emboss-highlight: rgba(255, 255, 255, 1);
+  --sigil-shadow-emboss-highlight-color: rgba(255, 255, 255, 0.4);
+  --sigil-shadow-dark: var(--sigil-shadow-emboss-dark);
+  --sigil-shadow-highlight: var(--sigil-shadow-emboss-highlight);
+  --sigil-box-shadow: var(--sigil-shadow-dark) 0px 0px 9px;
   --sigil-shadow-inset: inset 0px 0px 8px 0px rgba(0, 0, 0, 0.05);
   --sigil-text-shadow: 0 1px rgba(255, 255, 255, 0.7);
   --sigil-colored-bg-text: rgba(0, 0, 0, 0.6);
@@ -146,6 +151,11 @@
   --sigil-usage-hint-dimmed-border: var(--sigil-palette-blue-light);
   --sigil-usage-hint-gradient-light: var(--sigil-palette-blue-light);
   --sigil-usage-hint-gradient-dark: var(--sigil-palette-blue-normal);
+  --sigil-usage-hint-gradient-medium: color-mix(
+    in srgb,
+    var(--sigil-usage-hint-gradient-light),
+    var(--sigil-usage-hint-gradient-dark)
+  );
 
   --sigil-usage-purple-text: var(
     --sigil-palette-purple-text-override,
@@ -377,12 +387,16 @@
   --sigil-bg-dark: #181818;
   --sigil-bg-light: #1f1f1f;
   --sigil-bg-button-hover: #1f1f1f;
-  --sigil-border: #2b2b2b;
+  --sigil-border: #111111;
   --sigil-border-lighterer: #6b6b67;
+  --sigil-button-bg: #2b2b2b;
   --sigil-foreground: #868686;
   --sigil-foreground-highlight: #d7d7d7;
   --sigil-foreground-muted: #616161;
-  --sigil-box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 9px;
+  --sigil-shadow-dark: rgba(0, 0, 0, 0.5);
+  --sigil-shadow-emboss-dark: rgba(0, 0, 0, 0.9);
+  --sigil-shadow-emboss-highlight: rgba(255, 255, 255, 0.2);
+  --sigil-shadow-emboss-highlight-color: rgba(255, 255, 255, 0.4);
   --sigil-shadow-inset: inset 0px 0px 8px 0px rgba(0, 0, 0, 0.3);
   --sigil-text-shadow: 0 -1px rgba(0, 0, 0, 0.7);
   --sigil-colored-bg-text: rgba(255, 255, 255, 0.8);
@@ -393,6 +407,27 @@
   --sigil-ghost-border: #ffffff;
   --sigil-color-red: #e06c75;
   --sigil-color-amber: #d19a66;
+
+  --arcane-gradient-button: linear-gradient(
+    to bottom,
+    var(--sigil-bg-dark-1),
+    var(--sigil-bg-dark)
+  );
+  --arcane-gradient-button-hover: linear-gradient(
+    to bottom,
+    var(--sigil-bg-light-2),
+    var(--sigil-bg-light)
+  );
+  --arcane-gradient-button-active: linear-gradient(
+    to top,
+    var(--sigil-bg-dark-1),
+    var(--sigil-bg-dark)
+  );
+  --arcane-gradient-button-pressed-hover: linear-gradient(
+    to top,
+    var(--sigil-bg-light-2),
+    var(--sigil-bg-light)
+  );
 
   --sigil-usage-hint-text: var(
     --sigil-palette-blue-text-override,

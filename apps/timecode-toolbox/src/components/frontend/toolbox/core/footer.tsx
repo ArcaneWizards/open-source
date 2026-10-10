@@ -15,7 +15,7 @@ export const Footer: FC<FooterProps> = ({ openLicenseDetails }) => {
   return (
     <div
       className="
-        flex items-center justify-center gap-1 border-t border-sigil-border
+        flex items-center justify-center gap-1 border-t-2 border-sigil-border
         bg-sigil-bg-dark p-1 text-[80%]
       "
     >
