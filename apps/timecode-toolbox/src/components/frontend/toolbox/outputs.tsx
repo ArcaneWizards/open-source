@@ -17,6 +17,7 @@ import {
   ControlDialogButtons,
   ControlInput,
   ControlLabel,
+  ControlMultiOptionButtonGroup,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
 import { ConfigContext, useApplicationState } from './context';
@@ -84,20 +85,9 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
   return (
     <>
       <ControlLabel>Target Type</ControlLabel>
-      <ControlSelect
+      <ControlMultiOptionButtonGroup
+        strings={{ interface: 'Broadcast', host: 'IP Address / Hostname' }}
         value={data.target.type}
-        options={[
-          {
-            value: 'interface',
-            label: 'Broadcast',
-          },
-          {
-            value: 'host',
-            label: 'IP Address / Hostname',
-          },
-        ]}
-        position="both"
-        variant="large"
         onChange={(type) => {
           updateArtnetSettings((current) => ({
             ...current,
@@ -113,6 +103,8 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
                   },
           }));
         }}
+        position="both"
+        variant="large"
       />
       {data.target.type === 'interface' ? (
         <>
@@ -121,10 +113,9 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
             onClick={refreshInterfaces}
             title="Refresh Interfaces"
             position="first"
-            variant="large"
-          >
-            <Icon icon="refresh" className="text-arcane-normal" />
-          </ControlButton>
+            variant="standard"
+            icon="refresh"
+          />
           <ControlSelect
             value={data.target.interface ?? null}
             options={
@@ -146,7 +137,7 @@ const DmxConnectionSettings: FC<SettingsProps<OutputDefinition>> = ({
               }));
             }}
             position="second"
-            variant="large"
+            variant="standard"
             triggerClassName={cn('text-sigil-control')}
           />
         </>

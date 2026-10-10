@@ -12,7 +12,9 @@ import { AppearanceSwitcher } from '@arcanewizards/sigil/frontend/appearance';
 import { useBrowserPreferences } from './preferences';
 import {
   ControlButton,
+  ControlButtonGroup,
   ControlDetails,
+  ControlEnabledDisabledButtonGroup,
   ControlInput,
   ControlLabel,
   ControlSelect,
@@ -35,11 +37,6 @@ import { useNetworkInterfaces } from './hooks';
 type SettingsProps = {
   setWindowMode: (mode: null) => void;
 };
-
-const ENABLED_DISABLED_OPTIONS: SelectOption<'enabled' | 'disabled'>[] = [
-  { value: 'enabled', label: STRINGS.general.enabled },
-  { value: 'disabled', label: STRINGS.general.disabled },
-];
 
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'medium',
@@ -189,22 +186,29 @@ const AppPortConfig: FC = () => {
   return (
     <>
       <ControlLabel>{STRINGS.settings.network.appInterfaceLabel}</ControlLabel>
-      <ControlSelect<InterfaceChoice>
-        value={iface}
-        options={[
-          { label: STRINGS.settings.network.anyInterface, value: 'any' },
-          ...(!interfaces
-            ? []
-            : Object.values(interfaces).map((iface) => ({
-                label: `${iface.name} (${iface.address})`,
-                value: `specific:${iface.name}` satisfies InterfaceChoice,
-              }))),
-        ]}
-        onChange={setNextInterface}
-        position="first"
-        variant="large"
-        triggerClassName={cn('text-sigil-control')}
-      />
+      <ControlButtonGroup position="first">
+        <ControlButton
+          onClick={refreshInterfaces}
+          title="Refresh Interfaces"
+          variant="group"
+          className="grow-0!"
+          icon="refresh"
+        />
+        <ControlSelect<InterfaceChoice>
+          value={iface}
+          options={[
+            { label: STRINGS.settings.network.anyInterface, value: 'any' },
+            ...(!interfaces
+              ? []
+              : Object.values(interfaces).map((iface) => ({
+                  label: `${iface.name} (${iface.address})`,
+                  value: `specific:${iface.name}` satisfies InterfaceChoice,
+                }))),
+          ]}
+          onChange={setNextInterface}
+          variant="group"
+        />
+      </ControlButtonGroup>
       {iface && interfaces?.[iface]?.internal && (
         <ControlDetails
           position="second"
@@ -213,14 +217,6 @@ const AppPortConfig: FC = () => {
           {STRINGS.settings.network.internalInterfaceUsed(iface)}
         </ControlDetails>
       )}
-      <ControlButton
-        onClick={refreshInterfaces}
-        title="Refresh Interfaces"
-        position="extra"
-        variant="large"
-      >
-        <Icon icon="refresh" className="text-arcane-normal" />
-      </ControlButton>
       <ControlLabel>{STRINGS.settings.network.appPortLabel}</ControlLabel>
       {network.envPort ? (
         <ControlDetails position="both">
@@ -303,13 +299,13 @@ export const Settings: FC<SettingsProps> = ({ setWindowMode }) => {
             }
           />
           <ControlLabel>{STRINGS.updates.settingsLabel}</ControlLabel>
-          <ControlSelect
-            value={config.checkForUpdates ? 'enabled' : 'disabled'}
-            options={ENABLED_DISABLED_OPTIONS}
+          <ControlEnabledDisabledButtonGroup
+            strings={STRINGS.general}
+            value={config.checkForUpdates}
             onChange={(value) =>
               updateConfig((current) => ({
                 ...current,
-                checkForUpdates: value === 'enabled',
+                checkForUpdates: value,
               }))
             }
             variant="large"

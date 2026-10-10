@@ -1,5 +1,6 @@
 import {
   ComponentPropsWithoutRef,
+  FC,
   forwardRef,
   useCallback,
   useRef,
@@ -295,3 +296,59 @@ export const ControlButtonGroup = forwardRef<
 ));
 
 ControlButtonGroup.displayName = 'ControlButtonGroup';
+
+export type ControlMultiOptionButtonGroupProps<T extends string> = Omit<
+  ControlButtonGroupProps,
+  'value' | 'onChange'
+> & {
+  strings: Record<T, string>;
+  value: T;
+  onChange: (value: T) => void;
+};
+
+export const ControlMultiOptionButtonGroup = <T extends string>({
+  strings,
+  value,
+  onChange,
+  ...props
+}: ControlMultiOptionButtonGroupProps<T>) => {
+  return (
+    <ControlButtonGroup {...props}>
+      {(Object.entries(strings) as [T, string][]).map(([key, label]) => (
+        <ControlButton
+          key={key}
+          onClick={() => onChange(key as T)}
+          variant="group"
+          active={value === key}
+        >
+          {label}
+        </ControlButton>
+      ))}
+    </ControlButtonGroup>
+  );
+};
+
+export type ControlEnabledDisabledButtonGroupProps = Omit<
+  ControlButtonGroupProps,
+  'value' | 'onChange'
+> & {
+  strings: {
+    enabled: string;
+    disabled: string;
+  };
+  value: boolean;
+  onChange: (value: boolean) => void;
+};
+
+export const ControlEnabledDisabledButtonGroup: FC<
+  ControlEnabledDisabledButtonGroupProps
+> = ({ strings, value, onChange, ...props }) => {
+  return (
+    <ControlMultiOptionButtonGroup<'enabled' | 'disabled'>
+      strings={{ enabled: strings.enabled, disabled: strings.disabled }}
+      value={value ? 'enabled' : 'disabled'}
+      onChange={(val) => onChange(val === 'enabled')}
+      {...props}
+    />
+  );
+};

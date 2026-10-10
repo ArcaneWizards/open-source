@@ -7,6 +7,7 @@ import {
   ControlColorSelect,
   ControlDialog,
   ControlDialogButtons,
+  ControlEnabledDisabledButtonGroup,
   ControlInput,
   ControlLabel,
   ControlParagraph,
@@ -54,11 +55,6 @@ const MULTI_SENDER_SUPPORT_OPTIONS: SelectOption<InputMultiSenderSupport>[] = [
   { label: 'By Host & Port', value: 'by-ip-and-port' },
 ];
 
-const ENABLED_OPTIONS: SelectOption<'true' | 'false'>[] = [
-  { label: 'Enabled', value: 'true' },
-  { label: 'Disabled', value: 'false' },
-];
-
 const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
   type,
   data,
@@ -79,10 +75,9 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
         onClick={refreshInterfaces}
         title="Refresh Interfaces"
         position="first"
-        variant="large"
-      >
-        <Icon icon="refresh" className="text-arcane-normal" />
-      </ControlButton>
+        variant="standard"
+        icon="refresh"
+      />
       <ControlSelect
         value={data.iface ?? null}
         options={
@@ -101,7 +96,7 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
           }));
         }}
         position="second"
-        variant="large"
+        variant="standard"
         triggerClassName={cn('text-sigil-control')}
       />
 
@@ -144,19 +139,17 @@ const SinglePortConnectionSettings: FC<SinglePortConnectionSettingsProps> = ({
             triggerClassName={cn('text-sigil-control')}
           />
           <ControlLabel>Multicast</ControlLabel>
-          <ControlSelect
-            value={data.type === 'clx' && data.multicast ? 'true' : 'false'}
-            options={ENABLED_OPTIONS}
-            placeholder="No Interface Selected"
+          <ControlEnabledDisabledButtonGroup
+            strings={STRINGS.general}
+            value={data.type === 'clx' && data.multicast}
             onChange={(value) => {
               updateSettings((current) => ({
                 ...current,
-                multicast: value === 'true',
+                multicast: value,
               }));
             }}
             position="both"
             variant="large"
-            triggerClassName={cn('text-sigil-control')}
           />
         </>
       )}
@@ -181,10 +174,9 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
         onClick={refreshInterfaces}
         title="Refresh Interfaces"
         position="first"
-        variant="large"
-      >
-        <Icon icon="refresh" className="text-arcane-normal" />
-      </ControlButton>
+        variant="standard"
+        icon="refresh"
+      />
       <ControlSelect
         value={data.iface ?? null}
         options={
@@ -203,7 +195,7 @@ const TCNetConnectionSettings: FC<SettingsProps<InputDefinition>> = ({
           }));
         }}
         position="second"
-        variant="large"
+        variant="standard"
         triggerClassName={cn('text-sigil-control')}
       />
     </>

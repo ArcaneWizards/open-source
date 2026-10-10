@@ -18,6 +18,7 @@ import {
   ControlDialogButtons,
   ControlInput,
   ControlLabel,
+  ControlMultiOptionButtonGroup,
   ControlSelect,
   SelectOption,
 } from '@arcanewizards/sigil/frontend/controls';
@@ -95,9 +96,9 @@ const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
   return (
     <>
       <ControlLabel>Mode</ControlLabel>
-      <ControlSelect
+      <ControlMultiOptionButtonGroup
+        strings={{ manual: 'Manual', system: 'System Time' }}
         value={data.mode}
-        options={CLOCK_MODE_OPTIONS}
         onChange={(mode) => {
           updateSettings((current) =>
             current.type === 'clock'
