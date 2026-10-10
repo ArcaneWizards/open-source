@@ -229,7 +229,7 @@ const Timeline: FC<TimelineProps> = ({ state, totalTime, seekAbsolute }) => {
     <div
       ref={ref}
       className={cn(
-        'group w-full border border-timecode-usage-foreground p-px mt-1',
+        'group mt-1 w-full border border-timecode-usage-foreground p-px',
         cnd(
           seekAbsolute,
           `
@@ -421,17 +421,17 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
         )}
       >
         {headerComponents && (
-          <div className="flex gap-0.25 items-center">{headerComponents}</div>
+          <div className="flex items-center gap-0.25">{headerComponents}</div>
         )}
         {secondaryHeaderComponents && (
-          <div className="flex gap-0.25 items-center">
+          <div className="flex items-center gap-0.25">
             {secondaryHeaderComponents}
           </div>
         )}
         <div className="flex min-h-timecode-min-height grow">
           {ltc?.state === 'here' && <AudioVisualizer ctx={ltc.ctx} />}
           <SizeAwareDiv
-            className="relative min-h-timecode-min-height grow my-1"
+            className="relative my-1 min-h-timecode-min-height grow"
             onClick={clickAction}
           >
             <div
@@ -464,7 +464,11 @@ const TimecodeDisplay: FC<TimecodeDisplayProps> = ({
                   )}
                 />
               )}
-              <span className="font-mono text-timecode-adaptive size-aware-text-emboss">
+              <span
+                className="
+                  font-mono text-timecode-adaptive size-aware-text-emboss
+                "
+              >
                 {disabled ? (
                   <Icon icon="pause" className="text-timecode-adaptive" />
                 ) : ltc?.state === null && ltc ? (
@@ -906,14 +910,18 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         startPlayer={startPlayer}
         headerComponents={
           <>
-            <div className="flex grow w-0 items-start gap-0.25 overflow-hidden pl-0.25">
+            <div
+              className="
+                flex w-0 grow items-start gap-0.25 overflow-hidden pl-0.25
+              "
+            >
               <div className="flex items-center gap-0.25 truncate">
                 <span
                   className="
-                        m-0.25 rounded-md border border-sigil-bg-light
-                        bg-timecode-usage-foreground px-1 py-0.25
-                        text-sigil-control text-timecode-usage-text
-                      "
+                    m-0.25 rounded-md border border-sigil-bg-light
+                    bg-timecode-usage-foreground px-1 py-0.25 text-sigil-control
+                    text-timecode-usage-text
+                  "
                 >
                   {type}
                 </span>
@@ -929,10 +937,10 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
                     <span
                       key={index}
                       className="
-                            m-0.25 truncate rounded-md border
-                            border-sigil-bg-light bg-sigil-foreground-muted px-1
-                            py-0.25 text-sigil-control text-sigil-bg-dark
-                          "
+                        m-0.25 truncate rounded-md border border-sigil-bg-light
+                        bg-sigil-foreground-muted px-1 py-0.25
+                        text-sigil-control text-sigil-bg-dark
+                      "
                     >
                       {label.text}
                     </span>
@@ -940,11 +948,7 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
                 ))}
                 {!name.length && (
                   <TooltipWrapper tooltip={namePlaceholder}>
-                    <span
-                      className="
-                            grow basis-0 truncate p-0.5 italic opacity-50
-                          "
-                    >
+                    <span className="grow basis-0 truncate p-0.5 italic opacity-50">
                       {namePlaceholder}
                     </span>
                   </TooltipWrapper>
@@ -991,7 +995,9 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
         secondaryHeaderComponents={
           link && (
             <div
-              className="flex grow items-center gap-0.25 text-timecode-usage-foreground"
+              className="
+                flex grow items-center gap-0.25 text-timecode-usage-foreground
+              "
               style={cssSigilColorUsageVariables(
                 'timecode-usage',
                 // Override timecode color with the user hint preferences
@@ -1002,11 +1008,10 @@ export const TimecodeTreeDisplay: FC<TimecodeTreeDisplayProps> = ({
             >
               <div
                 className="
-                          m-0.25 flex items-center gap-0.25 rounded-md border
-                          border-sigil-bg-light bg-timecode-usage-foreground
-                          px-1 py-0.25 text-sigil-control
-                          text-timecode-usage-text
-                        "
+                  m-0.25 flex items-center gap-0.25 rounded-md border
+                  border-sigil-bg-light bg-timecode-usage-foreground px-1
+                  py-0.25 text-sigil-control text-timecode-usage-text
+                "
               >
                 <Icon icon="link" className="text-[120%]" />
                 <span>{link.type}</span>

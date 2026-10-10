@@ -12,8 +12,6 @@ import {
   ControlParagraph,
   ControlSelect,
 } from '@arcanewizards/sigil/frontend/controls';
-import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import { STRINGS } from '../../constants';
 
 type MidiTargetSettingsProps = {
   type: 'input' | 'output';

@@ -42,7 +42,6 @@ import {
   useChangeCommitBoundary,
 } from '@arcanewizards/sigil/frontend/context';
 import { v4 as uuidv4 } from 'uuid';
-import { cn } from '@arcanejs/toolkit-frontend/util';
 import { ARTNET_PORT, TimecodeMode } from '@arcanewizards/artnet/constants';
 import { SizeAwareDiv } from './core/size-aware-div';
 import { TooltipWrapper } from '@arcanewizards/sigil/frontend/tooltip';
@@ -712,14 +711,14 @@ export const OutputsSection: FC<OutputSectionProps> = ({
               variant="toolbar"
               icon="add"
             >
-              <span className="flex gap-1 items-center">
+              <span className="flex items-center gap-1">
                 {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
                 {type === 'ltc' && (
                   <span
                     className="
-                    rounded-sigil-control bg-sigil-foreground px-0.8 py-0.25
-                    text-sigil-control text-sigil-bg-dark
-                  "
+                      rounded-sigil-control bg-sigil-foreground px-0.8 py-0.25
+                      text-sigil-control text-sigil-bg-dark
+                    "
                   >
                     BETA
                   </span>

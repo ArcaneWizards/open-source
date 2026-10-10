@@ -18,7 +18,6 @@ import {
   ControlInput,
   ControlLabel,
   ControlSelect,
-  SelectOption,
 } from '@arcanewizards/sigil/frontend/controls';
 import {
   ToolbarDivider,
@@ -27,8 +26,6 @@ import {
 } from '@arcanewizards/sigil/frontend/toolbars';
 import { STRINGS } from '../constants';
 import { ConfigContext, useApplicationState } from './context';
-import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import { cn } from '@arcanejs/toolkit-frontend/util';
 import { useBrowserContext } from '@arcanewizards/sigil/frontend';
 import { ListenerConfig } from '@arcanewizards/sigil';
 import { portString } from '@arcanewizards/sigil/shared/config';

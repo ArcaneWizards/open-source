@@ -23,7 +23,6 @@ import {
   SelectOption,
 } from '@arcanewizards/sigil/frontend/controls';
 import {
-  GeneratorClockDefinition,
   GeneratorConfig,
   GeneratorDefinition,
   isAudioPlayerGenerator,
@@ -43,13 +42,6 @@ import {
 import { WithAudioPlayer } from './core/audio-player';
 import { DelayConfig } from './core/delay';
 import { AudioPlaybackContextProvider } from './core/audio-context';
-
-const CLOCK_MODE_OPTIONS: Array<
-  SelectOption<GeneratorClockDefinition['mode']>
-> = [
-  { label: 'Manual', value: 'manual' },
-  { label: 'System Time', value: 'system' },
-];
 
 const ClockSpecificSettings: FC<SettingsProps<GeneratorDefinition>> = ({
   data,

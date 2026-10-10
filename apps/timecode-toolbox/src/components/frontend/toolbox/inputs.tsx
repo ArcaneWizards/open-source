@@ -24,12 +24,10 @@ import {
   MidiTargetConfig,
   TimecodeInstanceId,
 } from '../../proto';
-import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { ARTNET_PORT } from '@arcanewizards/artnet/constants';
 import type { SMPTETimecodeMode } from '@arcanewizards/smpte';
 import { CLX_PORT } from '@arcanewizards/clx/constants';
 import { v4 as uuidv4 } from 'uuid';
-import { cn } from '@arcanejs/toolkit-frontend/util';
 import {
   ChangeCommitContext,
   useChangeCommitBoundary,
@@ -640,14 +638,14 @@ export const InputsSection: FC<InputSectionProps> = ({
               variant="toolbar"
               icon="add"
             >
-              <span className="flex gap-1 items-center">
+              <span className="flex items-center gap-1">
                 {STRINGS.inputs.addButton(STRINGS.protocols[type].long)}
                 {type === 'ltc' && (
                   <span
                     className="
-                    rounded-sigil-control bg-sigil-foreground px-0.8 py-0.25
-                    text-sigil-control text-sigil-bg-dark
-                  "
+                      rounded-sigil-control bg-sigil-foreground px-0.8 py-0.25
+                      text-sigil-control text-sigil-bg-dark
+                    "
                   >
                     BETA
                   </span>
