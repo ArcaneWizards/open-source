@@ -109,9 +109,11 @@
   --sigil-foreground: #616161;
   --sigil-foreground-highlight: #1f1f1f;
   --sigil-foreground-muted: #a0a0a0;
-  --sigil-shadow-dark: rgba(0, 0, 0, 0.2);
   --sigil-shadow-emboss-dark: rgba(0, 0, 0, 0.2);
   --sigil-shadow-emboss-highlight: rgba(255, 255, 255, 1);
+  --sigil-shadow-emboss-highlight-color: rgba(255, 255, 255, 0.4);
+  --sigil-shadow-dark: var(--sigil-shadow-emboss-dark);
+  --sigil-shadow-highlight: var(--sigil-shadow-emboss-highlight);
   --sigil-box-shadow: var(--sigil-shadow-dark) 0px 0px 9px;
   --sigil-shadow-inset: inset 0px 0px 8px 0px rgba(0, 0, 0, 0.05);
   --sigil-text-shadow: 0 1px rgba(255, 255, 255, 0.7);
@@ -149,6 +151,11 @@
   --sigil-usage-hint-dimmed-border: var(--sigil-palette-blue-light);
   --sigil-usage-hint-gradient-light: var(--sigil-palette-blue-light);
   --sigil-usage-hint-gradient-dark: var(--sigil-palette-blue-normal);
+  --sigil-usage-hint-gradient-medium: color-mix(
+    in srgb,
+    var(--sigil-usage-hint-gradient-light),
+    var(--sigil-usage-hint-gradient-dark)
+  );
 
   --sigil-usage-purple-text: var(
     --sigil-palette-purple-text-override,
@@ -389,6 +396,7 @@
   --sigil-shadow-dark: rgba(0, 0, 0, 0.5);
   --sigil-shadow-emboss-dark: rgba(0, 0, 0, 0.9);
   --sigil-shadow-emboss-highlight: rgba(255, 255, 255, 0.2);
+  --sigil-shadow-emboss-highlight-color: rgba(255, 255, 255, 0.4);
   --sigil-shadow-inset: inset 0px 0px 8px 0px rgba(0, 0, 0, 0.3);
   --sigil-text-shadow: 0 -1px rgba(0, 0, 0, 0.7);
   --sigil-colored-bg-text: rgba(255, 255, 255, 0.8);

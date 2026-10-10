@@ -2,12 +2,8 @@ import { Select } from 'radix-ui';
 import { ReactNode, useCallback } from 'react';
 import { cn } from '@arcanejs/toolkit-frontend/util';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
-import {
-  clsControlButton,
-  controlButtonColorVariables,
-  ControlButtonVariant,
-} from './buttons';
-import { SigilColor, sigilColorUsage } from '../styling';
+import { clsControlButton, ControlButtonVariant } from './buttons';
+import { cssHintColorVariables, SigilColor } from '../styling';
 import { ControlPosition } from './utils';
 import { TooltipWrapper } from '../tooltip';
 
@@ -155,7 +151,6 @@ export const ControlColoredSelect = <
   ...props
 }: ControlColoredSelectProps<T, O>) => {
   const selectedOption = options.find((option) => option.value === value);
-  const selectedColor = sigilColorUsage(selectedOption?.color ?? 'gray');
 
   return (
     <ControlSelect
@@ -167,20 +162,11 @@ export const ControlColoredSelect = <
           disabled={disabled}
           className={clsControlButton({
             variant,
+            primary: true,
             position,
             active: option?.active,
           })}
-          style={controlButtonColorVariables({
-            bg: selectedColor.background,
-            bgHover: selectedColor.selectedBackground,
-            bgActive: selectedColor.selectedBackground,
-            fg: selectedColor.text,
-            fgHover: selectedColor.selectedText,
-            fgActive: selectedColor.selectedText,
-            border: selectedColor.border,
-            borderHover: selectedColor.selectedBorder,
-            borderActive: selectedColor.selectedBorder,
-          })}
+          style={cssHintColorVariables(selectedOption?.color ?? 'gray')}
         >
           <Select.Value
             placeholder={

@@ -77,8 +77,8 @@
     gap: calc(var(--arcane-spacing) / 3);
     background: var(--sigil-button-bg);
     box-shadow:
-      inset 0 1px 1px var(--sigil-shadow-emboss-highlight),
-      inset 0 -1px 0 var(--sigil-shadow-emboss-dark);
+      inset 0 1px 1px var(--sigil-shadow-highlight),
+      inset 0 -1px 0 var(--sigil-shadow-dark);
     background: var(--sigil-control-button-bg);
     border: 2px solid var(--sigil-border);
   }
@@ -127,8 +127,8 @@
     background: var(--sigil-control-button-bg-active);
     color: var(--sigil-control-button-fg-active);
     box-shadow:
-      inset 0 1px 1px var(--sigil-shadow-emboss-dark),
-      inset 0 -1px 0 var(--sigil-shadow-emboss-highlight);
+      inset 0 1px 1px var(--sigil-shadow-dark),
+      inset 0 -1px 0 var(--sigil-shadow-highlight);
   }
 
   &:hover,
@@ -147,18 +147,68 @@
 }
 
 @utility sigil-control-button-primary {
-  --sigil-control-button-bg: var(--sigil-usage-hint-background);
-  --sigil-control-button-bg-hover: var(--sigil-usage-hint-border);
-  --sigil-control-button-bg-active: var(--sigil-usage-hint-border);
+  /** Use shadow colors for coloured backgrounds */
+  --sigil-shadow-highlight: var(--sigil-shadow-emboss-highlight-color);
+  /** Set BG & Text colors */
+  --sigil-usage-hint-gradient-medium: color-mix(
+    in srgb,
+    var(--sigil-usage-hint-gradient-light),
+    var(--sigil-usage-hint-gradient-dark)
+  );
+  --sigil-control-button-bg: linear-gradient(
+    to bottom,
+    var(--sigil-usage-hint-gradient-medium),
+    var(--sigil-usage-hint-gradient-dark)
+  );
+  --sigil-control-button-bg-hover: linear-gradient(
+    to bottom,
+    var(--sigil-usage-hint-gradient-light),
+    var(--sigil-usage-hint-gradient-medium)
+  );
+  --sigil-control-button-bg-active: linear-gradient(
+    to top,
+    var(--sigil-usage-hint-gradient-medium),
+    var(--sigil-usage-hint-gradient-dark)
+  );
+  --sigil-control-button-bg-active-hover: linear-gradient(
+    to top,
+    var(--sigil-usage-hint-gradient-light),
+    var(--sigil-usage-hint-gradient-medium)
+  );
   --sigil-control-button-fg: var(--sigil-usage-hint-text);
   --sigil-control-button-fg-hover: var(--sigil-usage-hint-text);
   --sigil-control-button-fg-active: var(--sigil-usage-hint-text);
 }
 
 @utility sigil-control-button-destructive {
-  --sigil-control-button-bg: var(--sigil-usage-red-background);
-  --sigil-control-button-bg-hover: var(--sigil-usage-red-border);
-  --sigil-control-button-bg-active: var(--sigil-usage-red-border);
+  /** Use shadow colors for coloured backgrounds */
+  --sigil-shadow-highlight: var(--sigil-shadow-emboss-highlight-color);
+  /** Set BG & Text colors */
+  --sigil-usage-red-gradient-medium: color-mix(
+    in srgb,
+    var(--sigil-usage-red-gradient-light),
+    var(--sigil-usage-red-gradient-dark)
+  );
+  --sigil-control-button-bg: linear-gradient(
+    to bottom,
+    var(--sigil-usage-red-gradient-medium),
+    var(--sigil-usage-red-gradient-dark)
+  );
+  --sigil-control-button-bg-hover: linear-gradient(
+    to bottom,
+    var(--sigil-usage-red-gradient-light),
+    var(--sigil-usage-red-gradient-medium)
+  );
+  --sigil-control-button-bg-active: linear-gradient(
+    to top,
+    var(--sigil-usage-red-gradient-medium),
+    var(--sigil-usage-red-gradient-dark)
+  );
+  --sigil-control-button-bg-active-hover: linear-gradient(
+    to top,
+    var(--sigil-usage-red-gradient-light),
+    var(--sigil-usage-red-gradient-medium)
+  );
   --sigil-control-button-fg: var(--sigil-usage-red-text);
   --sigil-control-button-fg-hover: var(--sigil-usage-red-text);
   --sigil-control-button-fg-active: var(--sigil-usage-red-text);

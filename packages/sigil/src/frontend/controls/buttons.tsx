@@ -1,13 +1,12 @@
 import {
   ComponentPropsWithoutRef,
-  CSSProperties,
   forwardRef,
   useCallback,
   useRef,
   type ReactNode,
 } from 'react';
 import { cn } from '@arcanejs/toolkit-frontend/util';
-import { cnd, cssVariables } from '../styling';
+import { cnd } from '../styling';
 import { Icon } from '@arcanejs/toolkit-frontend/components/core';
 import { TooltipWrapper, type TooltipProps } from '../tooltip';
 import {
@@ -16,33 +15,6 @@ import {
   type PressableOnClickListener,
 } from '../input';
 import { clsControlPosition, type ControlPosition } from './utils';
-
-const CONTROL_BUTTON_VAR_SUFFIX = {
-  bg: 'bg',
-  bgHover: 'bg-hover',
-  bgActive: 'bg-active',
-  fg: 'fg',
-  fgHover: 'fg-hover',
-  fgActive: 'fg-active',
-  border: 'border',
-  borderHover: 'border-hover',
-  borderActive: 'border-active',
-} as const;
-
-export const controlButtonColorVariable = (
-  property: keyof typeof CONTROL_BUTTON_VAR_SUFFIX,
-) => `--sigil-control-button-${CONTROL_BUTTON_VAR_SUFFIX[property]}`;
-
-export const controlButtonColorVariables = (
-  usage: Record<keyof typeof CONTROL_BUTTON_VAR_SUFFIX, string>,
-): CSSProperties =>
-  cssVariables(
-    Object.fromEntries(
-      (Object.keys(usage) as (keyof typeof CONTROL_BUTTON_VAR_SUFFIX)[]).map(
-        (key) => [controlButtonColorVariable(key), usage[key]],
-      ),
-    ),
-  );
 
 export type ControlButtonVariant =
   | 'standard'
