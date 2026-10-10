@@ -9,7 +9,13 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "native/out/**"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "assets/**",
+        "dist/**",
+        "native/out/**"
+      ]
     },
     "clean": {
       "dependsOn": ["^clean"]

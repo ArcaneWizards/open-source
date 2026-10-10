@@ -331,6 +331,11 @@
   grid-row: auto / span 1;
 }
 
+@utility font-aladin {
+  font-family: 'Aladin', sans-serif;
+  letter-spacing: 10%;
+}
+
 :root {
   /** TODO: move this to tailwind variable */
   --sigil-control-gap: 1px;

@@ -149,6 +149,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "assets",
     "dist"
   ],
   "scripts": {
@@ -171,6 +172,7 @@
     "@arcanejs/toolkit-frontend": "^0.12.3",
     "@arcanewizards/apis": "workspace:^",
     "@arcanewizards/net-utils": "workspace:^",
+    "@arcanewizards/sigil-assets": "workspace:^",
     "@types/escape-html": "^1.0.4",
     "escape-html": "^1.0.3",
     "lodash": "^4.18.1",

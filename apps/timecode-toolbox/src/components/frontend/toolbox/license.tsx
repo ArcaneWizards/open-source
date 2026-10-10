@@ -18,6 +18,7 @@ import { Debugger, useBrowserContext } from '@arcanewizards/sigil/frontend';
 import { GetEulaResponse } from '@arcanewizards/apis';
 import { apiContentToReact } from '@arcanewizards/sigil/frontend/utils';
 import { LoadingWrapper } from '@arcanewizards/sigil/frontend/user-actions';
+import { SizeAwareDiv } from './core/size-aware-div';
 
 type LicenseProps = {
   eula: GetEulaResponse;
@@ -50,7 +51,9 @@ export const License: FC<LicenseProps> = ({ eula, setWindowMode }) => {
           flex grow basis-0 flex-col overflow-y-auto px-2 pb-2 scrollbar-sigil
         "
       >
-        <TimecodeToolboxLogo className="h-[20%] max-h-[420px] min-h-[110px] w-full" />
+        <SizeAwareDiv className="py-2">
+          <TimecodeToolboxLogo className="h-logo w-full" />
+        </SizeAwareDiv>
         <LicenseContent eula={eula} />
         <div className="flex justify-center p-2">
           <ControlButtonGroup variant="large">

@@ -66,7 +66,7 @@ export const Layout = <WindowMode extends string>({
               app-title-bar
             "
           >
-            <span className="font-bold text-hint-gradient">
+            <span className="font-aladin text-[1.1rem] text-hint-gradient">
               {STRINGS.title}
             </span>
           </div>

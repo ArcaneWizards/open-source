@@ -30,6 +30,7 @@
     "@arcanewizards/electron-media-service": "^0.3.2",
     "@arcanewizards/midi": "workspace:^",
     "@arcanewizards/net-utils-native": "workspace:^",
+    "@arcanewizards/sigil-assets": "workspace:^",
     "bindings": "^1.5.0",
     "file-uri-to-path": "^1.0.0",
     "material-symbols": "^0.25.3",
