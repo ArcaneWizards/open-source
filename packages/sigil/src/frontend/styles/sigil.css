@@ -270,7 +270,7 @@
 
 @utility sigil-control-button-variant-titlebar {
   > span {
-    border-radius: 6px;
+    --sigil-control-button-border-radius: 12px;
     aspect-ratio: 1;
   }
 }
@@ -279,7 +279,7 @@
   padding: 0;
 
   > span {
-    border-radius: 0;
+    --sigil-control-button-border-radius: 0;
     padding: calc(var(--arcane-spacing) / 2) calc(var(--arcane-spacing) / 1.5);
   }
 }
