@@ -1,5 +1,23 @@
 # @arcanewizards/sigil
 
+## 0.5.0
+
+### Minor Changes
+
+- e1719bc: Introduce new skeuomorphic design for to sigil apps
+
+  To make it easier for users to understand how to interact with apps built with
+  sigil, refresh the look of buttons and inputs to look more 3D
+
+- e1719bc: Introduce `ControlMultiOptionButtonGroup` and `ControlEnabledDisabledButtonGroup`
+
+  Introduce 2 convenience components for controls where there are a small number
+  of options
+
+### Patch Changes
+
+- 2ccab9b: Change default margin of ControlParagraph
+
 ## 0.4.0
 
 ### Minor Changes
