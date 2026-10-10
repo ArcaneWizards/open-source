@@ -1,0 +1,27 @@
+{
+  "name": "@arcanewizards/sigil-assets",
+  "description": "Static assets used by the Sigil framework, packaged separately for easier bundling",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArcaneWizards/open-source.git",
+    "directory": "packages/sigil-assets"
+  },
+  "exports": {
+    ".": "./package.json",
+    "./package.json": "./package.json",
+    "./assets/aladin.woff": "./assets/Aladin/Aladin-Regular.woff",
+    "./assets/aladin.woff2": "./assets/Aladin/Aladin-Regular.woff2"
+  },
+  "files": [
+    "assets"
+  ],
+  "scripts": {
+    "build": "check-export-map"
+  },
+  "devDependencies": {
+    "check-export-map": "^1.3.1"
+  }
+}

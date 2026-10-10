@@ -4,6 +4,7 @@ const PACKAGED_RUNTIME_DEPENDENCIES = [
   '@arcanewizards/electron-media-service',
   '@arcanewizards/midi',
   '@arcanewizards/net-utils-native',
+  '@arcanewizards/sigil-assets',
   'bindings',
   'file-uri-to-path',
   'material-symbols',
@@ -18,6 +19,7 @@ const STRICT_FILTERS = {
     'native',
     'package.json',
   ],
+  '/node_modules/@arcanewizards/sigil-assets': ['assets', 'package.json'],
 };
 
 const PACKAGED_RUNTIME_DEPENDENCY_PATHS = PACKAGED_RUNTIME_DEPENDENCIES.map(

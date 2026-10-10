@@ -1,7 +1,11 @@
 import { Logger } from '@arcanejs/protocol/logging';
 import { ArcaneDataFileError } from '@arcanejs/react-toolkit/data';
 import { CoreComponents, ToolkitRenderer } from '@arcanejs/react-toolkit';
-import { Toolkit, ToolkitOptions } from '@arcanejs/toolkit';
+import {
+  Toolkit,
+  ToolkitOptions,
+  ToolkitStaticFileResolver,
+} from '@arcanejs/toolkit';
 import { EventEmitter } from 'node:events';
 import pino from 'pino';
 import { JSX } from 'react';
@@ -14,12 +18,33 @@ import {
   SystemInformation,
 } from './shared/types';
 import { FiFo } from './util';
+import { readFile } from 'node:fs/promises';
 
 const MAX_LOG_ENTRIES = 100;
 
 export type SigilLogEventEmitter = EventEmitter<{
   logsUpdated: [{ lastLogIndex: number; logs: FiFo<AppRootLogEntry> }];
 }>;
+
+export type SigilServerAssets = {
+  'aladin.woff2': ToolkitStaticFileResolver;
+  'aladin.woff': ToolkitStaticFileResolver;
+};
+
+export const getSigilServerAssets = (): SigilServerAssets => ({
+  'aladin.woff2': async () => ({
+    content: await readFile(
+      require.resolve('@arcanewizards/sigil-assets/assets/aladin.woff2'),
+    ),
+    contentType: 'font/woff2',
+  }),
+  'aladin.woff': async () => ({
+    content: await readFile(
+      require.resolve('@arcanewizards/sigil-assets/assets/aladin.woff'),
+    ),
+    contentType: 'font/woff',
+  }),
+});
 
 export type SigilRuntimeAppProps<
   TAppApi,
@@ -49,13 +74,21 @@ export type SigilAppInstance<TAppApi> = {
   shutdown: () => Promise<void>;
 };
 
-export type SigilRuntimeOptions<TAppApi, TExtraAppProps extends object> = {
+export type SigilRuntimeOptions<
+  TAppApi,
+  TExtraAppProps extends object,
+  TAdditionalFiles extends SigilServerAssets,
+> = {
   logger: pino.Logger;
   title: string;
   version: string;
   edition: 'desktop' | 'cli';
   appProps: TExtraAppProps;
-  toolkitOptions?: Omit<Partial<ToolkitOptions>, 'logger'>;
+  additionalFiles?: () => TAdditionalFiles;
+  toolkitOptions?: Omit<
+    Partial<ToolkitOptions<TAdditionalFiles>>,
+    'logger' | 'additionalFiles'
+  >;
   createApp: (
     props: SigilRuntimeAppProps<TAppApi, TExtraAppProps>,
   ) => JSX.Element;
@@ -107,16 +140,25 @@ export const createSystemInformation = ({
   };
 };
 
-export const runSigilApp = <TAppApi, TExtraAppProps extends object>({
+export const runSigilApp = <
+  TAppApi,
+  TExtraAppProps extends object,
+  TAdditionalFiles extends SigilServerAssets = SigilServerAssets,
+>({
   logger: upstreamLogger,
   title,
   version,
   edition,
   appProps,
+  additionalFiles,
   toolkitOptions,
   createApp,
   componentNamespaces = [CoreComponents, SIGIL_COMPONENTS],
-}: SigilRuntimeOptions<TAppApi, TExtraAppProps>): SigilAppInstance<TAppApi> => {
+}: SigilRuntimeOptions<
+  TAppApi,
+  TExtraAppProps,
+  TAdditionalFiles
+>): SigilAppInstance<TAppApi> => {
   const logs = new FiFo<AppRootLogEntry>(MAX_LOG_ENTRIES);
 
   const logEventEmitter: SigilLogEventEmitter = new EventEmitter();
@@ -173,36 +215,43 @@ export const runSigilApp = <TAppApi, TExtraAppProps extends object>({
 
   process.on('unhandledRejection', unhandledRejectionHandler);
 
-  const toolkit = new Toolkit({
+  const toolkit = new Toolkit<TAdditionalFiles>({
     log: {
       ...logger,
       debug: upstreamLogger.debug.bind(upstreamLogger),
     },
     title,
     htmlPage: (context) => `
-          <html>
-            <head>
-              <title>${escapeHTML(context.title)}</title>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, user-scalable=no" />
-              <style type="text/css">
-                @font-face {
-                  font-family: 'Material Symbols Outlined';
-                  font-style: normal;
-                  src: url(${context.coreAssets.materialSymbolsOutlined}) format('woff');
-                }
-              </style>
-              ${
-                context.coreAssets.entrypointCss
-                  ? `<link rel="stylesheet" href="${context.coreAssets.entrypointCss}" />`
-                  : ''
-              }
-            </head>
-            <body>
-              <div id="root"></div>
-              <script type="text/javascript" src="${context.coreAssets.entrypointJs}"></script>
-            </body>
-          </html>`,
+      <html>
+        <head>
+          <title>${escapeHTML(context.title)}</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, user-scalable=no" />
+          <style type="text/css">
+            @font-face {
+              font-family: 'Material Symbols Outlined';
+              font-style: normal;
+              src: url(${context.coreAssets.materialSymbolsOutlined}) format('woff');
+            }
+            @font-face {
+              font-family: 'Aladin';
+              font-style: normal;
+              src: url(${context.assetUrls['aladin.woff2']}) format('woff2'), url(${context.assetUrls['aladin.woff']}) format('woff');
+            }
+          </style>
+          ${
+            context.coreAssets.entrypointCss
+              ? `<link rel="stylesheet" href="${context.coreAssets.entrypointCss}" />`
+              : ''
+          }
+        </head>
+        <body>
+          <div id="root"></div>
+          <script type="text/javascript" src="${context.coreAssets.entrypointJs}"></script>
+        </body>
+      </html>`,
+    additionalFiles:
+      additionalFiles?.() ?? (getSigilServerAssets() as TAdditionalFiles),
     ...toolkitOptions,
   });
 
