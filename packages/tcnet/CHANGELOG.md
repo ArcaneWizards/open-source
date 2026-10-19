@@ -1,5 +1,11 @@
 # @arcanewizards/tcnet
 
+## 0.1.8
+
+### Patch Changes
+
+- 28d6138: Update TCNet library for compatibility with ShowKontrol R27
+
 ## 0.1.7
 
 ### Patch Changes
