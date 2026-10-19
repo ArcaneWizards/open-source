@@ -1,5 +1,14 @@
 # @arcanewizards/sigil
 
+## 0.5.1
+
+### Patch Changes
+
+- b90e019: Make additional styling adjustments for new design
+
+  When integrating the new sigil design into Arcane Desktop,
+  there were several areas that required some fine-tuning.
+
 ## 0.5.0
 
 ### Minor Changes
