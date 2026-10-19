@@ -52,6 +52,8 @@ const PORT_TIME = 60001;
 const PORT_UNICAST_MIN = 65023;
 const PORT_UNICAST_MAX = 65535;
 
+const COMPATIBLE_SERVER_VERSIONS = new Set(['3.5']);
+
 /**
  * How many opt-in messages need to be missed before we consider a node disconnected
  */
@@ -82,7 +84,9 @@ const getInterfaceReceiveBindAddress = (
   if (networkInterface.internal || process.platform === 'win32') {
     return networkInterface.address;
   }
-  return networkInterface.broadcastAddress;
+  // Since ShowKontrol R27 - broadcasts are not sent on the local subnet
+  // so we need to listen to 0.0.0.0 instead of networkInterface.broadcastAddress
+  return '0.0.0.0';
 };
 
 type TCNetConnectedNodeInternal = {
@@ -371,13 +375,16 @@ export const createTCNetNode = (props: Props): TCNetNode => {
       nodeType,
       nodeOptions,
     } = optIn.header;
+    const protocolVersion = `${protocolVersionMajor}.${protocolVersionMinor}`;
     const info: TCNetNodeInfo = {
       // Key / Identity Material
       host: rinfo.address,
       nodeId,
       nodeListenerPort: optIn.nodeListenerPort,
       // Other Data
-      protocolVersion: `${protocolVersionMajor}.${protocolVersionMinor}`,
+      protocolVersion,
+      protocolVersionCompatible:
+        COMPATIBLE_SERVER_VERSIONS.has(protocolVersion),
       nodeName: nodeName.toString('ascii').replace(/\0/g, ''),
       nodeType: nodeType,
       nodeOptions: nodeOptions,
@@ -459,6 +466,8 @@ export const createTCNetNode = (props: Props): TCNetNode => {
         nodeId: packet.header.nodeId,
       };
       events.emit('time', { packet, port: 'time', node });
+    } else if (packet.type === 'APPLICATION_SPECIFIC_DATA_1') {
+      // Ignore these packets
     } else {
       throw new TCNetProtocolError(
         `Received unsupported packet type ${packet.type} on time port from ${rinfo.address}:${rinfo.port}`,

@@ -706,11 +706,15 @@ const parseDataPacket = (
  * 25=25FPS (EBU)
  * 29=29.7FPS (DF)
  * 30=30FPS (NTSC)
+ *
+ * TODO: investigate SMPTE mode 1, which has only started appearing in
+ * ShowKontrol R27 / TCNet 3.6.
  */
-export type SMPTEFramerate = 24 | 25 | 29 | 30;
+export type SMPTEFramerate = 1 | 24 | 25 | 29 | 30;
 
 const parseSMPTEFramerate = (framerate: number): SMPTEFramerate => {
   if (
+    framerate === 1 ||
     framerate === 24 ||
     framerate === 25 ||
     framerate === 29 ||

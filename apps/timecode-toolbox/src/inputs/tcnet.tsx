@@ -105,6 +105,18 @@ const TcnetInputConnection: FC<TcnetInputConnectionProps> = ({
           protocolVersion: nodeInfo.protocolVersion,
           details: [`Type: ${nodeInfo.nodeType}`],
         }));
+      const unknownVersions = [
+        ...new Set(
+          Object.values(nodes)
+            .filter(
+              (n) => n.nodeType !== 'SLAVE' && !n.protocolVersionCompatible,
+            )
+            .map((node) => node.protocolVersion),
+        ),
+      ];
+      for (const version of unknownVersions) {
+        warnings.push(`Server using unknown TCNet version: ${version}`);
+      }
       const errors = Object.values(connections).flatMap(
         (port) => port?.errors ?? [],
       );
