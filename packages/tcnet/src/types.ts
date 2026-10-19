@@ -112,6 +112,11 @@ export type TCNetNodeIdentity = {
 export type TCNetNodeInfo = TCNetNodeIdentity & {
   nodeListenerPort: number;
   protocolVersion: string;
+  /**
+   * True when the version of the protocol in-use is one that this library
+   * is fully compatible with.
+   */
+  protocolVersionCompatible: boolean;
   nodeName: string;
   nodeType: TCNetNodeType;
   nodeOptions: TCNetPortNodeOptions;
