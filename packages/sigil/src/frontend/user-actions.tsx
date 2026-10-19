@@ -196,12 +196,14 @@ export const UserActionAlert: FC<UserActionAlertProps> = ({
 type LoadingWrapperProps = {
   children?: React.ReactNode;
   className?: string;
+  classNameInner?: string;
   alert?: 'none' | 'error' | 'success';
 } & ({ loading: boolean } | { action: UserActionState<unknown> });
 
 export const LoadingWrapper: FC<LoadingWrapperProps> = ({
   children,
   className,
+  classNameInner,
   alert = 'error',
   ...props
 }: LoadingWrapperProps) => {
@@ -217,7 +219,7 @@ export const LoadingWrapper: FC<LoadingWrapperProps> = ({
           />
         </div>
       )}
-      <div className={cn(cnd(loading, 'opacity-0'))}>
+      <div className={cn(cnd(loading, 'opacity-0'), classNameInner)}>
         {alert !== 'none' && 'action' in props && (
           <UserActionAlert
             action={props.action}

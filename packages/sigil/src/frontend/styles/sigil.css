@@ -26,6 +26,29 @@
   }
 }
 
+@utility sigil-control-input {
+  border: 2px solid var(--sigil-border);
+  padding: 7px;
+  background-image: var(--sigil-gradient-lowered);
+}
+
+@utility sigil-control-input-variant-table-row {
+  border-width: 0px !important;
+  padding: 9px !important;
+
+  &:focus {
+    border-width: 2px !important;
+    padding: 7px !important;
+  }
+}
+
+@utility sigil-control-input-error {
+  border-width: 2px;
+  padding: 7px;
+  border-color: var(--sigil-error-foreground);
+  color: var(--sigil-error-foreground);
+}
+
 @utility sigil-control-button-group {
   display: flex;
   align-items: stretch;
@@ -33,6 +56,7 @@
   background: var(--sigil-border);
   border-radius: var(--sigil-control-button-border-radius);
   padding: 2px;
+  min-width: max-content;
 
   --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 3)
     calc(var(--arcane-spacing) / 1.5);
@@ -51,6 +75,26 @@
 @utility sigil-control-button-group-variant-large {
   --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 1.5)
     calc(var(--arcane-spacing) / 1.5);
+}
+
+@utility sigil-control-button-group-variant-table-row {
+  border-radius: 0;
+  padding: 1px;
+  --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 2)
+    calc(var(--arcane-spacing) / 1.5);
+}
+
+@utility sigil-control-button-group-variant-toolbar {
+  --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 3)
+    calc(var(--arcane-spacing) / 2);
+}
+
+@utility sigil-control-button-group-variant-border {
+  border-radius: 0;
+  padding-top: 0;
+  & > button {
+    border-width: 2px;
+  }
 }
 
 @utility sigil-control-button {
@@ -265,6 +309,7 @@
 
   > span {
     padding: calc(var(--arcane-spacing) / 3) calc(var(--arcane-spacing) / 2);
+    min-height: calc(var(--arcane-spacing) / 3 * 2 + 1.2rem);
   }
 }
 

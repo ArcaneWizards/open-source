@@ -1,10 +1,10 @@
 const REACT_TAILWIND_CALLEES = ['cn', 'cnd'];
 
 const CLASS_NAME_ROOT_EXPRESSION_SELECTOR =
-  'JSXAttribute[name.name="className"] > JSXExpressionContainer > :not(Literal[raw=/^["\']/]):not(TemplateLiteral[expressions.length=0]):not(Identifier[name="className"]):not(CallExpression[callee.type="Identifier"][callee.name="cn"]):not(CallExpression[callee.type="Identifier"][callee.name="calculateClass"]):not(CallExpression[callee.type="Identifier"][callee.name=/^cls[A-Z]/])';
+  'JSXAttribute[name.name="className"] > JSXExpressionContainer > :not(Literal[raw=/^["\']/]):not(TemplateLiteral[expressions.length=0]):not(Identifier[name="className"]):not(Identifier[name=/^className[A-Z]/]):not(CallExpression[callee.type="Identifier"][callee.name="cn"]):not(CallExpression[callee.type="Identifier"][callee.name="calculateClass"]):not(CallExpression[callee.type="Identifier"][callee.name=/^cls[A-Z]/])';
 
 const CN_CLASS_NAME_ARGUMENT_SELECTOR =
-  'JSXAttribute[name.name="className"] CallExpression[callee.type="Identifier"][callee.name="cn"] > *.arguments:not(Literal[raw=/^["\']/]):not(TemplateLiteral[expressions.length=0]):not(Identifier[name="className"]):not(CallExpression[callee.type="Identifier"][callee.name="cnd"]):not(CallExpression[callee.type="Identifier"][callee.name="calculateClass"]):not(CallExpression[callee.type="Identifier"][callee.name=/^cls[A-Z]/])';
+  'JSXAttribute[name.name="className"] CallExpression[callee.type="Identifier"][callee.name="cn"] > *.arguments:not(Literal[raw=/^["\']/]):not(TemplateLiteral[expressions.length=0]):not(Identifier[name="className"]):not(Identifier[name=/^className[A-Z]/]):not(CallExpression[callee.type="Identifier"][callee.name="cnd"]):not(CallExpression[callee.type="Identifier"][callee.name="calculateClass"]):not(CallExpression[callee.type="Identifier"][callee.name=/^cls[A-Z]/])';
 
 const CN_CND_INVALID_CLASS_SELECTOR =
   'JSXAttribute[name.name="className"] CallExpression[callee.type="Identifier"][callee.name="cn"] > CallExpression.arguments[callee.type="Identifier"][callee.name="cnd"] > *.arguments:nth-child(2):not(Literal[raw=/^["\']/]):not(TemplateLiteral[expressions.length=0])';

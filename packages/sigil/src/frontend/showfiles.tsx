@@ -564,7 +564,8 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
   return (
     <LoadingWrapper
       action={userAction}
-      className={cn('flex flex-col gap-0.5', clsControlPosition(position))}
+      className={clsControlPosition(position)}
+      classNameInner="flex flex-col gap-1"
     >
       {dialogMode && (
         <Dialog
@@ -657,11 +658,9 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
         </Dialog>
       )}
       {description && (
-        <div className="px-0.3 py-0.6 text-sigil-foreground-muted">
-          {description}
-        </div>
+        <div className="text-sigil-foreground-muted">{description}</div>
       )}
-      <div className="flex flex-wrap items-center gap-sigil-control-gap">
+      <div className="flex flex-wrap items-center gap-1">
         <ControlButton
           onClick={onSaveAsButtonClicked}
           variant="large"
@@ -716,51 +715,41 @@ export const ShowFileConfig: FC<ShowFileConfigProps> = ({
           {Object.entries(data.showfiles)
             .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
             .map(([name, uuid]) => (
-              <div key={name} className="group sigil-grid-table-basic-subgrid">
+              <div
+                key={name}
+                className="sigil-grid-table-row sigil-grid-table-basic-subgrid"
+              >
                 <TooltipWrapper tooltip={strings.load}>
-                  <button
-                    onClick={() => onLoadButtonClicked(uuid)}
-                    className={cn(
-                      `
-                        sigil-grid-pos-name flex cursor-pointer items-center
-                        gap-1 border-none bg-sigil-bg-dark p-1 text-[0.7rem]
-                        text-sigil-foreground
-                        group-hover:bg-sigil-bg-light
-                        hover:bg-sigil-control-button-bg-hover
-                        hover:text-sigil-usage-hint-foreground
-                      `,
-                      cnd(
+                  <ControlButtonGroup variant="table-row">
+                    <ControlButton
+                      onClick={() => onLoadButtonClicked(uuid)}
+                      active={
                         data.status.type === 'show-file-loaded' &&
-                          data.status.uuid === uuid,
-                        `
-                          text-sigil-usage-hint-foreground
-                          hover:text-sigil-usage-hint-foreground
-                        `,
-                      ),
-                    )}
-                  >
-                    <span>{name}</span>
-                    <span className="grow" />
-                    {data.status.type === 'show-file-loaded' &&
-                      data.status.uuid === uuid && (
-                        <span
-                          className={cn(`
-                            rounded-arcane-btn border
-                            border-sigil-usage-hint-border
-                            bg-sigil-usage-hint-background px-0.3 py-0.5
-                            text-[0.7rem] text-sigil-usage-hint-text
-                          `)}
-                        >
-                          {strings.inUse}
-                        </span>
-                      )}
-                  </button>
+                        data.status.uuid === uuid
+                      }
+                      variant="group"
+                    >
+                      <span>{name}</span>
+                      <span className="grow" />
+                      {data.status.type === 'show-file-loaded' &&
+                        data.status.uuid === uuid && (
+                          <span
+                            className={cn(`
+                              -mx-0.5 -my-2 rounded-arcane-btn border
+                              border-sigil-usage-hint-border
+                              bg-sigil-usage-hint-background p-0.3 text-[0.7rem]
+                              text-sigil-usage-hint-text
+                            `)}
+                          >
+                            {strings.inUse}
+                          </span>
+                        )}
+                    </ControlButton>
+                  </ControlButtonGroup>
                 </TooltipWrapper>
                 <ControlButtonGroup
-                  className="
-                    sigil-grid-pos-controls
-                    group-hover:bg-sigil-bg-light
-                  "
+                  className="sigil-grid-pos-controls"
+                  variant="table-row"
                 >
                   <ControlButton
                     onClick={() =>

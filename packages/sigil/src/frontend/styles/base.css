@@ -42,12 +42,7 @@
   /* Background Gradients */
   --background-image-sigil-raised: linear-gradient(
     to bottom,
-    var(--sigil-bg-light),
-    var(--sigil-bg-dark)
-  );
-  --background-image-sigil-lowered: linear-gradient(
-    to top,
-    var(--sigil-bg-light),
+    var(--sigil-bg-dark-1),
     var(--sigil-bg-dark)
   );
 
@@ -329,6 +324,32 @@
 @utility control-grid-pos-row {
   grid-column: label-start / input-extra-end;
   grid-row: auto / span 1;
+}
+
+@utility sigil-grid-table-row {
+  display: grid;
+  grid-template-columns: subgrid;
+
+  &:hover {
+    --sigil-control-button-bg: var(--sigil-control-button-bg-hover);
+  }
+
+  > .sigil-grid-table-highlight-row {
+    background: var(--sigil-bg-dark);
+  }
+
+  &:hover > .sigil-grid-table-highlight-row {
+    background: var(--sigil-bg-light);
+
+    .sigil-control-input-variant-table-row {
+      background-image: var(--sigil-gradient-lowered-hover);
+    }
+  }
+}
+
+@utility sigil-grid-table-highlight-row {
+  color: inherit;
+  /* no-op */
 }
 
 @utility font-aladin {
