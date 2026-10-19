@@ -1,5 +1,14 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.5.2
+
+### Patch Changes
+
+- 28d6138: Update Timecode Toolbox for compatibility with ShowKontrol R27
+
+  ShowKontrol R27 made some changes to the way they implement TCNet,
+  and some changes were required for compatibility with R27 on MacOS.
+
 ## 0.5.1
 
 ### Patch Changes
