@@ -104,7 +104,7 @@
   --sigil-bg-dark: #f8f8f8;
   --sigil-bg-light: #ffffff;
   --sigil-bg-button-hover: #e5e5e5;
-  --sigil-border: #e5e5e5;
+  --sigil-border: #d6d6d6;
   --sigil-border-lighterer: #f6f8fa;
   --sigil-foreground: #616161;
   --sigil-foreground-highlight: #1f1f1f;
@@ -126,6 +126,27 @@
   --sigil-ghost-border: rgba(0, 0, 0, 0.5);
   --sigil-color-red: #d73a49;
   --sigil-color-amber: #b08800;
+
+  --arcane-gradient-button: linear-gradient(
+    to bottom,
+    var(--sigil-bg-dark),
+    var(--sigil-bg-dark-1)
+  );
+  --arcane-gradient-button-hover: linear-gradient(
+    to bottom,
+    var(--sigil-bg-light),
+    var(--sigil-bg-light-2)
+  );
+  --arcane-gradient-button-active: linear-gradient(
+    to top,
+    var(--sigil-bg-dark),
+    var(--sigil-bg-dark-1)
+  );
+  --arcane-gradient-button-pressed-hover: linear-gradient(
+    to top,
+    var(--sigil-bg-light),
+    var(--sigil-bg-light-2)
+  );
 
   /**
    * Initialize hint colors for when useRootHintVariables() is not used.
