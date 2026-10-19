@@ -275,7 +275,7 @@ LongPressableControlButton.displayName = 'LongPressableControlButton';
 
 export type ControlButtonGroupProps = ComponentPropsWithoutRef<'div'> & {
   position?: ControlPosition;
-  variant?: 'standard' | 'large';
+  variant?: 'standard' | 'large' | 'table-row' | 'toolbar' | 'border';
 };
 
 export const ControlButtonGroup = forwardRef<
@@ -288,6 +288,12 @@ export const ControlButtonGroup = forwardRef<
     className={cn(
       'sigil-control-button-group',
       cnd(variant === 'large', 'sigil-control-button-group-variant-large'),
+      cnd(
+        variant === 'table-row',
+        `sigil-control-button-group-variant-table-row`,
+      ),
+      cnd(variant === 'toolbar', 'sigil-control-button-group-variant-toolbar'),
+      cnd(variant === 'border', 'sigil-control-button-group-variant-border'),
       clsControlPosition(position),
       className,
     )}

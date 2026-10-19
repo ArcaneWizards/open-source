@@ -127,26 +127,31 @@
   --sigil-color-red: #d73a49;
   --sigil-color-amber: #b08800;
 
-  --arcane-gradient-button: linear-gradient(
+  --sigil-gradient-raised: linear-gradient(
     to bottom,
     var(--sigil-bg-dark),
     var(--sigil-bg-dark-1)
   );
-  --arcane-gradient-button-hover: linear-gradient(
+  --sigil-gradient-raised-hover: linear-gradient(
     to bottom,
     var(--sigil-bg-light),
     var(--sigil-bg-light-2)
   );
-  --arcane-gradient-button-active: linear-gradient(
+  --sigil-gradient-lowered: linear-gradient(
     to top,
     var(--sigil-bg-dark),
     var(--sigil-bg-dark-1)
   );
-  --arcane-gradient-button-pressed-hover: linear-gradient(
+  --sigil-gradient-lowered-hover: linear-gradient(
     to top,
     var(--sigil-bg-light),
     var(--sigil-bg-light-2)
   );
+
+  --arcane-gradient-button: var(--sigil-gradient-raised);
+  --arcane-gradient-button-hover: var(--sigil-gradient-raised-hover);
+  --arcane-gradient-button-active: var(--sigil-gradient-lowered);
+  --arcane-gradient-button-pressed-hover: var(--sigil-gradient-lowered-hover);
 
   /**
    * Initialize hint colors for when useRootHintVariables() is not used.
@@ -429,26 +434,31 @@
   --sigil-color-red: #e06c75;
   --sigil-color-amber: #d19a66;
 
-  --arcane-gradient-button: linear-gradient(
+  --sigil-gradient-raised: linear-gradient(
     to bottom,
     var(--sigil-bg-dark-1),
     var(--sigil-bg-dark)
   );
-  --arcane-gradient-button-hover: linear-gradient(
+  --sigil-gradient-raised-hover: linear-gradient(
     to bottom,
     var(--sigil-bg-light-2),
     var(--sigil-bg-light)
   );
-  --arcane-gradient-button-active: linear-gradient(
+  --sigil-gradient-lowered: linear-gradient(
     to top,
     var(--sigil-bg-dark-1),
     var(--sigil-bg-dark)
   );
-  --arcane-gradient-button-pressed-hover: linear-gradient(
+  --sigil-gradient-lowered-hover: linear-gradient(
     to top,
     var(--sigil-bg-light-2),
     var(--sigil-bg-light)
   );
+
+  --arcane-gradient-button: var(--sigil-gradient-raised);
+  --arcane-gradient-button-hover: var(--sigil-gradient-raised-hover);
+  --arcane-gradient-button-active: var(--sigil-gradient-lowered);
+  --arcane-gradient-button-pressed-hover: var(--sigil-gradient-lowered-hover);
 
   --sigil-usage-hint-text: var(
     --sigil-palette-blue-text-override,

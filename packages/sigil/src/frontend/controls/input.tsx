@@ -108,6 +108,7 @@ export type ControlInputProps = ComponentProps<
   subgrid?: boolean;
   nonMicro?: boolean;
   hasError?: boolean;
+  variant?: 'table-row';
 };
 
 export const ControlInput: FC<ControlInputProps> = ({
@@ -122,8 +123,8 @@ export const ControlInput: FC<ControlInputProps> = ({
     {...props}
     className={cn(
       `
-        overflow-hidden border-2 border-sigil-border bg-sigil-lowered px-[7px]
-        py-[7px] text-[0.7rem] text-sigil-foreground shadow-none
+        overflow-hidden sigil-control-input text-[0.7rem] text-sigil-foreground
+        shadow-none
         focus:border-2 focus:border-sigil-usage-hint-foreground
         focus:text-sigil-usage-hint-foreground focus:outline-none
         disabled:opacity-50
@@ -132,13 +133,14 @@ export const ControlInput: FC<ControlInputProps> = ({
         [&::-webkit-outer-spin-button]:opacity-20
         focus:[&::-webkit-outer-spin-button]:opacity-50
       `,
+      cnd(
+        props.variant === 'table-row',
+        'sigil-control-input-variant-table-row',
+      ),
       clsControlPosition(position),
       clsControlSubgridPosition(position, subgrid),
       cnd(nonMicro, 'max-[550px]:hidden'),
-      cnd(
-        hasError,
-        `border-2 border-sigil-error-foreground text-sigil-error-foreground`,
-      ),
+      cnd(hasError, `sigil-control-input-error`),
       className,
     )}
   />
