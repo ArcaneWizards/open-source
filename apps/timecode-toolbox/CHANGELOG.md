@@ -1,5 +1,16 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.5.3
+
+### Patch Changes
+
+- 874ebc2: Ensure that SMPTE mode is sent with stopped frames in MTC
+
+  Make sure that the configured SMPTE mode is used when sending stopped timecode
+  frames over MTC.
+
+  Fixes https://github.com/ArcaneWizards/open-source/issues/119
+
 ## 0.5.2
 
 ### Patch Changes

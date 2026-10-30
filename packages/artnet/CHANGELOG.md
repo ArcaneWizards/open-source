@@ -1,5 +1,12 @@
 # @arcanewizards/artnet
 
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [874ebc2]
+  - @arcanewizards/smpte@0.2.0
+
 ## 0.1.8
 
 ### Patch Changes
