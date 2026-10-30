@@ -3,6 +3,7 @@ import { ArcaneDataFileError } from '@arcanejs/react-toolkit/data';
 import { CoreComponents, ToolkitRenderer } from '@arcanejs/react-toolkit';
 import {
   Toolkit,
+  ToolkitAdditionalFiles,
   ToolkitOptions,
   ToolkitStaticFileResolver,
 } from '@arcanejs/toolkit';
@@ -77,14 +78,14 @@ export type SigilAppInstance<TAppApi> = {
 export type SigilRuntimeOptions<
   TAppApi,
   TExtraAppProps extends object,
-  TAdditionalFiles extends SigilServerAssets,
+  TAdditionalFiles extends SigilServerAssets & ToolkitAdditionalFiles,
 > = {
   logger: pino.Logger;
   title: string;
   version: string;
   edition: 'desktop' | 'cli';
   appProps: TExtraAppProps;
-  additionalFiles?: () => TAdditionalFiles;
+  additionalFiles?: () => TAdditionalFiles & ToolkitAdditionalFiles;
   toolkitOptions?: Omit<
     Partial<ToolkitOptions<TAdditionalFiles>>,
     'logger' | 'additionalFiles'
