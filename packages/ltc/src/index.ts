@@ -696,6 +696,7 @@ type LTCReaderChannelState = {
   stoppedTimeout: {
     id: ReturnType<typeof setTimeout>;
     timeMillis: number;
+    smpteMode: SMPTETimecodeMode | null;
   } | null;
   modeDetector: LTCModeDetector;
   timingStabilizer: LTCTimingStabilizer;
@@ -732,7 +733,11 @@ export const createLTCReader = ({
     createReaderChannelState(),
   );
 
-  const sendStoppedState = (channel: number, currentTimeMillis: number) => {
+  const sendStoppedState = (
+    channel: number,
+    currentTimeMillis: number,
+    smpteMode: SMPTETimecodeMode | null,
+  ) => {
     const channelState = channelStates[channel];
     if (!channelState || closed) {
       return;
@@ -741,6 +746,7 @@ export const createLTCReader = ({
     const stoppedState: SMPTETimecodePlayState = {
       state: 'stopped',
       currentTimeMillis,
+      smpteMode,
     };
 
     channelState.lastPlayState = stoppedState;
@@ -768,6 +774,7 @@ export const createLTCReader = ({
     channel: number,
     frameDurationMillis: number,
     timeMillis: number,
+    smpteMode: SMPTETimecodeMode | null,
   ) => {
     const channelState = channelStates[channel];
     if (!channelState || closed) {
@@ -787,10 +794,11 @@ export const createLTCReader = ({
       id: setTimeout(() => {
         // Only send timeout if the value to send is unchanged
         if (channelState.stoppedTimeout?.timeMillis === timeMillis) {
-          sendStoppedState(channel, timeMillis);
+          sendStoppedState(channel, timeMillis, smpteMode);
         }
       }, stoppedTimeoutMillis),
       timeMillis,
+      smpteMode,
     };
   };
 
@@ -816,6 +824,7 @@ export const createLTCReader = ({
         channel,
         frameDurationMillis,
         channelState.stoppedTimeout.timeMillis,
+        channelState.stoppedTimeout.smpteMode,
       );
     }
 
@@ -840,7 +849,7 @@ export const createLTCReader = ({
     }
 
     const timecodeMillis = getMillisFromTimecode(decodedFrame.timecode);
-    scheduleStoppedState(channel, frameDurationMillis, timecodeMillis);
+    scheduleStoppedState(channel, frameDurationMillis, timecodeMillis, mode);
     const wallDelta =
       channelState.lastFrameWallMillis === null
         ? null

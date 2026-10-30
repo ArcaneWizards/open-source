@@ -156,9 +156,8 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
         }
         midiInstance.sendMessage(message);
       },
-      mode,
     });
-  }, [midiInstance, mode]);
+  }, [midiInstance]);
 
   const shutdownHandler = useCallback(async () => {
     if (!midiInstance) {
@@ -198,6 +197,7 @@ const MIDIOutputConnection: FC<MIDIOutputConnectionProps> = ({
             currentTimeMillis: isStopped(timecodeState)
               ? timecodeState.positionMillis
               : 0,
+            smpteMode: mode,
           },
     );
 

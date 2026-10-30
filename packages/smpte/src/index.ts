@@ -35,6 +35,11 @@ export type SMPTETimecodePlayState =
   | {
       state: 'stopped';
       currentTimeMillis: number;
+      /**
+       * The SMPTE mode for the timecode,
+       * or `null` if that information is not available.
+       */
+      smpteMode: SMPTETimecodeMode | null;
     };
 
 const getDisplayFrameCount = (mode: SMPTETimecodeMode): number => {

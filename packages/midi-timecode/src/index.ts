@@ -33,19 +33,10 @@ const MIN_TC_DIFF_TOLERANCE_MS = 10;
  */
 const MIN_SPEED_CHANGE_TOLERANCE = 0.01;
 
-/**
- * @deprecated use `SMPTETimecodePlayState` instead
- */
-export type MIDITimecodePlayState = SMPTETimecodePlayState;
-
-/**
- * @deprecated use `SMPTETimecodeMode` instead
- */
-export type MIDISMPTEMode = SMPTETimecodeMode;
+export type { SMPTETimecodePlayState, SMPTETimecodeMode };
 
 export type MIDITimecodeSenderOptions = {
   sendMessage: (message: number[]) => void;
-  mode: SMPTETimecodeMode;
 };
 
 export type MIDITimecodeSender = {
@@ -199,7 +190,6 @@ const calculateNextQuarterFrames = (
 
 export const createMIDITimecodeSender = ({
   sendMessage,
-  mode,
 }: MIDITimecodeSenderOptions): MIDITimecodeSender => {
   let timeoutId: NodeJS.Timeout | null = null;
   /**
@@ -207,7 +197,7 @@ export const createMIDITimecodeSender = ({
    * so that any timeouts / timers that aren't cleared immediately,
    * don't cause incorrect messages to be sent after a state change.
    */
-  let currentPlayState: MIDITimecodePlayState | null = null;
+  let currentPlayState: SMPTETimecodePlayState | null = null;
 
   const setPlayState: MIDITimecodeSender['setPlayState'] = (state) => {
     if (timeoutId) {
@@ -224,7 +214,10 @@ export const createMIDITimecodeSender = ({
 
     if (state.state === 'stopped') {
       // Send a message with the current time to indicate stopping
-      const frame = getTimecodeFromMillis(mode, state.currentTimeMillis);
+      const frame = getTimecodeFromMillis(
+        state.smpteMode ?? 'SMPTE',
+        state.currentTimeMillis,
+      );
       sendMessage(fullTimecodeMessage(frame));
       return;
     }
@@ -233,7 +226,7 @@ export const createMIDITimecodeSender = ({
     const { speed } = state;
     const tcMillisStart = (Date.now() - state.effectiveStartTime) * speed;
     const frame: SMPTETimecodeFrame = getTimecodeFromMillis(
-      mode,
+      state.smpteMode,
       tcMillisStart,
     );
     sendMessage(fullTimecodeMessage(frame));
@@ -245,7 +238,7 @@ export const createMIDITimecodeSender = ({
      * based on the current speed.
      */
     const qfInterval =
-      (1000 / SMPTE_TIMECODE_FPS[mode] / 4 / Math.abs(speed)) | 0;
+      (1000 / SMPTE_TIMECODE_FPS[state.smpteMode] / 4 / Math.abs(speed)) | 0;
     /**
      * The actual timestamp in milliseconds represented by `frame`.
      */
@@ -349,7 +342,7 @@ const quarterFrameDataToTimecode = (
 };
 
 export type MIDITimecodeReceiverOptions = {
-  handlePlayStateChange: (state: MIDITimecodePlayState) => void;
+  handlePlayStateChange: (state: SMPTETimecodePlayState) => void;
   handleJitterChange?: (jitterMillis: number) => void;
 };
 
@@ -369,7 +362,7 @@ export const createMIDITimecodeReceiver = ({
   let quarterFramesReceived = 0;
   let lastQfReceivedAt = 0;
   let lastQf0ReceivedAt = 0;
-  let lastPlayingState: MIDITimecodePlayState | null = null;
+  let lastPlayingState: SMPTETimecodePlayState | null = null;
 
   // Stopped state
 
@@ -390,6 +383,7 @@ export const createMIDITimecodeReceiver = ({
     handlePlayStateChange({
       state: 'stopped',
       currentTimeMillis,
+      smpteMode: frame.mode,
     });
     sentStopped = true;
   };

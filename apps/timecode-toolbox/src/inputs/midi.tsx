@@ -18,7 +18,7 @@ import type {
 import { useMidiDeviceWatcher } from '../lib/midi';
 import {
   createMIDITimecodeReceiver,
-  MIDITimecodePlayState,
+  SMPTETimecodePlayState,
 } from '@arcanewizards/midi-timecode';
 
 type MidiInputConnectionProps = StateSensitiveComponentPropsWithMidi & {
@@ -39,7 +39,7 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
   const [midiInstance, setMidiInstance] = useState<MIDIInput | null>(null);
 
   const [midiPlayState, setMidiPlayState] =
-    useState<MIDITimecodePlayState | null>(null);
+    useState<SMPTETimecodePlayState | null>(null);
 
   const [inputState, setInputState] = useState<Omit<InputState, 'timecode'>>({
     status: 'disabled',
@@ -83,7 +83,7 @@ const MidiInputConnection: FC<MidiInputConnectionProps> = ({
                           state: 'stopped',
                           accuracyMillis: null,
                           appliedDelayMillis: delayMs ?? 0,
-                          smpteMode: null,
+                          smpteMode: midiPlayState.smpteMode,
                           onAir: null,
                           positionMillis:
                             midiPlayState.currentTimeMillis - (delayMs ?? 0),
