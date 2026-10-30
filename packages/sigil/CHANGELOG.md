@@ -1,5 +1,17 @@
 # @arcanewizards/sigil
 
+## 0.5.1
+
+### Patch Changes
+
+- ce34dca: Make additional styling adjustments for new design
+
+  When integrating the new sigil design into Arcane Desktop,
+  there were several areas that required some fine-tuning.
+
+- Updated dependencies [f5008a5]
+  - @arcanewizards/apis@0.1.0
+
 ## 0.5.0
 
 ### Minor Changes

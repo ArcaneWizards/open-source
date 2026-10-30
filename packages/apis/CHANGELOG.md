@@ -1,5 +1,11 @@
 # @arcanewizards/apis
 
+## 0.1.0
+
+### Minor Changes
+
+- f5008a5: Publish initial version bump
+
 ## 0.0.2
 
 ### Patch Changes
