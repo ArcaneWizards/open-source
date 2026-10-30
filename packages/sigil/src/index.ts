@@ -29,12 +29,18 @@ export type {
   AppListenerManagerAppRegistration,
   ListenerConfig,
 } from './listener';
-export { createSystemInformation, runSigilApp } from './runtime';
+export {
+  createSystemInformation,
+  runSigilApp,
+  getSigilServerAssets,
+} from './runtime';
 export type {
   SigilAppInstance,
   SigilRuntimeAppProps,
   SigilRuntimeEventMap,
   SigilRuntimeOptions,
+  SigilServerAssets,
+  SigilLogEventEmitter,
 } from './runtime';
 export type {
   AppRootLogEntry,

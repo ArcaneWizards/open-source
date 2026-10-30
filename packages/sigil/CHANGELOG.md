@@ -1,5 +1,14 @@
 # @arcanewizards/sigil
 
+## 0.5.3
+
+### Patch Changes
+
+- aaa7c8c: Export sigil asset types and functions from runtime
+
+  Export getSigilServerAssets and SigilServerAssets so that apps can more easily
+  extend the static assets available.
+
 ## 0.5.2
 
 ### Patch Changes
