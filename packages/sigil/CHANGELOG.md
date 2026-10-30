@@ -1,5 +1,15 @@
 # @arcanewizards/sigil
 
+## 0.5.4
+
+### Patch Changes
+
+- 45c8fee: Add additional type-safety to additionalFiles
+
+  Make the type for the `additionalFiles` option stricter so that any
+  extension of the original files will require that the adhere to
+  ToolkitAdditionalFiles too.
+
 ## 0.5.3
 
 ### Patch Changes
