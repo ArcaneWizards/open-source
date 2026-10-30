@@ -128,6 +128,7 @@ export const WithLtcPlayer: FC<WithLtcPlayerProps> = ({
       ltcWriter.setPlayState(0, {
         state: 'stopped',
         currentTimeMillis: adjustedTimecode.positionMillis,
+        smpteMode: useSmpteMode,
       });
     }
   }, [ltcWriter, adjustedTimecode, useSmpteMode]);

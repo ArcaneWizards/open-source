@@ -1,6 +1,6 @@
 {
   "name": "@arcanewizards/ltc",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Package for inputting & outputting Linear Timecode with the WebAudio API.",
   "private": false,
   "license": "MIT",
