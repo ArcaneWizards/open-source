@@ -140,7 +140,13 @@ const ControlButtonFrame = forwardRef<
           {icon && (
             <Icon
               icon={icon}
-              className={cn(cnd(children, 'text-[120%]', 'text-[150%]'))}
+              className={cn(
+                cnd(
+                  children,
+                  'text-sigil-control-icon',
+                  'text-sigil-control-icon-solo',
+                ),
+              )}
             />
           )}
           {children}

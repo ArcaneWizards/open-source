@@ -38,6 +38,8 @@
 
   /* Font / Text */
   --text-sigil-control: var(--sigil-control-font-size);
+  --text-sigil-control-icon: var(--sigil-control-icon-font-size);
+  --text-sigil-control-icon-solo: var(--sigil-control-icon-solo-font-size);
 
   /* Background Gradients */
   --background-image-sigil-raised: linear-gradient(
@@ -358,7 +360,8 @@
 }
 
 :root {
-  /** TODO: move this to tailwind variable */
   --sigil-control-gap: 1px;
   --sigil-control-font-size: 0.7rem;
+  --sigil-control-icon-font-size: 1.14em;
+  --sigil-control-icon-solo-font-size: 1.42em;
 }
