@@ -1,5 +1,15 @@
 # @arcanewizards/sigil
 
+## 0.6.1
+
+### Patch Changes
+
+- 3a989ff: Preload fonts
+
+  Ensure that if there are no icons in-use,
+  that when an icon is displayed,
+  that there is no FOUC and the icon displays immediately.
+
 ## 0.6.0
 
 ### Minor Changes
