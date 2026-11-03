@@ -228,11 +228,13 @@ export const runSigilApp = <
           <title>${escapeHTML(context.title)}</title>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, user-scalable=no" />
+          <link rel="preload" href="${context.coreAssets.materialSymbolsOutlined}" as="font" type="font/woff2" crossorigin>
+          <link rel="preload" href="${context.assetUrls['aladin.woff2']}" as="font" type="font/woff2" crossorigin>
           <style type="text/css">
             @font-face {
               font-family: 'Material Symbols Outlined';
               font-style: normal;
-              src: url(${context.coreAssets.materialSymbolsOutlined}) format('woff');
+              src: url(${context.coreAssets.materialSymbolsOutlined}) format('woff2');
             }
             @font-face {
               font-family: 'Aladin';
