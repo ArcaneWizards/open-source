@@ -19,9 +19,8 @@
       "require": "./dist/index.js"
     },
     "./frontend": {
-      "@arcanewizards/source": "./src/components/frontend/index.tsx",
       "types": "./dist/components/frontend/index.d.ts",
-      "require": "./dist/frontend.js"
+      "default": "./dist/frontend.js"
     },
     "./entrypoint": "./dist/entrypoint.js",
     "./entrypoint.css": "./dist/entrypoint.css",
