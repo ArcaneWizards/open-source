@@ -1,5 +1,15 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.5.4
+
+### Patch Changes
+
+- 15d9877: Minor optimization
+
+  Ensure that a more production-ready build is produced,
+  avoiding bugs and optimizing the bundle using react-compiler,
+  and minifying the code for faster execution & removal of dead code.
+
 ## 0.5.3
 
 ### Patch Changes
