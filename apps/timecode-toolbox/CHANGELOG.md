@@ -1,5 +1,23 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.5.4
+
+### Patch Changes
+
+- 0c1b802: Avoid splicing the LTC writer output on small timeline adjustments
+
+  Play state updates that shift the timeline by up to 10ms (such as clock-sync
+  jitter between the browser and server) are now slewed in gradually instead of
+  jumping the waveform mid-frame. Previously each adjustment produced a frame with
+  the wrong number of bits, which LTC readers would drop or misread as an
+  unrelated timecode.
+
+- 15d9877: Minor optimization
+
+  Ensure that a more production-ready build is produced,
+  avoiding bugs and optimizing the bundle using react-compiler,
+  and minifying the code for faster execution & removal of dead code.
+
 ## 0.5.3
 
 ### Patch Changes

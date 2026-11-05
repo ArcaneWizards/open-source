@@ -18,5 +18,6 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@arcanewizards/smpte$': '<rootDir>/../smpte/src/index.ts',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };
