@@ -250,6 +250,19 @@ const LTC_WRITER_WORKLET_SOURCE = `
 const LTC_FRAME_BIT_COUNT = 80;
 const LTC_SYNC_WORD_START = 64;
 const LTC_OUTPUT_AMPLITUDE = 0.8;
+/**
+ * Play state updates that move the timeline by up to this much (e.g. clock
+ * sync jitter between the browser and server) are applied gradually, rather
+ * than by jumping the waveform mid-frame. Jumping by a fraction of a frame
+ * produces a frame with the wrong number of bits, which LTC readers either
+ * drop or misread as a completely different timecode.
+ */
+const LTC_MAX_SLEWED_CORRECTION_MILLIS = 10;
+/**
+ * Maximum rate at which small corrections are applied, as a fraction of the
+ * playback rate (0.002 = 0.2%, i.e. 2ms of correction per second of output).
+ */
+const LTC_CORRECTION_SLEW_RATE = 0.002;
 const SMPTE_TIMECODE_FPS = {
   FILM: 24,
   EBU: 25,
@@ -419,12 +432,24 @@ class LTCWriterChannel {
     this.encodedBits = new Uint8Array(LTC_FRAME_BIT_COUNT);
     this.prefixOnes = new Uint8Array(LTC_FRAME_BIT_COUNT + 1);
     this.frameKey = '';
+    // Continuity tracking, so small timeline adjustments don't splice the
+    // waveform (see LTC_MAX_SLEWED_CORRECTION_MILLIS)
+    this.playStateChanged = false;
+    this.correctionMillis = 0;
+    // Last rendered playing sample (scalar fields to avoid per-sample
+    // allocations on the audio thread)
+    this.hasLastRendered = false;
+    this.lastRenderedContextTimeMillis = 0;
+    this.lastRenderedTimecodeMillis = 0;
+    this.lastRenderedSpeed = 0;
+    this.lastRenderedMode = null;
   }
 
   setPlayState(state, mode) {
     this.lastMode = mode ?? this.lastMode;
     this.playState = state;
     this.oneShot = null;
+    this.playStateChanged = true;
   }
 
   setStoppedState(currentTimeMillis, mode) {
@@ -435,11 +460,60 @@ class LTCWriterChannel {
       mode: this.lastMode,
       sampleOffset: 0,
     };
+    this.resetContinuity();
   }
 
   clear() {
     this.playState = null;
     this.oneShot = null;
+    this.resetContinuity();
+  }
+
+  resetContinuity() {
+    this.playStateChanged = false;
+    this.correctionMillis = 0;
+    this.hasLastRendered = false;
+  }
+
+  /**
+   * Get the offset (in timecode millis) to add to the new play state's
+   * timeline so that output continues seamlessly from the last rendered
+   * sample, or 0 if the change is too large or not continuous and should be
+   * applied immediately.
+   */
+  getContinuityCorrection(state, contextTimeMillis, targetTimecodeMillis) {
+    if (
+      !this.hasLastRendered ||
+      this.lastRenderedSpeed !== state.speed ||
+      this.lastRenderedMode !== state.smpteMode
+    ) {
+      return 0;
+    }
+
+    const expectedTimecodeMillis =
+      this.lastRenderedTimecodeMillis +
+      (contextTimeMillis - this.lastRenderedContextTimeMillis) * state.speed;
+    const correctionMillis = expectedTimecodeMillis - targetTimecodeMillis;
+
+    return Math.abs(correctionMillis) <= LTC_MAX_SLEWED_CORRECTION_MILLIS
+      ? correctionMillis
+      : 0;
+  }
+
+  slewCorrection(state, contextTimeMillis) {
+    if (this.correctionMillis === 0 || !this.hasLastRendered) {
+      return;
+    }
+
+    const maxStepMillis =
+      Math.abs(
+        (contextTimeMillis - this.lastRenderedContextTimeMillis) * state.speed,
+      ) * LTC_CORRECTION_SLEW_RATE;
+    if (Math.abs(this.correctionMillis) <= maxStepMillis) {
+      this.correctionMillis = 0;
+    } else {
+      this.correctionMillis -= Math.sign(this.correctionMillis) * maxStepMillis;
+    }
   }
 
   updateFrameBits(timecode, reverse) {
@@ -490,14 +564,34 @@ class LTCWriterChannel {
   getPlayingSample(contextTimeMillis) {
     const state = this.playState;
     if (!state || state.speed === 0) {
+      this.resetContinuity();
       return 0;
     }
 
     const mode = state.smpteMode;
     const reverse = state.speed < 0;
-    const timecodeMillis =
+    const targetTimecodeMillis =
       (contextTimeMillis - state.effectiveStartContextTimeMillis) *
       state.speed;
+
+    if (this.playStateChanged) {
+      this.playStateChanged = false;
+      this.correctionMillis = this.getContinuityCorrection(
+        state,
+        contextTimeMillis,
+        targetTimecodeMillis,
+      );
+    } else {
+      this.slewCorrection(state, contextTimeMillis);
+    }
+
+    const timecodeMillis = targetTimecodeMillis + this.correctionMillis;
+    this.hasLastRendered = true;
+    this.lastRenderedContextTimeMillis = contextTimeMillis;
+    this.lastRenderedTimecodeMillis = timecodeMillis;
+    this.lastRenderedSpeed = state.speed;
+    this.lastRenderedMode = mode;
+
     const wrappedTimecodeMillis = wrapTimeMillis(mode, timecodeMillis);
     const timecode = getTimecodeFromMillis(mode, wrappedTimecodeMillis);
     const frameDurationMillis = 1000 / SMPTE_TIMECODE_FPS[mode];
