@@ -41,3 +41,9 @@ or downloaded below:
 We don't currently sign our windows releases with a code-signing certificate,
 this means you will be faced with a warning when you open it for the first time,
 and anti-virus apps may interfere with its operation.
+
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com/">
+    <img src="https://arcanewizards.com/static/made-white.svg" alt="Made by Human" height="70">
+  </a>
+</p>

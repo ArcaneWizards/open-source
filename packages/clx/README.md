@@ -10,3 +10,9 @@ for timecode information.
 ```sh
 pnpm add @arcanewizards/clx
 ```
+
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com/">
+    <img src="https://arcanewizards.com/static/made-white.svg" alt="Made by Human" height="70">
+  </a>
+</p>

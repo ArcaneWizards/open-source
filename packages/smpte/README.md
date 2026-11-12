@@ -9,3 +9,9 @@ Small library for handling processing & calculations of SMPTE timecodes.
 ```sh
 pnpm add @arcanewizards/smpte
 ```
+
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com/">
+    <img src="https://arcanewizards.com/static/made-white.svg" alt="Made by Human" height="70">
+  </a>
+</p>

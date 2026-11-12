@@ -49,3 +49,9 @@ Each entry returned by `getNetworkInterfaces()` includes:
 - `broadcastAddress`
 
 Only IPv4 addresses are included.
+
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com/">
+    <img src="https://arcanewizards.com/static/made-white.svg" alt="Made by Human" height="70">
+  </a>
+</p>

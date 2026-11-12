@@ -67,3 +67,9 @@ node.connect();
 ## Logger Contract
 
 `createTCNetNode(...)` expects a logger with `error`, `warn`, `info`, and `debug` methods. `pino` works directly, and the package keeps `pino` as an optional peer dependency.
+
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com/">
+    <img src="https://arcanewizards.com/static/made-white.svg" alt="Made by Human" height="70">
+  </a>
+</p>
