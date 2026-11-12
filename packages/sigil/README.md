@@ -95,3 +95,9 @@ For frontend applications, import the exported styles from your app stylesheet:
 
 - The package is designed for React-based Arcane applications.
 - The frontend and backend APIs are intentionally split into subpath exports so consumers only import the surface they need.
+
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com/">
+    <img src="https://arcanewizards.com/static/made-white.svg" alt="Made by Human" height="70">
+  </a>
+</p>

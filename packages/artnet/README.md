@@ -111,3 +111,9 @@ Targets follow the shared `ConnectionConfig` shape:
 - `{ type: 'interface', interface: 'en0', port?: number }`
 
 When sending through an interface target, the package resolves the interface broadcast address automatically.
+
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com/">
+    <img src="https://arcanewizards.com/static/made-white.svg" alt="Made by Human" height="70">
+  </a>
+</p>
