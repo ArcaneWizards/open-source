@@ -72,6 +72,14 @@
   }
 }
 
+@utility sigil-control-button-group-direction-column {
+  flex-direction: column;
+}
+
+@utility sigil-control-button-group-direction-row {
+  flex-direction: row;
+}
+
 @utility sigil-control-button-group-variant-large {
   --sigil-control-button-group-padding: calc(var(--arcane-spacing) / 1.5)
     calc(var(--arcane-spacing) / 1.5);
@@ -274,13 +282,23 @@
     border: 0;
   }
 
-  &:first-child > span {
+  .sigil-control-button-group-direction-row &:first-child > span {
     border-top-left-radius: var(--sigil-control-button-border-radius);
     border-bottom-left-radius: var(--sigil-control-button-border-radius);
   }
 
-  &:last-child > span {
+  .sigil-control-button-group-direction-row &:last-child > span {
     border-top-right-radius: var(--sigil-control-button-border-radius);
+    border-bottom-right-radius: var(--sigil-control-button-border-radius);
+  }
+
+  .sigil-control-button-group-direction-column &:first-child > span {
+    border-top-left-radius: var(--sigil-control-button-border-radius);
+    border-top-right-radius: var(--sigil-control-button-border-radius);
+  }
+
+  .sigil-control-button-group-direction-column &:last-child > span {
+    border-bottom-left-radius: var(--sigil-control-button-border-radius);
     border-bottom-right-radius: var(--sigil-control-button-border-radius);
   }
 }
