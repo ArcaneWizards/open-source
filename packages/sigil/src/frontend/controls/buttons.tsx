@@ -282,31 +282,45 @@ LongPressableControlButton.displayName = 'LongPressableControlButton';
 export type ControlButtonGroupProps = ComponentPropsWithoutRef<'div'> & {
   position?: ControlPosition;
   variant?: 'standard' | 'large' | 'table-row' | 'toolbar' | 'border';
+  direction?: 'row' | 'column';
 };
 
 export const ControlButtonGroup = forwardRef<
   HTMLDivElement,
   ControlButtonGroupProps
->(({ children, className, position, variant, ...props }, ref) => (
-  <div
-    {...props}
-    ref={ref}
-    className={cn(
-      'sigil-control-button-group',
-      cnd(variant === 'large', 'sigil-control-button-group-variant-large'),
-      cnd(
-        variant === 'table-row',
-        `sigil-control-button-group-variant-table-row`,
-      ),
-      cnd(variant === 'toolbar', 'sigil-control-button-group-variant-toolbar'),
-      cnd(variant === 'border', 'sigil-control-button-group-variant-border'),
-      clsControlPosition(position),
-      className,
-    )}
-  >
-    {children}
-  </div>
-));
+>(
+  (
+    { children, className, position, variant, direction = 'row', ...props },
+    ref,
+  ) => (
+    <div
+      {...props}
+      ref={ref}
+      className={cn(
+        'sigil-control-button-group',
+        cnd(variant === 'large', 'sigil-control-button-group-variant-large'),
+        cnd(
+          variant === 'table-row',
+          `sigil-control-button-group-variant-table-row`,
+        ),
+        cnd(
+          variant === 'toolbar',
+          'sigil-control-button-group-variant-toolbar',
+        ),
+        cnd(variant === 'border', 'sigil-control-button-group-variant-border'),
+        cnd(direction === 'row', 'sigil-control-button-group-direction-row'),
+        cnd(
+          direction === 'column',
+          'sigil-control-button-group-direction-column',
+        ),
+        clsControlPosition(position),
+        className,
+      )}
+    >
+      {children}
+    </div>
+  ),
+);
 
 ControlButtonGroup.displayName = 'ControlButtonGroup';
 

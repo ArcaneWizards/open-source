@@ -1,5 +1,14 @@
 # @arcanewizards/sigil
 
+## 0.6.2
+
+### Patch Changes
+
+- 124121f: Introduce direction in ControlButtonGroup
+
+  Allow button groups to be oriented vertically,
+  and adjust the button radiuses of the buttons accordingly.
+
 ## 0.6.1
 
 ### Patch Changes
