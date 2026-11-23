@@ -274,6 +274,52 @@
   );
 }
 
+@utility sigil-control-button-span {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sigil-control-button-border-radius);
+  padding: calc(var(--arcane-spacing) / 3) calc(var(--arcane-spacing) / 1.5);
+  overflow: hidden;
+  white-space: nowrap;
+  gap: calc(var(--arcane-spacing) / 1.5);
+  background: var(--sigil-button-bg);
+  box-shadow:
+    inset 0 1px 1px var(--sigil-shadow-highlight),
+    inset 0 -1px 0 var(--sigil-shadow-dark);
+  background: var(--sigil-control-button-bg);
+  border: 2px solid var(--sigil-border);
+
+  > .font-arcane-icon {
+    margin: -6px -4px;
+  }
+}
+
+@utility sigil-control-button-span-hover {
+  background: var(--sigil-control-button-bg-hover);
+  color: var(--sigil-control-button-fg-hover);
+}
+
+@utility sigil-control-button-span-hover-disabled {
+  cursor: not-allowed;
+  background: var(--sigil-control-button-bg);
+  color: inherit;
+}
+
+@utility sigil-control-button-span-active {
+  background: var(--sigil-control-button-bg-active);
+  color: var(--sigil-control-button-fg-active);
+  box-shadow:
+    inset 0 1px 1px var(--sigil-shadow-dark),
+    inset 0 -1px 0 var(--sigil-shadow-highlight);
+}
+
+@utility sigil-control-button-span-active-hover {
+  color: var(--sigil-control-button-fg-active);
+  background: var(--sigil-control-button-bg-active-hover);
+}
+
 @utility scrollbar-sigil {
   scrollbar-color: var(--sigil-bg-light) var(--sigil-border);
 }

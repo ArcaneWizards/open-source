@@ -19,6 +19,11 @@ export type SMPTETimecodeFrameWithMillis = SMPTETimecodeFrame & {
   timeMillis: number;
 };
 
+export type SMPTETimecodeFrameWithMillisAndFrames =
+  SMPTETimecodeFrameWithMillis & {
+    totalFrames: number;
+  };
+
 export type SMPTETimecodePlayState =
   | {
       state: 'playing';
@@ -87,7 +92,7 @@ const DROP_FRAME_FRAMES_PER_24_HOURS = DROP_FRAME_FRAMES_PER_HOUR * 24;
 
 export const getDropFrameTimecode = (
   timeMillis: number,
-): SMPTETimecodeFrameWithMillis => {
+): SMPTETimecodeFrameWithMillisAndFrames => {
   const totalFrames = Math.floor(
     (timeMillis * DROP_FRAME_NUMERATOR) / (1000 * DROP_FRAME_DENOMINATOR),
   );
@@ -110,6 +115,7 @@ export const getDropFrameTimecode = (
   const displayFrameNumber = wrappedFrames + skippedFrames;
 
   return {
+    totalFrames,
     hours: Math.floor(
       displayFrameNumber / (DROP_FRAME_FRAMES_PER_SECOND * 60 * 60),
     ),
@@ -125,12 +131,16 @@ export const getDropFrameTimecode = (
 export const getTimecodeFromMillis = (
   mode: SMPTETimecodeMode,
   timeMillis: number,
-): SMPTETimecodeFrameWithMillis => {
+): SMPTETimecodeFrameWithMillisAndFrames => {
   if (mode === 'DF') {
     return getDropFrameTimecode(timeMillis);
   }
 
+  const totalFrames = Math.floor(
+    (timeMillis * SMPTE_TIMECODE_FPS[mode]) / 1000,
+  );
   return {
+    totalFrames,
     hours: Math.floor(timeMillis / 3600000),
     minutes: Math.floor((timeMillis % 3600000) / 60000),
     seconds: Math.floor((timeMillis % 60000) / 1000),

@@ -5,7 +5,8 @@ export type ControlPosition =
   | 'second'
   | 'both'
   | 'all'
-  | 'extra';
+  | 'extra'
+  | 'manual';
 
 export const clsControlPosition = (position?: ControlPosition) => {
   if (!position) return undefined;
@@ -24,7 +25,10 @@ export const clsControlPosition = (position?: ControlPosition) => {
       return 'control-grid-pos-all';
     case 'extra':
       return 'control-grid-pos-extra';
+    case 'manual':
+      return undefined;
   }
+  const _exhaustiveCheck: never = position;
 };
 
 export const clsControlSubgridPosition = (
