@@ -1,5 +1,11 @@
 # @arcanewizards/apis
 
+## 0.2.0
+
+### Minor Changes
+
+- 23329fd: Upgrade zod to v4
+
 ## 0.1.0
 
 ### Minor Changes

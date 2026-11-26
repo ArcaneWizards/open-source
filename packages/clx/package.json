@@ -1,6 +1,6 @@
 {
   "name": "@arcanewizards/clx",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": false,
   "license": "MIT",
   "type": "module",
@@ -53,6 +53,6 @@
   "dependencies": {
     "@arcanewizards/net-utils": "workspace:^",
     "@msgpack/msgpack": "^3.1.3",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   }
 }

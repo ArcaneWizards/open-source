@@ -31,7 +31,7 @@ export const DEFAULT_TIMECODE_PREFERENCES: TimecodePreferences = {
 // Recording
 
 const AUDIO_RECORDING_PREFERENCES_TYPE = z.object({
-  timecodes: z.record(TIMECODE_PREFERENCES),
+  timecodes: z.record(z.string(), TIMECODE_PREFERENCES),
 });
 
 type AudioRecordingPreferences = z.infer<
@@ -54,7 +54,7 @@ export const useBrowserRecordingPreferences = createBrowserPreferencesHook(
 // Playback
 
 const AUDIO_PLAYBACK_PREFERENCES_TYPE = z.object({
-  timecodes: z.record(TIMECODE_PREFERENCES),
+  timecodes: z.record(z.string(), TIMECODE_PREFERENCES),
 });
 
 type AudioPlaybackPreferences = z.infer<typeof AUDIO_PLAYBACK_PREFERENCES_TYPE>;

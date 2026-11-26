@@ -80,10 +80,10 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "uuid": "^11.1.1",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "dependencies": {
-    "@arcanejs/react-toolkit": "^0.16.6",
+    "@arcanejs/react-toolkit": "^0.17.0",
     "@arcanejs/toolkit": "^9.2.0",
     "@arcanewizards/midi": "workspace:^",
     "@arcanewizards/net-utils-native": "workspace:^",
