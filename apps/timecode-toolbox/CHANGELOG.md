@@ -1,5 +1,11 @@
 # @arcanewizards/timecode-toolbox
 
+## 0.5.5
+
+### Patch Changes
+
+- 336f30a: Upgrade some internal dependencies (zod)
+
 ## 0.5.4
 
 ### Patch Changes
