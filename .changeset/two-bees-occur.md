@@ -1,6 +1,6 @@
 ---
-'@arcanewizards/sigil': patch
-'@arcanewizards/apis': patch
+'@arcanewizards/sigil': minor
+'@arcanewizards/apis': minor
 '@arcanewizards/clx': patch
 ---
 
