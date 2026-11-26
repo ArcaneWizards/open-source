@@ -1,5 +1,23 @@
 # @arcanewizards/sigil
 
+## 0.7.0
+
+### Minor Changes
+
+- 23329fd: Upgrade zod to v4
+
+### Patch Changes
+
+- ace4482: Extract button classes into utilities
+- ace4482: Allow manual position to be specified
+
+  For control components that allow or require a `position` to be specified,
+  `manual` can be specified to avoid setting any grid positions for the component,
+  for use in bespoke grids.
+
+- Updated dependencies [23329fd]
+  - @arcanewizards/apis@0.2.0
+
 ## 0.6.2
 
 ### Patch Changes
